@@ -170,4 +170,4 @@ app.use("/api/stripe-connect", connectRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(port, () => console.log(`Server started on port ${port}`));
+app.listen(port, () => console.log(`Server Started on port ${port}`));
