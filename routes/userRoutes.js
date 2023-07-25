@@ -9,7 +9,11 @@ import {
   getExternalAccount,
   getUserProfile,
   updateUserProfileImage,
-  updateUserProfile
+  updateUserProfile,
+  getMyNotifications,
+  resetPassword,
+  sendResetPasswordEmail,
+  changePassword
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -21,9 +25,14 @@ router.post('/logout', logoutUser);
 router.post('/my-profile-image', updateUserProfileImage);
 router.post('/update-address',updateUserAddress);
 router.post('/update-user-profile',updateUserProfile);
+router.post('/notifications',getMyNotifications);
 router.get('/autologin', autoLogin);
 router.get('/external-account', getExternalAccount);
 router.get('/user-profile', getUserProfile);
+router.post('/user-profile', getUserProfile);
+router.post('/reset-password', resetPassword);
+router.post('/change-password', changePassword);
+router.post('/send-reset-password-email', sendResetPasswordEmail);
 router
   .route('/seller-profile')
   .get(protect, getSellerProfile)

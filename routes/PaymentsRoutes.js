@@ -8,7 +8,8 @@ import {
     GetBankAccounts,
     SetDefaultBank,
     CreatePaymentIntent,
-    RequestReserve
+    RequestReserve,
+    DeclineRequest
 } from '../controllers/PaymentsController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -22,5 +23,6 @@ router.post('/set-default-bank', SetDefaultBank);
 router.post('/external-bank', CreateExternalBankAccount);
 router.post('/create-payment-intent', CreatePaymentIntent);
 router.post('/request-reserve', RequestReserve);
+router.post('/decline-request', DeclineRequest);
 
 export default router;

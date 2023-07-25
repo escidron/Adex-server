@@ -2,61 +2,7 @@ import asyncHandler from "express-async-handler";
 import database from ".././db.js";
 import Stripe from "stripe";
 import jwt from "jsonwebtoken";
-
-//not use anymore
-// const CreateSubscribing = asyncHandler(async (req, res) => {
-//   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-//   const { productName, productPrice, interval } = req.body;
-//   const token = req.cookies.jwt;
-//   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//   const userId = decoded.userId;
-
-//   let customerId = "";
-//   console.log("entrou no create subcibin");
-
-//   const checkCustomerExist = `SELECT * FROM adax.buyers where user_id = ${userId}`;
-//   database.query(checkCustomerExist, (err, results) => {
-//     console.log("entrou na qury");
-//     if (err) {
-//       console.log("Error getting information to MySQL database:", err);
-//       res.status(500).json({
-//         error: "An error occurred while saving the information.",
-//       });
-//       return;
-//     }
-//     if (results.length > 0) {
-//       customerId = results[0].customer_id;
-//     }
-//     createsubscription();
-//     console.log("results", results);
-//   });
-
-//   async function createsubscription() {
-//     const product = await stripe.products.create({
-//       name: productName,
-//     });
-//     console.log("product", product);
-
-//     const price = await stripe.prices.create({
-//       unit_amount: productPrice * 100,
-//       currency: "USD",
-//       recurring: { interval: interval },
-//       product: product.id,
-//     });
-//     console.log("price", price);
-
-//     const subscription = await stripe.subscriptions.create({
-//       customer: customerId,
-//       items: [{ price: price.id }],
-//       payment_settings: {
-//         payment_method_types: ["card"],
-//       },
-//     });
-//     console.log("subscription", subscription);
-//   }
-
-//   res.status(200).json({ message: "subcription created" });
-// });
+import sendEmail from "../utils/sendEmail.js";
 
 const CreateCustomer = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -142,17 +88,11 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       customerId = results[0].customer_id;
     }
     createCustomer();
-    console.log("results", results);
   });
   //save customer
 
-  console.log("customerId", customerId);
-
   async function createCustomer() {
     if (customerId != "") {
-      console.log("entrou no customer id");
-      console.log("entrou no update");
-
       const paymentMethod = await stripe.paymentMethods.attach(cardId, {
         customer: customerId,
       });
@@ -170,12 +110,10 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       `;
       saveCustomer(queryCustomers);
     } else {
-      console.log("entrou no create");
-
       const customer = await stripe.customers.create({
         description: fullName,
         email: email,
-        test_clock: "clock_1NQjW3EPsNRBDePl9v0CssKX",
+        test_clock: "clock_1NWoYSEPsNRBDePlOrqqSAvc",
       });
 
       customerId = customer.id;
@@ -234,7 +172,6 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
   //get userID
   const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
     req.body;
-  console.log("entrouuuuu");
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
@@ -245,7 +182,6 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
 
-  console.log(stripeAccount);
   try {
     const bankAccount = await stripe.accounts.createExternalAccount(
       stripeAccount,
@@ -337,20 +273,16 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 });
 
 const GetCards = asyncHandler(async (req, res) => {
-  console.log("cards router");
   //get user id
   const token = req.cookies.jwt;
-  console.log("token", token);
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   if (token) {
-    console.log("token");
     try {
       const sql = `SELECT * FROM adax.cards where user_id = ${userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
-        console.log(result);
         res.status(200).json({
           data: result,
         });
@@ -379,7 +311,6 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
       const sql = `SELECT * FROM adax.external_bank_accounts where user_id = ${userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
-        console.log(result);
         res.status(200).json({
           data: result,
         });
@@ -425,7 +356,6 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
     WHERE user_id = ${userId}
      
 `;
-  console.log("QURYYYYY", queryUpDateDefaultCard);
   database.query(queryUpDateDefaultCard, (err, results) => {
     if (err) {
       console.log("Error saving information to MySQL database:", err);
@@ -450,7 +380,6 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
       customerId = results[0].customer_id;
     }
     createCustomer();
-    console.log("results", results);
   });
   //save customer
 
@@ -507,8 +436,6 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
 
-  console.log("bankId", bankId);
-
   // get the seller account
   const queryGetSellerAccount = `
     SELECT * FROM sellers WHERE user_id = ${userId}
@@ -532,7 +459,6 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
       bankId,
       { default_for_currency: true }
     );
-    console.log("bankAccount", bankAccount);
     if (account) {
       const queryUpDateDefaultBank = `
       UPDATE external_bank_accounts
@@ -551,7 +477,6 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
           });
           return;
         }
-        console.log(results);
       });
 
       // update the default account in the seller table
@@ -583,8 +508,7 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
-  console.log("payment intent");
-  const { data, start_date, duration } = req.body;
+  const { data, start_date, duration,current_discount } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
@@ -615,9 +539,6 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   endDate = new Date(endDate);
   const endDateFormatted = endDate.toISOString().slice(0, 19).replace("T", " ");
 
-  var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-  var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-  console.log("timeStampStartDate", timeStampStartDate);
   let sellerAccount = "";
   //get the seller connected stripe account
   const querySellers = `SELECT * FROM adax.sellers where user_id = ${data.created_by}`;
@@ -628,54 +549,83 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   });
 
   //get the buyer info
-  const query = `SELECT * FROM adax.buyers where user_id = ${data.requested_by?data.requested_by:userId}`;
+  const query = `SELECT * FROM adax.buyers where user_id = ${
+    data.requested_by ? data.requested_by : userId
+  }`;
   database.query(query, (err, result) => {
     if (err) throw err;
-    const paymentMethod = result[0].default_card;
     const customerId = result[0].customer_id;
-    const customerEmail = result[0].email;
-    connectCustomer(paymentMethod, customerId, customerEmail);
+    connectCustomer(customerId);
   });
 
-  async function connectCustomer(paymentMethod, customerId, customerEmail) {
-    console.log("data", data);
-    // const subscription = await stripe.subscriptions.create({
-    //   customer: customerId,
-    //   items: [{ price: data.stripe_price }],
-    //   payment_settings: {
-    //     payment_method_types: ["card"],
-    //   },
-    //   transfer_data: {
-    //     destination: sellerAccount,
-    //   },
-    //   billing_cycle_anchor:timeStampStartDate,
-    //   cancel_at: timeStampEndDate,
-    //   application_fee_percent: 10,
-    // });
+  async function connectCustomer(customerId) {
+    let subscription = "";
+    if (data.ad_duration_type === "0") {
+      const startDate = new Date();
+      const endDate = new Date();
 
-    const subscription = await stripe.subscriptionSchedules.create({
-      customer: customerId,
-      start_date: timeStampStartDate,
-      end_behavior: "cancel",
-      phases: [
-        {
-          items: [
-            {
-              price: data.stripe_price,
-              quantity: 1,
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+
+      subscription = await stripe.subscriptionSchedules.create({
+        customer: customerId,
+        start_date: timeStampStartDate,
+        end_behavior: "cancel",
+        phases: [
+          {
+            items: [
+              {
+                price: data.stripe_price,
+                quantity: 1,
+              },
+            ],
+            end_date: timeStampEndDate,
+
+            transfer_data: {
+              destination: sellerAccount,
             },
-          ],
-          end_date: timeStampEndDate,
-
-          transfer_data: {
-            destination: sellerAccount,
+            application_fee_percent: 10,
           },
-          application_fee_percent: 10,
-        },
-      ],
-    });
+        ],
+      });
+    } else {
+      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+      
+      let coupon =''
+  
+      if(current_discount > 0){
+         coupon = await stripe.coupons.create({
+          percent_off: current_discount,
+          duration: 'forever'
+        });
+      }
 
-    console.log("subscription", subscription);
+      subscription = await stripe.subscriptionSchedules.create({
+        customer: customerId,
+        start_date: timeStampStartDate,
+        end_behavior: "cancel",
+        phases: [
+          {
+            items: [
+              {
+                price: data.stripe_price,
+                quantity: 1,
+              },
+            ],
+            end_date: timeStampEndDate,
+            coupon:coupon.id?coupon.id:null,
+            transfer_data: {
+              destination: sellerAccount,
+            },
+            application_fee_percent: 10,
+          },
+        ],
+      });
+    }
+
     if (subscription.id) {
       const query = `
       INSERT INTO contracts (
@@ -698,7 +648,6 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         '${formattedUpdatedAt}'
       )
     `;
-      console.log("queryyyy");
       database.query(query, (err, results) => {
         if (err) {
           console.log("Error saving information to MySQL database:", err);
@@ -710,7 +659,10 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
       const queryUpDateAdStatus = `
         UPDATE advertisement
-        SET status = 2
+        SET status = 2,
+        start_date = '${startDateFormatted}',
+        end_date = '${endDateFormatted}',
+        duration = '${duration}'
         WHERE id = ${data.id}
     `;
       database.query(queryUpDateAdStatus, (err, results) => {
@@ -720,6 +672,56 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
             error: "An error occurred while saving the information.",
           });
         }
+
+        const notificationQuery = `
+        INSERT INTO notifications (
+          user_id,
+          header,
+          message,
+          created_at,
+          redirect
+        ) VALUES (
+          '${data.created_by == userId ? data.requested_by : data.created_by}',
+          '${
+            data.created_by == userId
+              ? "Booking Request accepted"
+              : "Listing booked"
+          }',
+          '${
+            data.created_by == userId
+              ? "Your Booking request was accepted, see more details"
+              : "One of your listing was booked, see more details"
+          }',
+          '${formattedUpdatedAt}',
+          '${
+            data.created_by == userId
+              ? `/my-booking?id=${data.id}`
+              : `/my-listing?id=${data.id}`
+          }'
+        )
+      `;
+        database.query(notificationQuery, (err, results) => {
+          if (err) {
+            console.log("Error saving information to MySQL database:", err);
+            return;
+          }
+        });
+
+        const userQuery = `SELECT * FROM users WHERE id = '${data.created_by == userId ? data.requested_by : data.created_by}'`;
+        database.query(userQuery, (err, results) => {
+          if (err) {
+            console.log("Error saving information to MySQL database:", err);
+            return;
+          }
+          if (results.length > 0) {
+            const email = results[0].email
+            sendEmail(
+              email,
+              data.created_by == userId? "Booking Request accepted": "Listing booked",
+              data.created_by == userId? "Your Booking request was accepted, see more details": "One of your listing was booked, see more details"
+              )
+          }
+        });
         res.status(200).json({ message: "subscription created successfuly" });
       });
     }
@@ -727,12 +729,10 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 });
 
 const RequestReserve = asyncHandler(async (req, res) => {
-  console.log("request reserve");
   const { data, start_date, duration } = req.body;
 
   //get user id
   const token = req.cookies.jwt;
-  console.log("token", token);
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
@@ -742,19 +742,25 @@ const RequestReserve = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
 
-    let endDate = new Date(startDate);
+  const currentDate = new Date();
+  const createdAtFormatted = currentDate
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
 
-    if (data.ad_duration_type == "1") {
-      endDate.setMonth(startDate.getMonth() + duration);
-    } else if (data.ad_duration_type == "2") {
-      endDate.setMonth(startDate.getMonth() + duration * 3);
-    } else if (data.ad_duration_type == "3") {
-      endDate.setFullYear(startDate.getFullYear() + duration);
-    }
-    endDate = endDate.toISOString().substring(0, 10);
-  
-    endDate = new Date(endDate);
-    const endDateFormatted = endDate.toISOString().slice(0, 19).replace("T", " ");
+  let endDate = new Date(startDate);
+
+  if (data.ad_duration_type == "1") {
+    endDate.setMonth(startDate.getMonth() + duration);
+  } else if (data.ad_duration_type == "2") {
+    endDate.setMonth(startDate.getMonth() + duration * 3);
+  } else if (data.ad_duration_type == "3") {
+    endDate.setFullYear(startDate.getFullYear() + duration);
+  }
+  endDate = endDate.toISOString().substring(0, 10);
+
+  endDate = new Date(endDate);
+  const endDateFormatted = endDate.toISOString().slice(0, 19).replace("T", " ");
 
   if (token) {
     try {
@@ -768,10 +774,121 @@ const RequestReserve = asyncHandler(async (req, res) => {
         requested_by = ${userId}
         WHERE id = ${data.id}
     `;
-    console.log(queryUpDateAdStatus)
       database.query(queryUpDateAdStatus, (err, result) => {
         if (err) throw err;
-        console.log(result);
+
+        const notificationQuery = `
+        INSERT INTO notifications (
+          user_id,
+          header,
+          message,
+          created_at,
+          redirect
+        ) VALUES (
+          '${data.created_by}',
+          'Booking Request',
+          'You have a booking request',
+          '${createdAtFormatted}',
+          '/my-listing?id=${data.id}'
+        )
+      `;
+        database.query(notificationQuery, (err, results) => {
+          if (err) {
+            console.log("Error saving information to MySQL database:", err);
+            return;
+          }
+        });
+
+        const userQuery = `SELECT * FROM users WHERE id = '${data.created_by}'`;
+        database.query(userQuery, (err, results) => {
+          if (err) {
+            console.log("Error saving information to MySQL database:", err);
+            return;
+          }
+          if (results.length > 0) {
+            const email = results[0].email
+            sendEmail(email,'Booking request','You have a booking request')
+          }
+        });
+
+        res.status(200).json({
+          data: result,
+        });
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const DeclineRequest = asyncHandler(async (req, res) => {
+  const { id, requestedBy } = req.body;
+
+  const currentDate = new Date();
+  const createdAtFormatted = currentDate
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+  //get user id
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  if (token) {
+    try {
+      const queryUpDateAdStatus = `
+        UPDATE advertisement
+        SET 
+        status = 1,
+        start_date = ${null},
+        end_date = ${null},
+        duration = 0,
+        requested_by = ''
+        WHERE id = ${id}
+    `;
+      database.query(queryUpDateAdStatus, (err, result) => {
+        if (err) throw err;
+        const notificationQuery = `
+        INSERT INTO notifications (
+          user_id,
+          header,
+          message,
+          created_at,
+          redirect
+        ) VALUES (
+          '${requestedBy}',
+          'Booking Request rejected',
+          'Your booking request was rejected, see more details',
+          '${createdAtFormatted}',
+          '/my-listing?id=${id}'
+        )
+      `;
+        database.query(notificationQuery, (err, results) => {
+          if (err) {
+            console.log("Error saving information to MySQL database:", err);
+            return;
+          }
+        });
+
+        const userQuery = `SELECT * FROM users WHERE id = '${requestedBy}'`;
+        database.query(userQuery, (err, results) => {
+          if (err) {
+            console.log("Error saving information to MySQL database:", err);
+            return;
+          }
+          if (results.length > 0) {
+            const email = results[0].email
+            sendEmail(email,'Booking request Rejected','Your booking request was rejected')
+          }
+        });
+
         res.status(200).json({
           data: result,
         });
@@ -797,5 +914,6 @@ export {
   GetBankAccounts,
   SetDefaultBank,
   CreatePaymentIntent,
-  RequestReserve
+  RequestReserve,
+  DeclineRequest,
 };

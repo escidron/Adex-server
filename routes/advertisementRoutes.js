@@ -5,7 +5,11 @@ createAdvertisement,
 updateAdvertisement,
 getMyAdvertisement,
 GetAdvertisementDetails,
-getMyBookings
+getMyBookings,
+getMessages,
+getChatInfo,
+DeleteAdvertisment,
+getDiscounts
 } from '../controllers/advertisementController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -15,6 +19,10 @@ router.post('/my-advertisement', getMyAdvertisement);
 router.post('/my-booking', getMyBookings);
 router.post('/new', createAdvertisement);
 router.post('/update', updateAdvertisement);
+router.post('/delete-advertisement', DeleteAdvertisment);
 router.post('/details', GetAdvertisementDetails);
+router.post('/messages', getMessages);
+router.post('/chat-info', getChatInfo);
+router.post('/discounts', getDiscounts);
 
 export default router;

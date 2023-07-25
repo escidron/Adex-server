@@ -9,32 +9,49 @@ import Stripe from "stripe";
 import getImageBase64 from "../utils/getImageBase64.js";
 
 const getAdvertisement = asyncHandler(async (req, res) => {
-  console.log("entrouuuu");
   const token = req.cookies.jwt;
   const { radius, type, adGroup, priceMin, priceMax } = req.body;
+
+  let types = "";
+  if (type == 1) {
+    types = "4,5,6,7,8";
+  } else if (type == 2) {
+    types = "9,10,11,12";
+  } else if (type == 3) {
+    types = "17,18";
+  }
+
   if (token) {
     try {
       const sql = `SELECT * FROM adax.advertisement where price BETWEEN ${
         priceMin != "" ? priceMin : 0
       } AND ${priceMax != "" ? priceMax : 0} ${
-        type ? "and ad_type=" + type : ""
-      } ${adGroup ? "and ad_group=" + adGroup : ""}`;
+        type != "" ? "and category_id IN (" + types + ")" : ""
+      } ${adGroup != "" ? "and created_by_type=" + adGroup : ""}`;
       database.query(sql, (err, result) => {
         if (err) {
           console.log(err);
           throw err;
         }
         if (result.length == 0) {
-          console.log("no add");
           res.status(200).json({
             data: [],
           });
         } else {
-          console.log("xxxx");
-          const advertisementsWithImages = result.map((ad) => ({
-            ...ad,
-            image: getImageBase64(ad), // Assuming 'imagePath' is the column name in the database storing the image path
-          }));
+          
+          
+          const advertisementsWithImages = result.map((advertisement) => {
+            const images = [];
+            
+            const imageArray = advertisement.image.split(";");
+            imageArray.map((image)=>{
+                images.push({data_url:getImageBase64(image)})
+            })
+            return {
+              ...advertisement,
+              image: images,
+            };
+          });
           res.status(200).json({
             data: advertisementsWithImages,
           });
@@ -54,17 +71,16 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 });
 
 const getMyAdvertisement = asyncHandler(async (req, res) => {
-  console.log("entrou na rota");
   //get user id
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
-
+  const { id, notificationId } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("entro no try");
-      const sql = `SELECT * FROM adax.advertisement where created_by = ${decoded.userId}`;
+      const sql = `SELECT * FROM adax.advertisement where created_by = ${userId} ${
+        id ? "and id=" + id : ""
+      }`;
       database.query(sql, (err, result) => {
         if (err) throw err;
         if (result.length == 0) {
@@ -72,13 +88,21 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
             error: "Advertisement does not exists",
           });
         } else {
-          console.log("result", result);
-
           // Add base64 image to each advertisement object
-          const advertisementsWithImages = result.map((ad) => ({
-            ...ad,
-            image: getImageBase64(ad), // Assuming 'imagePath' is the column name in the database storing the image path
-          }));
+
+          
+          const advertisementsWithImages = result.map((advertisement) => {
+            const images = [];
+            
+            const imageArray = advertisement.image.split(";");
+            imageArray.map((image)=>{
+                images.push({data_url:getImageBase64(image)})
+            })
+            return {
+              ...advertisement,
+              image: images,
+            };
+          });
           const status = {
             available: 0,
             running: 0,
@@ -90,17 +114,43 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
               status.available++;
             } else if (item.status == "2") {
               status.running++;
-            }else if (item.status == "3") {
+            } else if (item.status == "3") {
               status.finished++;
-            }else if (item.status == "4") {
+            } else if (item.status == "4") {
               status.pending++;
             }
           });
 
-          res.status(200).json({
-            data: advertisementsWithImages,
-            status
-          });
+          if (notificationId != undefined) {
+            const UpdateNotifications = `
+            UPDATE notifications SET
+              readed = '1'
+            WHERE id = '${notificationId}' and readed = '0'
+          `;
+            database.query(UpdateNotifications, (err, results) => {
+              if (err) {
+                console.error(
+                  "Error updating advertisement in MySQL database:",
+                  err
+                );
+                res.status(500).json({
+                  error: "An error occurred while updating the advertisement.",
+                });
+                return;
+              }
+              const notifications = results.affectedRows;
+              res.status(200).json({
+                data: advertisementsWithImages,
+                status,
+                notifications,
+              });
+            });
+          } else {
+            res.status(200).json({
+              data: advertisementsWithImages,
+              status,
+            });
+          }
         }
       });
     } catch (error) {
@@ -116,22 +166,27 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
   }
 });
 const getMyBookings = asyncHandler(async (req, res) => {
-  console.log("entrou na rota getMyBookings");
   //get user id
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
+  const { advertisementId, notificationId } = req.body;
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const sql = `
-      SELECT *
-      FROM contracts
-      JOIN buyers ON contracts.buyer_id = buyers.customer_id COLLATE utf8mb4_unicode_ci
-      JOIN advertisement ON advertisement.id = contracts.advertisement_id COLLATE utf8mb4_unicode_ci
-      where buyers.user_id = ${decoded.userId}
-      `;
+      let sql = "";
+      if (advertisementId) {
+        sql = `
+        SELECT * from advertisement where id = ${advertisementId}`;
+      } else {
+        sql = `
+        SELECT *
+        FROM contracts
+        JOIN buyers ON contracts.buyer_id = buyers.customer_id COLLATE utf8mb4_unicode_ci
+        JOIN advertisement ON advertisement.id = contracts.advertisement_id COLLATE utf8mb4_unicode_ci
+        where buyers.user_id = ${userId} 
+        `;
+      }
       database.query(sql, (err, result) => {
         if (err) throw err;
         if (result.length == 0) {
@@ -139,13 +194,43 @@ const getMyBookings = asyncHandler(async (req, res) => {
             error: "Advertisement does not exists",
           });
         } else {
-          console.log("result", result);
-
           // Add base64 image to each advertisement object
-          const advertisementsWithImages = result.map((ad) => ({
-            ...ad,
-            image: getImageBase64(ad), // Assuming 'imagePath' is the column name in the database storing the image path
-          }));
+
+          const advertisementsWithImages = result.map((advertisement) => {
+            const images = [];
+            
+            const imageArray = advertisement.image.split(";");
+            imageArray.map((image)=>{
+                images.push({data_url:getImageBase64(image)})
+            })
+            return {
+              ...advertisement,
+              image: images,
+            };
+          });
+          if (notificationId != undefined) {
+            const UpdateNotifications = `
+            UPDATE notifications SET
+              readed = '1'
+            WHERE id = '${notificationId}' and readed = '0'
+            `;
+            database.query(UpdateNotifications, (err, results) => {
+              if (err) {
+                console.error(
+                  "Error updating advertisement in MySQL database:",
+                  err
+                );
+                res.status(500).json({
+                  error: "An error occurred while updating the advertisement.",
+                });
+                return;
+              }
+              const notifications = results.affectedRows;
+              res.status(200).json({
+                data: advertisementsWithImages,
+              });
+            });
+          }
           res.status(200).json({
             data: advertisementsWithImages,
           });
@@ -166,10 +251,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
   const data = req.body;
-  console.log("linha 91");
-  console.log(data);
 
   const createdAt = new Date();
   // Format the createdAt value to match MySQL's datetime format
@@ -183,35 +265,24 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
   const parsedValue = parseFloat(data.price.replace(/,/g, ""));
 
-  const imageName = Date.now() + ".png";
-  const path = "./images/" + imageName;
-  const imgdata = data.image;
+  let images = "";
+  data.images.map((image, index) => {
+    let imageName = Date.now() + index + ".png";
+    let path = "./images/" + imageName;
+    let imgdata = image.data_url;
+    images += imageName+';'
 
-  // to convert base64 format into random filename
-  const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+    // to convert base64 format into random filename
+    let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
 
-  fs.writeFileSync(path, base64Data, { encoding: "base64" });
-  // console.log("dataimage", imageName);
-
-  //calculate end date
-  // let startDate = data.start_date;
-  // startDate = new Date(startDate.substring(0, 10));
-  // let endDate = new Date(startDate);
-  // if (data.ad_duration_type == "1") {
-  //   endDate.setMonth(startDate.getMonth() + data.duration);
-  // } else if (data.ad_duration_type == "2") {
-  //   endDate.setMonth(startDate.getMonth() + data.duration * 3);
-  // } else if (data.ad_duration_type == "3") {
-  //   endDate.setFullYear(startDate.getFullYear() + data.duration);
-  // }
-  // endDate = endDate.toISOString().substring(0, 10);
-  // console.log('endDate',endDate)
+    fs.writeFileSync(path, base64Data, { encoding: "base64" });
+  });
+  images = images.slice(0, -1);
 
   const product = await stripe.products.create({
     name: data.title,
   });
 
-  console.log("product", product);
   const price = await stripe.prices.create({
     unit_amount: parseInt(data.price) * 100,
     currency: "USD",
@@ -227,12 +298,18 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     product: product.id,
   });
-
-  // console.log("price", price);
-
-  console.log("product.id", product.id);
-  console.log("price.id", price.id);
-  const query = `
+  //get user type
+  const userQuery = `SELECT * FROM adax.users where id = ${userId}`;
+  database.query(userQuery, (err, results) => {
+    if (err) {
+      console.log("Error saving datarmation to MySQL database:", err);
+      res.status(500).json({
+        error: "An error occurred while saving the datarmation.",
+      });
+      return;
+    }
+    const userType = results[0].user_type;
+    const query = `
     INSERT INTO advertisement (
       category_id,
       created_by,
@@ -251,14 +328,15 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       per_unit_price,
       stripe_product_id,
       stripe_price,
-      is_automatic
+      is_automatic,
+      created_by_type
     ) VALUES (
       '${data.category_id}',
       '${userId}',
       '${data.title}',
       '${data.description}',
       '${parsedValue}',
-      '${imageName}',
+      '${images}',
       '${data.address}',
       '${data.lat}',
       '${data.long}',
@@ -270,22 +348,54 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       '${data.per_unit_price}',
       '${product.id}',
       '${price.id}',
-      '${data.is_automatic}'
-
+      '${data.is_automatic}',
+      '${userType}'
     )
   `;
-  console.log("query", query);
-  database.query(query, (err, results) => {
-    if (err) {
-      console.log("Error saving datarmation to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the datarmation.",
-      });
-      return;
-    }
+    database.query(query, (err, results) => {
+      if (err) {
+        console.log("Error saving datarmation to MySQL database:", err);
+        res.status(500).json({
+          error: "An error occurred while saving the datarmation.",
+        });
+        return;
+      }
+      const advertisementId = results.insertId;
 
-    res.status(200).json({
-      message: "data saved successfully.",
+      data.discounts.map((item) => {
+        const createdAt = new Date();
+        const formattedCreatedAt = createdAt
+          .toISOString()
+          .slice(0, 19)
+          .replace("T", " ");
+
+        const discountQuery = `INSERT INTO discounts (
+          advertisement_id,
+          duration,
+          discount,
+          created_at
+        ) VALUES (
+          '${advertisementId}',
+          ${item.duration},
+          ${item.discount},
+          '${formattedCreatedAt}'
+        )
+      `;
+        database.query(discountQuery, (err, results) => {
+          if (err) {
+            console.error(
+              "Error updating advertisement in MySQL database:",
+              err
+            );
+            res.status(500).json({
+              error: "An error occurred while updating the advertisement.",
+            });
+          }
+        });
+      });
+      res.status(200).json({
+        message: "data saved successfully.",
+      });
     });
   });
 });
@@ -298,25 +408,35 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
 
+    let images = "";
+    data.images.map((image, index) => {
+      let imageName = Date.now() + index + ".png";
+      let path = "./images/" + imageName;
+      let imgdata = image.data_url;
+      images += imageName+';'
+  
+      // to convert base64 format into random filename
+      let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+  
+      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+    });
+    images = images.slice(0, -1);
+  
+
   const query = `
     UPDATE advertisement SET
-      category_id = '${data.category_id}',
-      created_by = '${data.created_by}',
       title = '${data.title}',
       description = '${data.description}',
       price = '${data.price}',
-      image = '${data.image}',
+      image = '${images}',
       address = '${data.address}',
       lat = '${data.lat}',
       \`long\` = '${data.long}',
       ad_duration_type = '${data.ad_duration_type ? data.ad_duration_type : 0}',
-      start_date = '${data.start_date}',
-      end_date = '${data.end_date}',
-      status = '1',
-      updated_at = '${formattedUpdatedAt}'
-    WHERE id = ${req.params.id}
+      updated_at = '${formattedUpdatedAt}',
+      is_automatic = '${data.is_automatic}'
+    WHERE id = ${data.id}
   `;
-
   database.query(query, (err, results) => {
     if (err) {
       console.error("Error updating advertisement in MySQL database:", err);
@@ -331,14 +451,12 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 });
 
 const GetAdvertisementDetails = asyncHandler(async (req, res) => {
-  const { id } = req.body;
+  const { id, notificationId } = req.body;
 
   try {
     const sql = `SELECT * FROM adax.advertisement where id = ${id}`;
     database.query(sql, (err, result) => {
       if (err) throw err;
-      console.log(result);
-
       // get the seller profile image
       const seller = result[0].created_by;
       const sql = `SELECT * FROM adax.users where id = ${seller}`;
@@ -347,22 +465,58 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
 
         let image = "";
         if (seller[0].profile_image) {
-          const nameImage = {
-            image: seller[0].profile_image,
-          };
-          image = getImageBase64(nameImage);
+          image = getImageBase64(seller[0].profile_imageImage);
         }
-        const advertisementWithImage = result.map((ad) => ({
-          ...ad,
-          image: getImageBase64(ad), // Assuming 'imagePath' is the column name in the database storing the image path
-        }));
-        res.status(200).json({
-          data: {
-            ...advertisementWithImage[0],
-            seller_image: image,
-            seller_name: seller[0].name,
-          },
+                 
+        const advertisementWithImage = result.map((advertisement) => {
+          const images = [];
+          
+          const imageArray = advertisement.image.split(";");
+          imageArray.map((image)=>{
+              images.push({data_url:getImageBase64(image)})
+          })
+          return {
+            ...advertisement,
+            image: images,
+          };
         });
+
+        if (notificationId) {
+          const UpdateNotifications = `
+          UPDATE notifications SET
+            readed = '1'
+          WHERE id = '${notificationId}' and readed = '0'
+          `;
+          database.query(UpdateNotifications, (err, results) => {
+            if (err) {
+              console.error(
+                "Error updating advertisement in MySQL database:",
+                err
+              );
+              res.status(500).json({
+                error: "An error occurred while updating the advertisement.",
+              });
+              return;
+            }
+            const notifications = results.affectedRows;
+            res.status(200).json({
+              data: {
+                ...advertisementWithImage[0],
+                seller_image: image,
+                seller_name: seller[0].name,
+              },
+            });
+          });
+        } else {
+
+          res.status(200).json({
+            data: {
+              ...advertisementWithImage[0],
+              seller_image: image,
+              seller_name: seller[0].name,
+            },
+          });
+        }
       });
     });
   } catch (error) {
@@ -373,6 +527,139 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
   }
 });
 
+const getMessages = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      const sql = `SELECT * FROM messages`;
+      database.query(sql, (err, result) => {
+        if (err) throw err;
+        res.status(200).json({
+          messages: result,
+        });
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const getChatInfo = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+  const { key } = req.body;
+
+  if (token) {
+    try {
+      // const messagesQuery = `SELECT * FROM messages`;
+      const messagesQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name
+      FROM messages as m
+      JOIN advertisement as a ON m.advertisement_id = a.id COLLATE utf8mb4_unicode_ci
+      JOIN users as u ON (u.id = m.seller_id or u.id = m.buyer_id) and u.id != ${userId} COLLATE utf8mb4_unicode_ci
+      where m.seller_id = ${userId} or m.buyer_id = ${userId}
+      order by m.created_at 
+      `;
+      database.query(messagesQuery, (err, messages) => {
+        if (err) throw err;
+
+        const UpdateNotifications = `
+        UPDATE notifications SET
+          readed = '1'
+        WHERE notifications.key = '${key}' and readed = '0'
+      `;
+        database.query(UpdateNotifications, (err, results) => {
+          if (err) {
+            console.error(
+              "Error updating advertisement in MySQL database:",
+              err
+            );
+            res.status(500).json({
+              error: "An error occurred while updating the advertisement.",
+            });
+            return;
+          }
+          const notifications = results.affectedRows;
+          const messagesWithImage = messages.map((advertisement) => {
+            const images = [];
+            const imageArray = advertisement.image.split(";");
+            imageArray.map((image)=>{
+                images.push({data_url:getImageBase64(image)})
+            })
+            return {
+              ...advertisement,
+              image: images,
+            };
+          });
+          res.status(200).json({
+            messages: messagesWithImage,
+            notifications: notifications,
+          });
+        });
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const getDiscounts = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      const sql = `SELECT * FROM discounts where advertisement_id = ${id}`;
+      database.query(sql, (err, result) => {
+        if (err) throw err;
+        res.status(200).json({
+          discounts: result,
+        });
+      });
+    } catch (error) {
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const DeleteAdvertisment = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+
+  try {
+    const sql = `DELETE FROM advertisement where id = ${id}`;
+    database.query(sql, (err, result) => {
+      if (err) throw err;
+      // get the seller profile image
+      res.status(200).json({
+        message: "advertisement deleted successfully",
+      });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
 export {
   getAdvertisement,
   createAdvertisement,
@@ -380,4 +667,8 @@ export {
   getMyAdvertisement,
   GetAdvertisementDetails,
   getMyBookings,
+  getMessages,
+  getChatInfo,
+  DeleteAdvertisment,
+  getDiscounts,
 };

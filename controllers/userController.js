@@ -7,6 +7,8 @@ import Stripe from "stripe";
 import * as fs from "fs";
 import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
+import sendEmail from "../utils/sendEmail.js";
+import { signUpTamplate } from "../utils/emailTamplates/signUp.js";
 
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -31,13 +33,13 @@ const authUser = asyncHandler(async (req, res) => {
         };
         image = getImageBase64(nameImage);
       }
-      console.log('login',image)
       bcrypt.compare(password, hashPass).then(function (result) {
         if (result) {
           generateToken(res, userId, firstName + " " + lastName, email);
           res.status(201).json({
             name: firstName,
-            image:image
+            image: image,
+            userId: userId,
           });
         } else {
           res.status(401).json({ message: "Wrong password" });
@@ -55,13 +57,24 @@ const registerUser = asyncHandler(async (req, res) => {
   database.query(sql, (err, result) => {
     if (err) throw err;
     if (result.length > 0) {
-      res.status(401).json({error:'User already exist. Please use a diferent email'});
-    }else{
+      res
+        .status(401)
+        .json({ error: "User already exist. Please use a diferent email" });
+    } else {
       bcrypt.hash(password, 10).then(function (hashedPass) {
         // Store hash in your password DB.
         database.query(
           "INSERT INTO users (name,first_name,last_name,mobile_number,email,user_type, password,profile_pic) VALUES (?, ?, ?, ?, ?, ?, ?,?)",
-          [name, firstName, lastName, phone, email, accountType, hashedPass, ""],
+          [
+            name,
+            firstName,
+            lastName,
+            phone,
+            email,
+            accountType,
+            hashedPass,
+            "",
+          ],
           (error, results, rows) => {
             if (error) {
               console.error(error);
@@ -69,8 +82,18 @@ const registerUser = asyncHandler(async (req, res) => {
             } else {
               const userId = results.insertId;
               generateToken(res, userId, firstName + " " + lastName, email);
+
+              // send the email
+              sendEmail(
+                email,
+                "User registered",
+                "Welcome to Adex",
+                signUpTamplate
+              );
+
               res.status(200).json({
                 name: firstName,
+                userId: userId,
               });
             }
           }
@@ -78,7 +101,6 @@ const registerUser = asyncHandler(async (req, res) => {
       });
     }
   });
-
 });
 
 const logoutUser = (req, res) => {
@@ -98,7 +120,6 @@ const getSellerProfile = asyncHandler(async (req, res) => {
       database.query(sql, (err, result) => {
         if (err) throw err;
         if (result.length == 0) {
-          console.log("sem dta");
           res.status(200).json({
             account: "",
           });
@@ -166,20 +187,18 @@ const updateUserAddress = asyncHandler(async (req, res) => {
         createAccount(result[0]);
       });
     } else {
-      res.status(400).json({error:"User does't  exists"});
+      res.status(400).json({ error: "User does't  exists" });
     }
   });
 
   async function createAccount(user) {
     const { idNumber, bod, street, city, state, zip } = req.body;
-    
+
     var currentDate = new Date();
     var timeStampCurrentDate = Math.floor(currentDate.getTime() / 1000);
-    
-    console.log('line 179')
-    // create the account and enable the charge option
-    try{
 
+    // create the account and enable the charge option
+    try {
       const account = await stripe.accounts.create({
         type: "custom",
         business_type: "individual",
@@ -189,7 +208,7 @@ const updateUserAddress = asyncHandler(async (req, res) => {
         },
         business_profile: {
           mcc: 7299,
-          url: "www." + user.email.substring(0, user.email.indexOf('@')),
+          url: "www." + user.email.substring(0, user.email.indexOf("@")),
         },
         individual: {
           email: user.email,
@@ -210,7 +229,7 @@ const updateUserAddress = asyncHandler(async (req, res) => {
             month: bod.substring(5, 7),
             year: bod.substring(0, 4),
           },
-  
+
           verification: {
             document: {
               front: "file_identity_document_success",
@@ -231,7 +250,7 @@ const updateUserAddress = asyncHandler(async (req, res) => {
         .toISOString()
         .slice(0, 19)
         .replace("T", " ");
-  
+
       if (account.id) {
         //save account info
         const query = `
@@ -253,26 +272,25 @@ const updateUserAddress = asyncHandler(async (req, res) => {
             });
             return;
           }
-  
+
           res.status(200).json({ account: account.id });
         });
       } else {
         res.status(400).json({ error: account });
       }
-    }catch(error){
-
-      console.log('line 218',error.message)
-      if(error.message.includes('is not a valid phone number')){
-
-        res.status(400).json({error:error.message+'. Please change your number in your personal information section'})
-      }else{
-
-        res.status(400).json({error:error.message})
+    } catch (error) {
+      if (error.message.includes("is not a valid phone number")) {
+        res
+          .status(400)
+          .json({
+            error:
+              error.message +
+              ". Please change your number in your personal information section",
+          });
+      } else {
+        res.status(400).json({ error: error.message });
       }
     }
-
-    
-
   }
 });
 
@@ -301,6 +319,7 @@ const autoLogin = asyncHandler(async (req, res) => {
           res.status(200).json({
             name: firstName,
             image: image,
+            userId: result[0].id,
           });
         }
       });
@@ -357,14 +376,16 @@ const getExternalAccount = asyncHandler(async (req, res) => {
 
 const getUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
+  const { id } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const sql = `SELECT * FROM users WHERE id = '${decoded.userId}'`;
+      const sql = `SELECT * FROM users WHERE id = '${
+        id ? id : decoded.userId
+      }'`;
       database.query(sql, (err, result) => {
         if (err) throw err;
         if (result.length == 0) {
-          console.log("sem dta");
           res.status(200).json({
             data: "",
           });
@@ -388,7 +409,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
             email,
             image,
             phone,
-            bio
+            bio,
           });
         }
       });
@@ -440,7 +461,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name,lastName,email,phone,bio } = req.body;
+  const { name, lastName, email, phone, bio } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -451,11 +472,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       last_name = '${lastName}', 
       email = '${email}', 
       mobile_number = '${phone}', 
-      bio = '${bio}' 
+      bio = "${bio}" 
       WHERE id = ${decoded.userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
-        
       });
     } catch (error) {
       console.error(error);
@@ -470,6 +490,104 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 });
 
+const getMyNotifications = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const sql = `SELECT * FROM notifications WHERE user_id = '${decoded.userId}' and readed = 0`;
+      database.query(sql, (err, result) => {
+        if (err) throw err;
+        res.status(200).json({
+          notifications: result,
+        });
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { password, email } = req.body;
+  const sql = `SELECT * FROM users WHERE email = '${email}'`;
+  database.query(sql, (err, result) => {
+    if (err) throw err;
+    if (result.length == 0) {
+      res.status(401).json({ error: "User do not exist, please sign up" });
+    } else {
+      bcrypt.hash(password, 10).then(function (hashedPass) {
+        // Store hash in your password DB.
+        const updatePassword = `UPDATE users set 
+        password = '${hashedPass}' 
+        WHERE email = '${email}'`;
+        database.query(updatePassword, (err, result) => {
+          if (err) {
+            res
+              .status(401)
+              .json({ error: "Something went wrong, please try again" });
+            return;
+          }
+          res.status(200).json({ message: "Password changed successfuly" });
+        });
+      });
+    }
+  });
+});
+const changePassword = asyncHandler(async (req, res) => {
+  const { newPassword, current } = req.body;
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  const getUser = `SELECT * FROM users WHERE id = '${userId}'`;
+  database.query(getUser, (err, result) => {
+    if (err) throw err;
+    if (result.length == 0) {
+      res.status(401).json({ error: "User do not exist, please sign up" });
+    } else {
+      bcrypt.compare(current, result[0].password).then(function (result) {
+        if (result) {
+          bcrypt.hash(newPassword, 10).then(function (hashedPass) {
+            // Store hash in your password DB.
+            const updatePassword = `UPDATE users set 
+              password = '${hashedPass}' 
+              WHERE id = '${userId}'`;
+            database.query(updatePassword, (err, result) => {
+              if (err) {
+                res
+                  .status(401)
+                  .json({ error: "Something went wrong, please try again" });
+                return;
+              }
+              res.status(200).json({ message: "Password changed successfuly" });
+            });
+          });
+        } else {
+          res.status(401).json({ error: "The current password does not match" });
+          // throw new Error('Invalid email or password');
+        }
+      });
+    }
+  });
+});
+const sendResetPasswordEmail = asyncHandler(async (req, res) => {
+  const { email, codeOTP } = req.body;
+  sendEmail(
+    email,
+    "Reset password",
+    `Your security code for reset your password is ${codeOTP}`
+  );
+  res.status(200).json({ message: "Email sended successfuly" });
+});
+
 export {
   authUser,
   registerUser,
@@ -480,5 +598,9 @@ export {
   getExternalAccount,
   getUserProfile,
   updateUserProfileImage,
-  updateUserProfile
+  updateUserProfile,
+  getMyNotifications,
+  resetPassword,
+  sendResetPasswordEmail,
+  changePassword,
 };
