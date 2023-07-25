@@ -23,7 +23,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const sql = `SELECT * FROM adax.advertisement where price BETWEEN ${
+      const sql = `SELECT * FROM adex.advertisement where price BETWEEN ${
         priceMin != "" ? priceMin : 0
       } AND ${priceMax != "" ? priceMax : 0} ${
         type != "" ? "and category_id IN (" + types + ")" : ""
@@ -78,7 +78,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
   const { id, notificationId } = req.body;
   if (token) {
     try {
-      const sql = `SELECT * FROM adax.advertisement where created_by = ${userId} ${
+      const sql = `SELECT * FROM adex.advertisement where created_by = ${userId} ${
         id ? "and id=" + id : ""
       }`;
       database.query(sql, (err, result) => {
@@ -299,7 +299,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     product: product.id,
   });
   //get user type
-  const userQuery = `SELECT * FROM adax.users where id = ${userId}`;
+  const userQuery = `SELECT * FROM adex.users where id = ${userId}`;
   database.query(userQuery, (err, results) => {
     if (err) {
       console.log("Error saving datarmation to MySQL database:", err);
@@ -454,12 +454,12 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
   const { id, notificationId } = req.body;
 
   try {
-    const sql = `SELECT * FROM adax.advertisement where id = ${id}`;
+    const sql = `SELECT * FROM adex.advertisement where id = ${id}`;
     database.query(sql, (err, result) => {
       if (err) throw err;
       // get the seller profile image
       const seller = result[0].created_by;
-      const sql = `SELECT * FROM adax.users where id = ${seller}`;
+      const sql = `SELECT * FROM adex.users where id = ${seller}`;
       database.query(sql, (err, seller) => {
         if (err) throw err;
 

@@ -3,7 +3,7 @@ import database from '.././db.js'
 
 const getListPropertyRoutes = asyncHandler(async (req, res) => {
 
-    const sql = `SELECT * FROM adax.categories;`;
+    const sql = `SELECT * FROM adex.categories;`;
     database.query(sql,  (err, result) => {
         if (err) throw err;
         if (result.length == 0) {

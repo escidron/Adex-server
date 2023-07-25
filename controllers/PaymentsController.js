@@ -75,7 +75,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
   });
 
   //check if the customer exist
-  const checkCustomerExist = `SELECT * FROM adax.buyers where user_id = ${userId}`;
+  const checkCustomerExist = `SELECT * FROM adex.buyers where user_id = ${userId}`;
   database.query(checkCustomerExist, (err, results) => {
     if (err) {
       console.log("Error getting information to MySQL database:", err);
@@ -104,7 +104,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       });
 
       const queryCustomers = `
-        UPDATE adax.buyers
+        UPDATE adex.buyers
         SET default_card = '${cardId}'
         WHERE user_id = ${userId}
       `;
@@ -280,7 +280,7 @@ const GetCards = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const sql = `SELECT * FROM adax.cards where user_id = ${userId}`;
+      const sql = `SELECT * FROM adex.cards where user_id = ${userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
         res.status(200).json({
@@ -308,7 +308,7 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const sql = `SELECT * FROM adax.external_bank_accounts where user_id = ${userId}`;
+      const sql = `SELECT * FROM adex.external_bank_accounts where user_id = ${userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
         res.status(200).json({
@@ -367,7 +367,7 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
   });
 
   //check if the customer exist
-  const checkCustomerExist = `SELECT * FROM adax.buyers where user_id = ${userId}`;
+  const checkCustomerExist = `SELECT * FROM adex.buyers where user_id = ${userId}`;
   database.query(checkCustomerExist, (err, results) => {
     if (err) {
       console.log("Error getting information to MySQL database:", err);
@@ -396,7 +396,7 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
       });
 
       const queryCustomers = `
-        UPDATE adax.buyers
+        UPDATE adex.buyers
         SET default_card = '${cardId}',updated_at= '${formattedUpdatedAt}'
         WHERE user_id = ${userId}
       `;
@@ -541,7 +541,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   let sellerAccount = "";
   //get the seller connected stripe account
-  const querySellers = `SELECT * FROM adax.sellers where user_id = ${data.created_by}`;
+  const querySellers = `SELECT * FROM adex.sellers where user_id = ${data.created_by}`;
   database.query(querySellers, (err, result) => {
     if (err) throw err;
 
@@ -549,7 +549,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   });
 
   //get the buyer info
-  const query = `SELECT * FROM adax.buyers where user_id = ${
+  const query = `SELECT * FROM adex.buyers where user_id = ${
     data.requested_by ? data.requested_by : userId
   }`;
   database.query(query, (err, result) => {
