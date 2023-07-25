@@ -4,7 +4,8 @@ var connection = mysql.createConnection({
     host: 'adex-database.cem6u2n9hutt.us-east-2.rds.amazonaws.com',
     user: 'admin',
     database: 'adex',
-    password:'Eduardo1993*'
+    password:'Eduardo1993*',
+    port:'3306'
   });
 
   connection.connect(function(err){
