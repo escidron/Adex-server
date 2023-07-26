@@ -4,7 +4,7 @@ const generateToken = (res, userId,fullName,email) => {
   const token = jwt.sign({ userId,fullName,email }, 'usersecrettoken', {
     expiresIn: '30d',
   });
-
+  console.log('generating token')
   res.cookie('jwt', token, {
     httpOnly: true,
     secure: true, // Use secure cookies in production
