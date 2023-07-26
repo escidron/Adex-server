@@ -16,7 +16,7 @@ const port = process.env.PORT || 5000;
 
 const io = new Server({
   cors: {
-    origin: 'https://adex-client.vercel.app',
+    origin: 'https://adex-sable.vercel.app/',
   },
 });
 
@@ -146,7 +146,7 @@ io.listen(4000);
 const app = express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
-  origin: 'https://adex-client.vercel.app',
+  origin: 'https://adex-sable.vercel.app/',
   credentials: true,
   exposedHeaders: ["Authorization"],
   allowedHeaders: [
