@@ -10,6 +10,8 @@ import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import connectRoutes from "./routes/connectRoutes.js";
 import database from "./db.js";
 import { Server } from "socket.io";
+import * as fs from "fs";
+import https from 'https'
 
 dotenv.config();
 const port = process.env.PORT || 5000;
@@ -170,4 +172,11 @@ app.use("/api/stripe-connect", connectRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(port, () => console.log(`Server Started on port ${port}`));
+const options = {
+  key: fs.readFileSync('key.pem'),
+  cert: fs.readFileSync('cert.pem')
+}
+
+https.createServer(options, app).listen(port, console.log(`server https runs on port ${port}`))
+
+// app.listen(port, () => console.log(`Server Started on port ${port}`));
