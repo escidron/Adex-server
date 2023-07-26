@@ -3,7 +3,7 @@ import database from "../db.js";
 import Stripe from "stripe";
 
 const CustomersConnect = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
 
   // const account = await stripe.accounts.create({
   //   type: 'custom',

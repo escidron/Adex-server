@@ -115,7 +115,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
       const sql = `SELECT * FROM sellers WHERE user_id = '${decoded.userId}'`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -144,13 +144,13 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 });
 
 const updateUserAddress = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
   const { address } = pkg;
 
   const { idNumber, bod, street, city, state, zip } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, 'usersecrettoken');
   const userId = decoded.userId;
 
   const updatedAt = new Date();
@@ -298,7 +298,7 @@ const autoLogin = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
       const sql = `SELECT * FROM users WHERE id = '${decoded.userId}'`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -340,7 +340,7 @@ const getExternalAccount = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
       const sql = `SELECT * FROM sellers WHERE user_id = '${decoded.userId}'`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -379,7 +379,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
       const sql = `SELECT * FROM users WHERE id = '${
         id ? id : decoded.userId
       }'`;
@@ -431,7 +431,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
   const { image } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
 
       const imageName = Date.now() + ".png";
       const path = "./images/" + imageName;
@@ -464,7 +464,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   const { name, lastName, email, phone, bio } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
 
       const sql = `UPDATE users set 
       name = '${name} ${lastName}', 
@@ -494,7 +494,7 @@ const getMyNotifications = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, 'usersecrettoken');
       const sql = `SELECT * FROM notifications WHERE user_id = '${decoded.userId}' and readed = 0`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -544,7 +544,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const { newPassword, current } = req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, 'usersecrettoken');
   const userId = decoded.userId;
 
   const getUser = `SELECT * FROM users WHERE id = '${userId}'`;

@@ -4,13 +4,13 @@ export default function sendEmail (sendTo,subject,text,template){
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-          user: process.env.USEREMAIL,
-          pass: process.env.EMAILPASSWORD
+          user: 'eduardosanchezcidron@gmail.com',
+          pass: 'tdtetpgbvfzelfey'
         }
       });
       
       var mailOptions = {
-        from: process.env.USEREMAIL,
+        from: 'eduardosanchezcidron@gmail.com',
         to: sendTo,
         subject: subject,
         text: text,

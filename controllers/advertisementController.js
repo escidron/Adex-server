@@ -73,7 +73,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 const getMyAdvertisement = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, 'usersecrettoken');
   const userId = decoded.userId;
   const { id, notificationId } = req.body;
   if (token) {
@@ -168,7 +168,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
 const getMyBookings = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, 'usersecrettoken');
   const userId = decoded.userId;
   const { advertisementId, notificationId } = req.body;
 
@@ -250,7 +250,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 });
 
 const createAdvertisement = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
   const data = req.body;
 
   const createdAt = new Date();
@@ -261,7 +261,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     .replace("T", " ");
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, 'usersecrettoken');
   const userId = decoded.userId;
   const parsedValue = parseFloat(data.price.replace(/,/g, ""));
 
@@ -553,7 +553,7 @@ const getMessages = asyncHandler(async (req, res) => {
 
 const getChatInfo = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const decoded = jwt.verify(token, 'usersecrettoken');
   const userId = decoded.userId;
   const { key } = req.body;
 
