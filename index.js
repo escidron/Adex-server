@@ -172,11 +172,11 @@ app.use("/api/stripe-connect", connectRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-const options = {
-  key: fs.readFileSync('key.pem'),
-  cert: fs.readFileSync('cert.pem')
-}
+// const options = {
+//   key: fs.readFileSync('key.pem'),
+//   cert: fs.readFileSync('cert.pem')
+// }
 
-https.createServer(options, app).listen(port, console.log(`server https runs on port ${port}`))
+// https.createServer(options, app).listen(port, console.log(`server https runs on port ${port}`))
 
-// app.listen(port, () => console.log(`Server Started on port ${port}`));
+app.listen(port, () => console.log(`Server Started on port ${port}`));
