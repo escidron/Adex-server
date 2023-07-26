@@ -16,7 +16,7 @@ const port = process.env.PORT || 5000;
 
 const io = new Server({
   cors: {
-    origin: process.env.CLIENT_IP,
+    origin: 'http://localhost:3000',
   },
 });
 
@@ -146,7 +146,7 @@ io.listen(4000);
 const app = express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
-  origin: process.env.CLIENT_IP,
+  origin: 'http://localhost:3000',
   credentials: true,
   exposedHeaders: ["Authorization"],
   allowedHeaders: [
