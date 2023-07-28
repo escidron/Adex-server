@@ -18,7 +18,7 @@ const port = process.env.PORT || 5000;
 
 const io = new Server({
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'https://adexconnect.com',
   },
 });
 
@@ -148,7 +148,7 @@ io.listen(4400);
 const app = express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: 'https://adexconnect.com',
   credentials: true,
   exposedHeaders: ["Authorization"],
   allowedHeaders: [
