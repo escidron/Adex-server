@@ -113,7 +113,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       const customer = await stripe.customers.create({
         description: fullName,
         email: email,
-        test_clock: "clock_1NWoYSEPsNRBDePlOrqqSAvc",
+        // test_clock: "clock_1NWoYSEPsNRBDePlOrqqSAvc",
       });
 
       customerId = customer.id;
@@ -560,71 +560,106 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   async function connectCustomer(customerId) {
     let subscription = "";
-    if (data.ad_duration_type === "0") {
-      const startDate = new Date();
-      const endDate = new Date();
-
-      endDate.setMonth(endDate.getMonth() + 1);
-
-      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-
-      subscription = await stripe.subscriptionSchedules.create({
-        customer: customerId,
-        start_date: timeStampStartDate,
-        end_behavior: "cancel",
-        phases: [
-          {
-            items: [
-              {
-                price: data.stripe_price,
-                quantity: 1,
-              },
-            ],
-            end_date: timeStampEndDate,
-
-            transfer_data: {
-              destination: sellerAccount,
-            },
-            application_fee_percent: 10,
-          },
-        ],
-      });
-    } else {
-      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-      
-      let coupon =''
+    try{
+      if (data.ad_duration_type === "0") {
+        const startDate = new Date();
+        const endDate = new Date();
   
-      if(current_discount > 0){
-         coupon = await stripe.coupons.create({
-          percent_off: current_discount,
-          duration: 'forever'
+        endDate.setMonth(endDate.getMonth() + 1);
+  
+        var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+        var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+  
+        subscription = await stripe.subscriptionSchedules.create({
+          customer: customerId,
+          start_date: timeStampStartDate,
+          end_behavior: "cancel",
+          phases: [
+            {
+              items: [
+                {
+                  price: data.stripe_price,
+                  quantity: 1,
+                },
+              ],
+              end_date: timeStampEndDate,
+  
+              transfer_data: {
+                destination: sellerAccount,
+              },
+              application_fee_percent: 10,
+            },
+          ],
         });
-      }
-
-      subscription = await stripe.subscriptionSchedules.create({
-        customer: customerId,
-        start_date: timeStampStartDate,
-        end_behavior: "cancel",
-        phases: [
-          {
-            items: [
+      } else {
+        var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+        var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+        
+        let coupon =''
+    
+        if(current_discount > 0){
+           coupon = await stripe.coupons.create({
+            percent_off: current_discount,
+            duration: 'forever'
+          });
+        }
+  
+        if(coupon.id){
+          subscription = await stripe.subscriptionSchedules.create({
+            customer: customerId,
+            start_date: timeStampStartDate,
+            end_behavior: "cancel",
+            phases: [
               {
-                price: data.stripe_price,
-                quantity: 1,
+                items: [
+                  {
+                    price: data.stripe_price,
+                    quantity: 1,
+                  },
+                ],
+                end_date: timeStampEndDate,
+                coupon:coupon.id,
+                transfer_data: {
+                  destination: sellerAccount,
+                },
+                application_fee_percent: 10,
               },
             ],
-            end_date: timeStampEndDate,
-            coupon:coupon.id?coupon.id:null,
-            transfer_data: {
-              destination: sellerAccount,
-            },
-            application_fee_percent: 10,
-          },
-        ],
-      });
+          });
+        }else{
+          subscription = await stripe.subscriptionSchedules.create({
+            customer: customerId,
+            start_date: timeStampStartDate,
+            end_behavior: "cancel",
+            phases: [
+              {
+                items: [
+                  {
+                    price: data.stripe_price,
+                    quantity: 1,
+                  },
+                ],
+                end_date: timeStampEndDate,
+                transfer_data: {
+                  destination: sellerAccount,
+                },
+                application_fee_percent: 10,
+              },
+            ],
+          });
+        }
+      }
+    }catch(error){
+      console.log(error)
+      if(error.raw.message.includes('You can not create a subscription schedule with `phases` that already ended')){
+        res.status(400).json({ message:'The start date must be higer that the current date' });
+      }else{
+        res.status(400).json({ message:error.raw.message });
+
+      }
+      return
     }
+
 
     if (subscription.id) {
       const query = `

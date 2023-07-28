@@ -316,6 +316,8 @@ const autoLogin = asyncHandler(async (req, res) => {
           if (result[0].profile_image) {
             image = getImageBase64(nameImage);
           }
+          console.log('name',firstName)
+          console.log('usrid',result[0].id)
           res.status(200).json({
             name: firstName,
             image: image,
@@ -498,6 +500,7 @@ const getMyNotifications = asyncHandler(async (req, res) => {
       const sql = `SELECT * FROM notifications WHERE user_id = '${decoded.userId}' and readed = 0`;
       database.query(sql, (err, result) => {
         if (err) throw err;
+        console.log('notifications',decoded.userId)
         res.status(200).json({
           notifications: result,
         });
