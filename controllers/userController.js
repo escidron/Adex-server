@@ -581,6 +581,7 @@ const changePassword = asyncHandler(async (req, res) => {
     }
   });
 });
+
 const sendResetPasswordEmail = asyncHandler(async (req, res) => {
   const { email, codeOTP } = req.body;
   sendEmail(
@@ -589,6 +590,48 @@ const sendResetPasswordEmail = asyncHandler(async (req, res) => {
     `Your security code for reset your password is ${codeOTP}`
   );
   res.status(200).json({ message: "Email sended successfuly" });
+});
+
+const contactUs = asyncHandler(async (req, res) => {
+  const { name,email,number,message} = req.body;
+  const createdAt = new Date();
+  const formattedCreatedAt = createdAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+
+
+  const contactUsQuery = `
+  INSERT INTO adex.contact_us (
+    name,
+    email,
+    phone,
+    message,
+    created_at
+  ) VALUES (
+    '${name}',
+    '${email}',
+    '${number}',
+    '${message}',
+    '${formattedCreatedAt}'
+  )`;  
+  console.log(contactUsQuery)
+  database.query(contactUsQuery, (err, result) => {
+    if (err) {
+      res.status(401).json({ error: err });
+    };
+
+      //put the adex email account
+  sendEmail(
+    'eduardosanchezcidron@gmail.com',
+    "Customer Service",
+    `${name} has sended the fallowing message :
+    ${message}
+    `
+  );
+    res.status(200).json({ message:'Message sended successfuly' });
+  });
 });
 
 export {
@@ -606,4 +649,5 @@ export {
   resetPassword,
   sendResetPasswordEmail,
   changePassword,
+  contactUs
 };

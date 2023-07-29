@@ -13,7 +13,8 @@ import {
   getMyNotifications,
   resetPassword,
   sendResetPasswordEmail,
-  changePassword
+  changePassword,
+  contactUs
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -33,6 +34,7 @@ router.post('/user-profile', getUserProfile);
 router.post('/reset-password', resetPassword);
 router.post('/change-password', changePassword);
 router.post('/send-reset-password-email', sendResetPasswordEmail);
+router.post('/contact-us', contactUs);
 router
   .route('/seller-profile')
   .get(protect, getSellerProfile)
