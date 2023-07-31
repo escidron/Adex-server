@@ -188,8 +188,8 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
       {
         external_account: {
           object: "bank_account",
-          country: "BR",
-          currency: "brl",
+          country: "US",
+          currency: "usd",
           account_number: accountNumber, //'0001234',
           routing_number: routingNumber, //'110-0000'
         },

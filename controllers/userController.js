@@ -217,11 +217,11 @@ const updateUserAddress = asyncHandler(async (req, res) => {
           id_number: idNumber,
           phone: user.mobile_number,
           address: {
-            country: "BR",
-            city: "São Paulo", //city,
+            country: "US",
+            city: city, //city,
             line1: street,
             postal_code: zip,
-            state: "São Paulo", //state
+            state: state, //state
           },
           political_exposure: "none",
           dob: {

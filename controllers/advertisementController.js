@@ -90,7 +90,6 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
         } else {
           // Add base64 image to each advertisement object
 
-          
           const advertisementsWithImages = result.map((advertisement) => {
             const images = [];
             
