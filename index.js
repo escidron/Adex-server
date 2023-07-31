@@ -7,7 +7,6 @@ import userRoutes from "./routes/userRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
-import connectRoutes from "./routes/connectRoutes.js";
 import database from "./db.js";
 import { Server } from "socket.io";
 import * as fs from "fs";
@@ -167,7 +166,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
-app.use("/api/stripe-connect", connectRoutes);
+// app.use("/api/stripe-connect", connectRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
