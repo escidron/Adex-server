@@ -145,7 +145,7 @@ io.on("connection", (socket) => {
 io.listen(4400);
 
 const app = express();
-app.use(express.json({ limit: "100mb" }));
+app.use(express.json({ limit: "10000000mb" }));
 const corsOptions = {
   origin: 'https://adexconnect.com',
   credentials: true,
@@ -159,7 +159,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use(express.urlencoded({ limit: "100mb", extended: true }));
+app.use(express.urlencoded({ limit: "10000000mb", extended: true }));
 app.use(cookieParser());
 
 app.use("/api/users", userRoutes);
