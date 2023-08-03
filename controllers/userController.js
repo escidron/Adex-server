@@ -144,7 +144,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 });
 
 const updateUserAddress = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
+  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
   const { address } = pkg;
 
   const { idNumber, bod, street, city, state, zip } = req.body;

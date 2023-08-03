@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import sendEmail from "../utils/sendEmail.js";
 
 const CreateCustomer = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
+  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
   //get userID
   const { cardId, cardNumber, exp_year, exp_month, nameOnCard, brand } =
     req.body;
@@ -168,7 +168,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
 });
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
+  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
   //get userID
   const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
     req.body;
@@ -329,7 +329,7 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultCard = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
+  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
   //get userID
   const { cardId } = req.body;
 
@@ -422,7 +422,7 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultBank = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
+  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
   //get userID
   const { bankId } = req.body;
 
@@ -506,7 +506,7 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 });
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51NHvGXEPsNRBDePlhGRiMamYmeEYvOlfeXWzbxY2TiIJ2NxMMv2kLGWRTUjm3AKKbK7KGhy3Peyp4deXoDMOAlZ000GCYWlp4T');
+  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
   //get userID
   const { data, start_date, duration,current_discount } = req.body;
   const token = req.cookies.jwt;
