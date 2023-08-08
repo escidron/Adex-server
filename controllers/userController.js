@@ -36,10 +36,30 @@ const authUser = asyncHandler(async (req, res) => {
       bcrypt.compare(password, hashPass).then(function (result) {
         if (result) {
           generateToken(res, userId, firstName + " " + lastName, email);
-          res.status(201).json({
-            name: firstName,
-            image: image,
-            userId: userId,
+          const sql = `SELECT * FROM sellers WHERE user_id = '${userId}'`;
+          database.query(sql, (err, result) => {
+            if (err) throw err;
+            if (result.length == 0) {
+              res.status(200).json({
+                data: "",
+              });
+            } else {
+              const externalAccount = result[0].external_account_id;
+              if (externalAccount) {
+                res.status(201).json({
+                  name: firstName,
+                  image: image,
+                  userId: userId,
+                  hasPayout:externalAccount
+                });
+              } else {
+                res.status(201).json({
+                  name: firstName,
+                  image: image,
+                  userId: userId,
+                });
+              }
+            }
           });
         } else {
           res.status(401).json({ message: "Wrong password" });
