@@ -427,6 +427,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
           const bio = result[0].bio;
           const sex = result[0].sex;
           const profession = result[0].profession;
+          const user_type = result[0].user_type;
 
           const nameImage = {
             image: result[0].profile_image,
@@ -443,7 +444,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
             phone,
             bio,
             sex,
-            profession
+            profession,
+            user_type
           });
         }
       });
