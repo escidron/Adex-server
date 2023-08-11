@@ -774,6 +774,48 @@ const getCompanies = asyncHandler(async (req, res) => {
   }
 });
 
+const getCompany = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const {id} = req.body
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, "usersecrettoken");
+      const userId = decoded.userId;
+
+      const getCompanyQuery = `SELECT * FROM companies WHERE id = '${id}'`;
+
+      database.query(getCompanyQuery, (err, result) => {
+        if (err) {
+          res.status(500).json({ message: "something went wrong" });
+        }
+        if (result.length > 0) {
+
+          result.map((item,index)=>{
+
+            const nameImage = item.company_logo
+            let image = "";
+            if (item.company_logo) {
+              image = getImageBase64(nameImage);
+              result[index].company_logo = image
+            }
+          })
+          
+        }
+      console.log(result);
+        res.status(200).json(result);
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
 export {
   authUser,
   registerUser,
@@ -792,4 +834,5 @@ export {
   contactUs,
   addCompany,
   getCompanies,
+  getCompany
 };
