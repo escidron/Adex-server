@@ -49,7 +49,9 @@ const authUser = asyncHandler(async (req, res) => {
             if (err) throw err;
             if (result.length == 0) {
               res.status(200).json({
-                data: "",
+                name: firstName,
+                image: image,
+                userId: userId,
               });
             } else {
               const externalAccount = result[0].external_account_id;
