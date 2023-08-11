@@ -14,6 +14,14 @@ const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const sql = `SELECT * FROM users WHERE email = '${email}'`;
 
+  database.connect(function (err) {
+    if (err) {
+      console.log("database conection error", err);
+    } else {
+      console.log("success");
+    }
+  });
+
   database.query(sql, (err, result) => {
     if (err) throw err;
     if (result.length == 0) {
