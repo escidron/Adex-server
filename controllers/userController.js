@@ -660,6 +660,106 @@ const contactUs = asyncHandler(async (req, res) => {
   });
 });
 
+const addCompany = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { name, image, address } = req.body;
+
+  const createdAt = new Date();
+  const formattedCreatedAt = createdAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, "usersecrettoken");
+      const userId = decoded.userId;
+      const imageName = Date.now() + ".png";
+      const path = "./images/" + imageName;
+      const imgdata = image;
+
+      // to convert base64 format into random filename
+      const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+
+      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+
+      const addCompanyQuery = `
+      INSERT INTO adex.companies (
+        user_id,
+        company_name,
+        company_logo,
+        address,
+        created_at
+      ) VALUES (
+        '${userId}',
+        '${name}',
+        '${imageName}',
+        '${address}',
+        '${formattedCreatedAt}'
+      )
+    `;
+      database.query(addCompanyQuery, (err, result) => {
+        if (err) {
+          res.status(500).json({ message: "something went wrong" });
+        }
+        res.status(200).json({ message: "Company registered succesfully" });
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const getCompanies = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, "usersecrettoken");
+      const userId = decoded.userId;
+
+      const getCompaniesQuery = `SELECT * FROM companies WHERE user_id = '${userId}'`;
+
+      database.query(getCompaniesQuery, (err, result) => {
+        if (err) {
+          res.status(500).json({ message: "something went wrong" });
+        }
+        if (result.length > 0) {
+
+          result.map((item,index)=>{
+
+            const nameImage = item.company_logo
+            let image = "";
+            if (item.company_logo) {
+              image = getImageBase64(nameImage);
+              result[index].company_logo = image
+            }
+          })
+          
+        }
+        console.log(result);
+        res.status(200).json(result);
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -675,5 +775,7 @@ export {
   resetPassword,
   sendResetPasswordEmail,
   changePassword,
-  contactUs
+  contactUs,
+  addCompany,
+  getCompanies,
 };
