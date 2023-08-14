@@ -23,7 +23,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const sql = `SELECT * FROM adex.advertisement where price BETWEEN ${
+      const sql = `SELECT * FROM adex.advertisement where status <> '0' and price BETWEEN ${
         priceMin != "" ? priceMin : 0
       } AND ${priceMax != "" ? priceMax : 0} ${
         type != "" ? "and category_id IN (" + types + ")" : ""
@@ -340,7 +340,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       '${data.lat}',
       '${data.long}',
       '${data.ad_duration_type ? data.ad_duration_type : 0}',
-      '1',
+      '${data.has_payout ? '1': '0'}',
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
       '${data.units}',

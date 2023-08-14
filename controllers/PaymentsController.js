@@ -5,13 +5,15 @@ import jwt from "jsonwebtoken";
 import sendEmail from "../utils/sendEmail.js";
 
 const CreateCustomer = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
+  const stripe = new Stripe(
+    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+  );
   //get userID
   const { cardId, cardNumber, exp_year, exp_month, nameOnCard, brand } =
     req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
   const fullName = decoded.fullName;
   const email = decoded.email;
@@ -168,12 +170,14 @@ const CreateCustomer = asyncHandler(async (req, res) => {
 });
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
+  const stripe = new Stripe(
+    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+  );
   //get userID
   const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
     req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const createdAt = new Date();
@@ -262,7 +266,23 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
         });
         return;
       }
-      res.status(200).json({ message: "Bank account created" });
+      const query = `
+      UPDATE advertisement SET
+        status = '1',
+        updated_at = '${formattedCreatedAt}'
+      WHERE created_by = ${userId} and status = '0'
+    `;
+      database.query(query, (err, results) => {
+        if (err) {
+          console.error("Error updating advertisement in MySQL database:", err);
+          res.status(500).json({
+            error: "An error occurred while updating the advertisement.",
+          });
+          return;
+        }
+
+        res.status(200).json({ message: "Bank account created" });
+      });
     });
   } catch (error) {
     console.log("error", error.message);
@@ -275,7 +295,7 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 const GetCards = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   if (token) {
@@ -303,7 +323,7 @@ const GetCards = asyncHandler(async (req, res) => {
 const GetBankAccounts = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   if (token) {
@@ -329,12 +349,14 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultCard = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
+  const stripe = new Stripe(
+    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+  );
   //get userID
   const { cardId } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const upuatedAt = new Date();
@@ -422,12 +444,14 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultBank = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
+  const stripe = new Stripe(
+    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+  );
   //get userID
   const { bankId } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const upuatedAt = new Date();
@@ -506,11 +530,13 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 });
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
+  const stripe = new Stripe(
+    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+  );
   //get userID
-  const { data, start_date, duration,current_discount } = req.body;
+  const { data, start_date, duration, current_discount } = req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const createdAt = new Date();
@@ -560,16 +586,16 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   async function connectCustomer(customerId) {
     let subscription = "";
-    try{
+    try {
       if (data.ad_duration_type === "0") {
         const startDate = new Date();
         const endDate = new Date();
-  
+
         endDate.setMonth(endDate.getMonth() + 1);
-  
+
         var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
         var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-  
+
         subscription = await stripe.subscriptionSchedules.create({
           customer: customerId,
           start_date: timeStampStartDate,
@@ -583,7 +609,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
                 },
               ],
               end_date: timeStampEndDate,
-  
+
               transfer_data: {
                 destination: sellerAccount,
               },
@@ -594,72 +620,76 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
       } else {
         var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
         var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-        
-        let coupon =''
-    
-        if(current_discount > 0){
-           coupon = await stripe.coupons.create({
+
+        let coupon = "";
+
+        if (current_discount > 0) {
+          coupon = await stripe.coupons.create({
             percent_off: current_discount,
-            duration: 'forever'
+            duration: "forever",
           });
         }
-  
-        if(coupon.id){
-          subscription = await stripe.subscriptionSchedules.create({
-            customer: customerId,
-            start_date: timeStampStartDate,
-            end_behavior: "cancel",
-            phases: [
-              {
-                items: [
-                  {
-                    price: data.stripe_price,
-                    quantity: 1,
-                  },
-                ],
-                end_date: timeStampEndDate,
-                coupon:coupon.id,
-                transfer_data: {
-                  destination: sellerAccount,
-                },
-                application_fee_percent: 10,
-              },
-            ],
-          });
-        }else{
-          subscription = await stripe.subscriptionSchedules.create({
-            customer: customerId,
-            start_date: timeStampStartDate,
-            end_behavior: "cancel",
-            phases: [
-              {
-                items: [
-                  {
-                    price: data.stripe_price,
-                    quantity: 1,
-                  },
-                ],
-                end_date: timeStampEndDate,
-                transfer_data: {
-                  destination: sellerAccount,
-                },
-                application_fee_percent: 10,
-              },
-            ],
-          });
-        }
-      }
-    }catch(error){
-      console.log(error)
-      if(error.raw.message.includes('You can not create a subscription schedule with `phases` that already ended')){
-        res.status(400).json({ message:'The start date must be higer that the current date' });
-      }else{
-        res.status(400).json({ message:error.raw.message });
 
+        if (coupon.id) {
+          subscription = await stripe.subscriptionSchedules.create({
+            customer: customerId,
+            start_date: timeStampStartDate,
+            end_behavior: "cancel",
+            phases: [
+              {
+                items: [
+                  {
+                    price: data.stripe_price,
+                    quantity: 1,
+                  },
+                ],
+                end_date: timeStampEndDate,
+                coupon: coupon.id,
+                transfer_data: {
+                  destination: sellerAccount,
+                },
+                application_fee_percent: 10,
+              },
+            ],
+          });
+        } else {
+          subscription = await stripe.subscriptionSchedules.create({
+            customer: customerId,
+            start_date: timeStampStartDate,
+            end_behavior: "cancel",
+            phases: [
+              {
+                items: [
+                  {
+                    price: data.stripe_price,
+                    quantity: 1,
+                  },
+                ],
+                end_date: timeStampEndDate,
+                transfer_data: {
+                  destination: sellerAccount,
+                },
+                application_fee_percent: 10,
+              },
+            ],
+          });
+        }
       }
-      return
+    } catch (error) {
+      console.log(error);
+      if (
+        error.raw.message.includes(
+          "You can not create a subscription schedule with `phases` that already ended"
+        )
+      ) {
+        res.status(400).json({
+          message: "The start date must be higer that the current date",
+        });
+      } else {
+        res.status(400).json({ message: error.raw.message });
+      }
+      return;
     }
-
 
     if (subscription.id) {
       const query = `
@@ -742,19 +772,25 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
           }
         });
 
-        const userQuery = `SELECT * FROM users WHERE id = '${data.created_by == userId ? data.requested_by : data.created_by}'`;
+        const userQuery = `SELECT * FROM users WHERE id = '${
+          data.created_by == userId ? data.requested_by : data.created_by
+        }'`;
         database.query(userQuery, (err, results) => {
           if (err) {
             console.log("Error saving information to MySQL database:", err);
             return;
           }
           if (results.length > 0) {
-            const email = results[0].email
+            const email = results[0].email;
             sendEmail(
               email,
-              data.created_by == userId? "Booking Request accepted": "Listing booked",
-              data.created_by == userId? "Your Booking request was accepted, see more details": "One of your listing was booked, see more details"
-              )
+              data.created_by == userId
+                ? "Booking Request accepted"
+                : "Listing booked",
+              data.created_by == userId
+                ? "Your Booking request was accepted, see more details"
+                : "One of your listing was booked, see more details"
+            );
           }
         });
         res.status(200).json({ message: "subscription created successfuly" });
@@ -768,7 +804,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
 
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const startDate = new Date(start_date.substring(0, 10));
@@ -841,8 +877,8 @@ const RequestReserve = asyncHandler(async (req, res) => {
             return;
           }
           if (results.length > 0) {
-            const email = results[0].email
-            sendEmail(email,'Booking request','You have a booking request')
+            const email = results[0].email;
+            sendEmail(email, "Booking request", "You have a booking request");
           }
         });
 
@@ -873,7 +909,7 @@ const DeclineRequest = asyncHandler(async (req, res) => {
     .replace("T", " ");
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   if (token) {
@@ -919,8 +955,12 @@ const DeclineRequest = asyncHandler(async (req, res) => {
             return;
           }
           if (results.length > 0) {
-            const email = results[0].email
-            sendEmail(email,'Booking request Rejected','Your booking request was rejected')
+            const email = results[0].email;
+            sendEmail(
+              email,
+              "Booking request Rejected",
+              "Your booking request was rejected"
+            );
           }
         });
 
