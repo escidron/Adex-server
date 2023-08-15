@@ -21,7 +21,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
     types = "17,18";
   }
 
-  if (token) {
+  //if (token) {
     try {
       const sql = `SELECT * FROM adex.advertisement where status <> '0' and price BETWEEN ${
         priceMin != "" ? priceMin : 0
@@ -63,11 +63,11 @@ const getAdvertisement = asyncHandler(async (req, res) => {
         error: "Not authorized, token failed",
       });
     }
-  } else {
-    res.status(401).json({
-      error: "Not authorized, no token",
-    });
-  }
+  // } else {
+  //   res.status(401).json({
+  //     error: "Not authorized, no token",
+  //   });
+  // }
 });
 
 const getMyAdvertisement = asyncHandler(async (req, res) => {
