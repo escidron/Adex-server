@@ -676,7 +676,7 @@ const contactUs = asyncHandler(async (req, res) => {
 
 const addCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name, image, address } = req.body;
+  const { name, image, address,hasPhysicalSpace,industry } = req.body;
 
   const createdAt = new Date();
   const formattedCreatedAt = createdAt
@@ -703,12 +703,16 @@ const addCompany = asyncHandler(async (req, res) => {
         company_name,
         company_logo,
         address,
+        industry,
+        has_physical_space,
         created_at
       ) VALUES (
         '${userId}',
         '${name}',
         '${imageName}',
         '${address}',
+        '${industry}',
+        '${hasPhysicalSpace}',
         '${formattedCreatedAt}'
       )
     `;
