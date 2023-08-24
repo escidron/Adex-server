@@ -328,7 +328,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       stripe_product_id,
       stripe_price,
       is_automatic,
-      created_by_type
+      created_by_type,
+      company_id
     ) VALUES (
       '${data.category_id}',
       '${userId}',
@@ -348,7 +349,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       '${product.id}',
       '${price.id}',
       '${data.is_automatic}',
-      '${userType}'
+      '${userType}',
+      '${data.company_id}'
     )
   `;
     database.query(query, (err, results) => {
