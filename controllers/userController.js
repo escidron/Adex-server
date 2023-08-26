@@ -969,5 +969,7 @@ export {
   contactUs,
   addCompany,
   getCompanies,
-  getCompany
+  getCompany,
+  companyGallery,
+  getCompanyGallery
 };
