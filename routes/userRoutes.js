@@ -17,7 +17,9 @@ import {
   contactUs,
   addCompany,
   getCompanies,
-  getCompany
+  getCompany,
+  companyGallery,
+  getCompanyGallery
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -41,7 +43,8 @@ router.post('/contact-us', contactUs);
 router.post('/add-company', addCompany);
 router.get('/get-companies', getCompanies);
 router.post('/my-company', getCompany);
-
+router.post('/company-gallery', companyGallery);
+router.post('/get-company-gallery', getCompanyGallery);
 router
   .route('/seller-profile')
   .get(protect, getSellerProfile)

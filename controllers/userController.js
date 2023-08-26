@@ -820,6 +820,137 @@ const getCompany = asyncHandler(async (req, res) => {
     });
   }
 });
+
+const companyGallery = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { id, images } = req.body;
+
+  let imagesGroup = "";
+  images.map((image, index) => {
+    let imageName = Date.now() + index + ".png";
+    let path = "./images/" + imageName;
+    let imgdata = image.data_url;
+    imagesGroup += imageName + ";";
+
+    // to convert base64 format into random filename
+    let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+
+    fs.writeFileSync(path, base64Data, { encoding: "base64" });
+  });
+  imagesGroup = imagesGroup.slice(0, -1);
+
+  const updatedAt = new Date();
+  const formattedUpdatedAt = updatedAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, "usersecrettoken");
+      const userId = decoded.userId;
+
+      const getCompanyGalleryQuery = `SELECT * FROM adex.companies WHERE id = '${id}'`;
+
+      database.query(getCompanyGalleryQuery, (err, result) => {
+        if (err) {
+          res.status(500).json({ message: "something went wrong" });
+        }
+        if (result.length == 0) {
+          res.status(401).json({
+            error: "This Company does not have images",
+          });
+        } else {
+          // Add base64 image to each advertisement object
+
+          const images = result[0].company_gallery;
+
+          const addGalleryImage = `
+          UPDATE adex.companies SET
+            company_gallery = '${images?images+";"+imagesGroup:imagesGroup}',
+            updated_at = '${formattedUpdatedAt}'
+          WHERE user_id = ${userId} and id = ${id}
+        `;
+
+          database.query(addGalleryImage, (err, result) => {
+            if (err) {
+              res.status(500).json({ message: "something went wrong" });
+            }
+            res.status(200).json({message:'Image added to the gallery'});
+          });
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const getCompanyGallery = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { id } = req.body;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, "usersecrettoken");
+      const userId = decoded.userId;
+
+      const getCompanyGalleryQuery = `SELECT * FROM adex.companies WHERE id = '${id}'`;
+
+      database.query(getCompanyGalleryQuery, (err, result) => {
+        if (err) {
+          res.status(500).json({ message: "something went wrong" });
+        }
+        if (result.length == 0) {
+          res.status(401).json({
+            error: "This Company does not have images",
+          });
+        } else {
+          // Add base64 image to each advertisement object
+
+          const galleryWithImages = result.map((gallery) => {
+            const images = [];
+
+            if(gallery.company_gallery){
+
+              const imageArray = gallery.company_gallery.split(";");
+              imageArray.map((image) => {
+                if(image){
+                  images.push({ data_url: getImageBase64(image) });
+                }
+              });
+              return {
+                ...gallery,
+                company_gallery: images.length > 0 ?images:[],
+              };
+            }
+          });
+
+          res.status(200).json({galleryWithImages:
+            galleryWithImages[0]?galleryWithImages:[],
+          });
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
