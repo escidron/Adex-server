@@ -378,9 +378,7 @@ const getExternalAccount = asyncHandler(async (req, res) => {
         if (err) throw err;
         if (result.length == 0) {
           res.status(200).json({
-            name: firstName,
-            image: image,
-            userId: userId,
+            data: "",
           });
         } else {
           const externalAccount = result[0].external_account_id;
