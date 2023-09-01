@@ -9,6 +9,7 @@ import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
 import { signUpTamplate } from "../utils/emailTamplates/signUp.js";
+import {getCompaniesQuery,getCompanyQuery} from "../queries/Companies.js";
 
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -24,6 +25,7 @@ const authUser = asyncHandler(async (req, res) => {
 
   database.query(sql, (err, result) => {
     if (err) throw err;
+    console.log("before conn");
     if (result.length == 0) {
       res
         .status(400)
@@ -33,6 +35,7 @@ const authUser = asyncHandler(async (req, res) => {
       const userId = result[0].id;
       const firstName = result[0].first_name;
       const lastName = result[0].last_name;
+      const userType = result[0].user_type;
 
       let image = "";
       if (result[0].profile_image) {
@@ -52,6 +55,7 @@ const authUser = asyncHandler(async (req, res) => {
                 name: firstName,
                 image: image,
                 userId: userId,
+                user_type:userType
               });
             } else {
               const externalAccount = result[0].external_account_id;
@@ -60,7 +64,7 @@ const authUser = asyncHandler(async (req, res) => {
                   name: firstName,
                   image: image,
                   userId: userId,
-                  hasPayout:externalAccount
+                  hasPayout: externalAccount,
                 });
               } else {
                 res.status(201).json({
@@ -78,6 +82,47 @@ const authUser = asyncHandler(async (req, res) => {
       });
     }
   });
+});
+
+const autoLogin = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, "usersecrettoken");
+      const sql = `SELECT * FROM users WHERE id = '${decoded.userId}'`;
+      database.query(sql, (err, result) => {
+        if (err) throw err;
+        if (result.length == 0) {
+          res.status(400).json({
+            error: "User does not exists",
+          });
+        } else {
+          const firstName = result[0].first_name;
+          const nameImage = {
+            image: result[0].profile_image,
+          };
+          let image = "";
+          if (result[0].profile_image) {
+            image = getImageBase64(nameImage);
+          }
+          res.status(200).json({
+            name: firstName,
+            image: image,
+            userId: result[0].id,
+          });
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
 });
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -145,7 +190,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
+      const decoded = jwt.verify(token, "usersecrettoken");
       const sql = `SELECT * FROM sellers WHERE user_id = '${decoded.userId}'`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -174,13 +219,16 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 });
 
 const updateUserAddress = asyncHandler(async (req, res) => {
-  const stripe = new Stripe('sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre');
+  const stripe = new Stripe(
+    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+  );
   const { address } = pkg;
 
   const { idNumber, bod, street, city, state, zip } = req.body;
 
+  console.log("addres info", req.body);
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const updatedAt = new Date();
@@ -310,13 +358,11 @@ const updateUserAddress = asyncHandler(async (req, res) => {
       }
     } catch (error) {
       if (error.message.includes("is not a valid phone number")) {
-        res
-          .status(400)
-          .json({
-            error:
-              error.message +
-              ". Please change your number in your personal information section",
-          });
+        res.status(400).json({
+          error:
+            error.message +
+            ". Please change your number in your personal information section",
+        });
       } else {
         res.status(400).json({ error: error.message });
       }
@@ -324,55 +370,11 @@ const updateUserAddress = asyncHandler(async (req, res) => {
   }
 });
 
-const autoLogin = asyncHandler(async (req, res) => {
-  const token = req.cookies.jwt;
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
-      const sql = `SELECT * FROM users WHERE id = '${decoded.userId}'`;
-      database.query(sql, (err, result) => {
-        if (err) throw err;
-        if (result.length == 0) {
-          res.status(400).json({
-            error: "User does not exists",
-          });
-        } else {
-          const firstName = result[0].first_name;
-
-          const nameImage = {
-            image: result[0].profile_image,
-          };
-          let image = "";
-          if (result[0].profile_image) {
-            image = getImageBase64(nameImage);
-          }
-          console.log('name',firstName)
-          console.log('usrid',result[0].id)
-          res.status(200).json({
-            name: firstName,
-            image: image,
-            userId: result[0].id,
-          });
-        }
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
-      });
-    }
-  } else {
-    res.status(401).json({
-      error: "Not authorized, no token",
-    });
-  }
-});
-
 const getExternalAccount = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
+      const decoded = jwt.verify(token, "usersecrettoken");
       const sql = `SELECT * FROM sellers WHERE user_id = '${decoded.userId}'`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -411,7 +413,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
+      const decoded = jwt.verify(token, "usersecrettoken");
       const sql = `SELECT * FROM users WHERE id = '${
         id ? id : decoded.userId
       }'`;
@@ -447,7 +449,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
             bio,
             sex,
             profession,
-            user_type
+            user_type,
           });
         }
       });
@@ -469,7 +471,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
   const { image } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
+      const decoded = jwt.verify(token, "usersecrettoken");
 
       const imageName = Date.now() + ".png";
       const path = "./images/" + imageName;
@@ -499,10 +501,10 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name, lastName, email, phone, bio,sex,profession } = req.body;
+  const { name, lastName, email, phone, bio, sex, profession } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
+      const decoded = jwt.verify(token, "usersecrettoken");
 
       const sql = `UPDATE users set 
       name = '${name} ${lastName}', 
@@ -512,7 +514,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       mobile_number = '${phone}', 
       bio = "${bio}" ,
       sex = "${sex}" ,
-      profession = "${profession}"
+      profession = "${profession}" 
       WHERE id = ${decoded.userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
@@ -534,11 +536,11 @@ const getMyNotifications = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, 'usersecrettoken');
+      const decoded = jwt.verify(token, "usersecrettoken");
       const sql = `SELECT * FROM notifications WHERE user_id = '${decoded.userId}' and readed = 0`;
       database.query(sql, (err, result) => {
         if (err) throw err;
-        console.log('notifications',decoded.userId)
+        console.log("notifications", decoded.userId);
         res.status(200).json({
           notifications: result,
         });
@@ -582,10 +584,11 @@ const resetPassword = asyncHandler(async (req, res) => {
     }
   });
 });
+
 const changePassword = asyncHandler(async (req, res) => {
   const { newPassword, current } = req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, 'usersecrettoken');
+  const decoded = jwt.verify(token, "usersecrettoken");
   const userId = decoded.userId;
 
   const getUser = `SELECT * FROM users WHERE id = '${userId}'`;
@@ -612,7 +615,9 @@ const changePassword = asyncHandler(async (req, res) => {
             });
           });
         } else {
-          res.status(401).json({ error: "The current password does not match" });
+          res
+            .status(401)
+            .json({ error: "The current password does not match" });
           // throw new Error('Invalid email or password');
         }
       });
@@ -631,14 +636,12 @@ const sendResetPasswordEmail = asyncHandler(async (req, res) => {
 });
 
 const contactUs = asyncHandler(async (req, res) => {
-  const { name,email,number,message} = req.body;
+  const { name, email, number, message } = req.body;
   const createdAt = new Date();
   const formattedCreatedAt = createdAt
     .toISOString()
     .slice(0, 19)
     .replace("T", " ");
-
-
 
   const contactUsQuery = `
   INSERT INTO adex.contact_us (
@@ -653,28 +656,28 @@ const contactUs = asyncHandler(async (req, res) => {
     '${number}',
     '${message}',
     '${formattedCreatedAt}'
-  )`;  
-  console.log(contactUsQuery)
+  )`;
+  console.log(contactUsQuery);
   database.query(contactUsQuery, (err, result) => {
     if (err) {
       res.status(401).json({ error: err });
-    };
+    }
 
-      //put the adex email account
-  sendEmail(
-    'eduardosanchezcidron@gmail.com',
-    "Customer Service",
-    `${name} has sended the fallowing message :
+    //put the adex email account
+    sendEmail(
+      "eduardosanchezcidron@gmail.com",
+      "Customer Service",
+      `${name} has sended the fallowing message :
     ${message}
     `
-  );
-    res.status(200).json({ message:'Message sended successfuly' });
+    );
+    res.status(200).json({ message: "Message sended successfuly" });
   });
 });
 
 const addCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name, image, address,hasPhysicalSpace,industry } = req.body;
+  const { name, image, address, hasPhysicalSpace, industry } = req.body;
 
   const createdAt = new Date();
   const formattedCreatedAt = createdAt
@@ -717,6 +720,7 @@ const addCompany = asyncHandler(async (req, res) => {
       database.query(addCompanyQuery, (err, result) => {
         if (err) {
           res.status(500).json({ message: "something went wrong" });
+          return;
         }
         res.status(200).json({ message: "Company registered succesfully" });
       });
@@ -735,34 +739,22 @@ const addCompany = asyncHandler(async (req, res) => {
 
 const getCompanies = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-
   if (token) {
     try {
       const decoded = jwt.verify(token, "usersecrettoken");
       const userId = decoded.userId;
+      const result = await getCompaniesQuery(userId);
 
-      const getCompaniesQuery = `SELECT * FROM companies WHERE user_id = '${userId}'`;
-
-      database.query(getCompaniesQuery, (err, result) => {
-        if (err) {
-          res.status(500).json({ message: "something went wrong" });
+      if (result.length > 0) {
+        result.map((item, index) => {
+        const nameImage = item.company_logo;
+        let image = "";
+        if (item.company_logo) {
+            image = getImageBase64(nameImage);
+            result[index].company_logo = image;
         }
-        if (result.length > 0) {
-
-          result.map((item,index)=>{
-
-            const nameImage = item.company_logo
-            let image = "";
-            if (item.company_logo) {
-              image = getImageBase64(nameImage);
-              result[index].company_logo = image
-            }
-          })
-          
-        }
-        console.log(result);
+      })}
         res.status(200).json(result);
-      });
     } catch (error) {
       console.error(error);
       res.status(401).json({
@@ -778,7 +770,7 @@ const getCompanies = asyncHandler(async (req, res) => {
 
 const getCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const {id} = req.body
+  const { id } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, "usersecrettoken");
@@ -791,19 +783,16 @@ const getCompany = asyncHandler(async (req, res) => {
           res.status(500).json({ message: "something went wrong" });
         }
         if (result.length > 0) {
-
-          result.map((item,index)=>{
-
-            const nameImage = item.company_logo
+          result.map((item, index) => {
+            const nameImage = item.company_logo;
             let image = "";
             if (item.company_logo) {
               image = getImageBase64(nameImage);
-              result[index].company_logo = image
+              result[index].company_logo = image;
             }
-          })
-          
+          });
         }
-      console.log(result);
+        console.log(result);
         res.status(200).json(result);
       });
     } catch (error) {
@@ -948,7 +937,6 @@ const getCompanyGallery = asyncHandler(async (req, res) => {
     });
   }
 });
-
 export {
   authUser,
   registerUser,
@@ -969,5 +957,5 @@ export {
   getCompanies,
   getCompany,
   companyGallery,
-  getCompanyGallery
+  getCompanyGallery,
 };

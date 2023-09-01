@@ -265,19 +265,42 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   const parsedValue = parseFloat(data.price.replace(/,/g, ""));
 
   let images = "";
-  data.images.map((image, index) => {
-    let imageName = Date.now() + index + ".png";
-    let path = "./images/" + imageName;
-    let imgdata = image.data_url;
-    images += imageName+';'
+  const result = await getCompanyQuery(data.company_id)
+  
+  if(data.importFromGallery){
+    const imageArray = result[0].company_gallery.split(";");
+    imageArray.map((image) => {
+      if(image){
+        const base64Image = getImageBase64(image);
+        data.images.map((item)=>{
+          if(item.data_url == base64Image){
+            images += image+';'
 
-    // to convert base64 format into random filename
-    let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+          }
+        })
+      }
+    });
+    images = images.slice(0, -1);
+  }else{
+    data.images.map((image, index) => {
+      let imageName = Date.now() + index + ".png";
+      let path = "./images/" + imageName;
+      let imgdata = image.data_url;
+      images += imageName+';'
+  
+      // to convert base64 format into random filename
+      let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+  
+      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+    });
+    images = images.slice(0, -1);
 
-    fs.writeFileSync(path, base64Data, { encoding: "base64" });
-  });
-  images = images.slice(0, -1);
-
+    if(result[0].company_gallery){
+      const imagesGroup = images
+      const id = data.company_id
+      addCompanyImagesQuery(id,userId,result[0].company_gallery,imagesGroup)
+    }
+  }
   const product = await stripe.products.create({
     name: data.title,
   });
