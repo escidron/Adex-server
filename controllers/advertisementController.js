@@ -7,6 +7,7 @@ import pkg from "based-blob";
 import * as fs from "fs";
 import Stripe from "stripe";
 import getImageBase64 from "../utils/getImageBase64.js";
+import {getCompanyQuery,addCompanyImagesQuery} from "../queries/Companies.js";
 
 const getAdvertisement = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
