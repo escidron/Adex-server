@@ -296,7 +296,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     });
     images = images.slice(0, -1);
 
-    if(result[0].company_gallery){
+    if(result[0]){
       const imagesGroup = images
       const id = data.company_id
       addCompanyImagesQuery(id,userId,result[0].company_gallery,imagesGroup)
