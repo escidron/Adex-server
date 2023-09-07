@@ -432,6 +432,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
           const sex = result[0].sex;
           const profession = result[0].profession;
           const user_type = result[0].user_type;
+          const handle = result[0].handle;
 
           const nameImage = {
             image: result[0].profile_image,
@@ -450,6 +451,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
             sex,
             profession,
             user_type,
+            handle
           });
         }
       });
@@ -501,7 +503,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name, lastName, email, phone, bio, sex, profession } = req.body;
+  const { name, lastName, email, phone, bio, sex, profession,handle } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, "usersecrettoken");
@@ -514,6 +516,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       mobile_number = '${phone}', 
       bio = "${bio}" ,
       sex = "${sex}" ,
+      handle = "${handle}" ,
       profession = "${profession}" 
       WHERE id = ${decoded.userId}`;
       database.query(sql, (err, result) => {
