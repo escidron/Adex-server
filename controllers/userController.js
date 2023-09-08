@@ -547,6 +547,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       WHERE id = ${decoded.userId}`;
       database.query(sql, (err, result) => {
         if (err) throw err;
+        res.status(200).json({
+          message: "Profile updated!",
+        });
       });
     } catch (error) {
       console.error(error);
