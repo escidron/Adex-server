@@ -9,7 +9,7 @@ import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
 import { signUpTamplate } from "../utils/emailTamplates/signUp.js";
-import {getCompaniesQuery,getCompanyQuery} from "../queries/Companies.js";
+import { getCompaniesQuery, getCompanyQuery } from "../queries/Companies.js";
 
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -55,7 +55,7 @@ const authUser = asyncHandler(async (req, res) => {
                 name: firstName,
                 image: image,
                 userId: userId,
-                user_type:userType
+                user_type: userType,
               });
             } else {
               const externalAccount = result[0].external_account_id;
@@ -433,6 +433,10 @@ const getUserProfile = asyncHandler(async (req, res) => {
           const profession = result[0].profession;
           const user_type = result[0].user_type;
           const handle = result[0].handle;
+          const handleIsPublic = result[0].handle_is_public;
+          const professionIsPublic = result[0].profession_is_public;
+          const sexIsPublic = result[0].sex_is_public;
+          const bioIsPublic = result[0].bio_is_public;
 
           const nameImage = {
             image: result[0].profile_image,
@@ -451,7 +455,11 @@ const getUserProfile = asyncHandler(async (req, res) => {
             sex,
             profession,
             user_type,
-            handle
+            handle,
+            handleIsPublic,
+            professionIsPublic,
+            sexIsPublic,
+            bioIsPublic,
           });
         }
       });
@@ -503,7 +511,20 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
 
 const updateUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name, lastName, email, phone, bio, sex, profession,handle } = req.body;
+  const {
+    name,
+    lastName,
+    email,
+    phone,
+    bio,
+    sex,
+    profession,
+    handle,
+    handleIsPublic,
+    professionIsPublic,
+    sexIsPublic,
+    bioIsPublic,
+  } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, "usersecrettoken");
@@ -517,6 +538,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       bio = "${bio}" ,
       sex = "${sex}" ,
       handle = "${handle}" ,
+      handle_is_public = "${handleIsPublic}" ,
+      profession_is_public = "${professionIsPublic}" ,
+      sex_is_public = "${sexIsPublic}" ,
+      bio_is_public = "${bioIsPublic}" ,
       profession = "${profession}" 
       WHERE id = ${decoded.userId}`;
       database.query(sql, (err, result) => {
@@ -750,14 +775,15 @@ const getCompanies = asyncHandler(async (req, res) => {
 
       if (result.length > 0) {
         result.map((item, index) => {
-        const nameImage = item.company_logo;
-        let image = "";
-        if (item.company_logo) {
+          const nameImage = item.company_logo;
+          let image = "";
+          if (item.company_logo) {
             image = getImageBase64(nameImage);
             result[index].company_logo = image;
-        }
-      })}
-        res.status(200).json(result);
+          }
+        });
+      }
+      res.status(200).json(result);
     } catch (error) {
       console.error(error);
       res.status(401).json({
@@ -857,7 +883,9 @@ const companyGallery = asyncHandler(async (req, res) => {
 
           const addGalleryImage = `
           UPDATE adex.companies SET
-            company_gallery = '${images?images+";"+imagesGroup:imagesGroup}',
+            company_gallery = '${
+              images ? images + ";" + imagesGroup : imagesGroup
+            }',
             updated_at = '${formattedUpdatedAt}'
           WHERE user_id = ${userId} and id = ${id}
         `;
@@ -866,7 +894,7 @@ const companyGallery = asyncHandler(async (req, res) => {
             if (err) {
               res.status(500).json({ message: "something went wrong" });
             }
-            res.status(200).json({message:'Image added to the gallery'});
+            res.status(200).json({ message: "Image added to the gallery" });
           });
         }
       });
@@ -908,24 +936,25 @@ const getCompanyGallery = asyncHandler(async (req, res) => {
           const galleryWithImages = result.map((gallery) => {
             const images = [];
 
-            if(gallery.company_gallery){
-
+            if (gallery.company_gallery) {
               const imageArray = gallery.company_gallery.split(";");
               imageArray.map((image) => {
-                if(image){
+                if (image) {
                   images.push({ data_url: getImageBase64(image) });
                 }
               });
               return {
                 ...gallery,
-                company_gallery: images.length > 0 ?images:[],
+                company_gallery: images.length > 0 ? images : [],
               };
             }
           });
 
-          res.status(200).json({galleryWithImages:
-            galleryWithImages[0]?galleryWithImages:[],
-          });
+          res
+            .status(200)
+            .json({
+              galleryWithImages: galleryWithImages[0] ? galleryWithImages : [],
+            });
         }
       });
     } catch (error) {
