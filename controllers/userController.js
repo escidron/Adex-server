@@ -510,6 +510,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
 });
 
 const updateUserProfile = asyncHandler(async (req, res) => {
+  console.log(  'atualizando personal info')
   const token = req.cookies.jwt;
   const {
     name,
@@ -523,7 +524,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     handleIsPublic,
     professionIsPublic,
     sexIsPublic,
-    bioIsPublic,
+    bioIsPublic
   } = req.body;
   if (token) {
     try {
