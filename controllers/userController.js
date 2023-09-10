@@ -437,6 +437,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
           const professionIsPublic = result[0].profession_is_public;
           const sexIsPublic = result[0].sex_is_public;
           const bioIsPublic = result[0].bio_is_public;
+          const city = result[0].city;
+          const cityIsPublic = result[0].city_is_public;
 
           const nameImage = {
             image: result[0].profile_image,
@@ -460,6 +462,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
             professionIsPublic,
             sexIsPublic,
             bioIsPublic,
+            city,
+            cityIsPublic
           });
         }
       });
@@ -510,7 +514,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
 });
 
 const updateUserProfile = asyncHandler(async (req, res) => {
-  console.log(  'atualizando personal info')
+  console.log("atualizando personal info");
   const token = req.cookies.jwt;
   const {
     name,
@@ -524,7 +528,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     handleIsPublic,
     professionIsPublic,
     sexIsPublic,
-    bioIsPublic
+    bioIsPublic,
+    city,
+    cityIsPublic,
   } = req.body;
   if (token) {
     try {
@@ -543,6 +549,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
       profession_is_public = "${professionIsPublic}" ,
       sex_is_public = "${sexIsPublic}" ,
       bio_is_public = "${bioIsPublic}" ,
+      city = "${city}" ,
+      city_is_public = "${cityIsPublic}" ,
       profession = "${profession}" 
       WHERE id = ${decoded.userId}`;
       database.query(sql, (err, result) => {
@@ -954,11 +962,9 @@ const getCompanyGallery = asyncHandler(async (req, res) => {
             }
           });
 
-          res
-            .status(200)
-            .json({
-              galleryWithImages: galleryWithImages[0] ? galleryWithImages : [],
-            });
+          res.status(200).json({
+            galleryWithImages: galleryWithImages[0] ? galleryWithImages : [],
+          });
         }
       });
     } catch (error) {
