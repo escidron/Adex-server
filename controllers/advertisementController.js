@@ -165,6 +165,48 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
     });
   }
 });
+
+const getSharedListing = asyncHandler(async (req, res) => {
+  //get user id
+  console.log("no tokenn");
+  const { id } = req.body;
+  try {
+    const sql = `SELECT * FROM adex.advertisement where id = ${id}`;
+    database.query(sql, (err, result) => {
+      if (err) throw err;
+      if (result.length == 0) {
+        res.status(401).json({
+          error: "Advertisement does not exists",
+        });
+      } else {
+        // Add base64 image to each advertisement object
+
+        const advertisementsWithImages = result.map((advertisement) => {
+          const images = [];
+
+          const imageArray = advertisement.image.split(";");
+          imageArray.map((image) => {
+            images.push({ data_url: getImageBase64(image) });
+          });
+          return {
+            ...advertisement,
+            image: images,
+          };
+        });
+        console.log('taaa',advertisementsWithImages)
+        res.status(200).json({
+          data: advertisementsWithImages,
+        });
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
 const getMyBookings = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
@@ -696,4 +738,5 @@ export {
   getChatInfo,
   DeleteAdvertisment,
   getDiscounts,
+  getSharedListing
 };
