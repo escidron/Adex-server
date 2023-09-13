@@ -191,6 +191,8 @@ const getSharedListing = asyncHandler(async (req, res) => {
           return {
             ...advertisement,
             image: images,
+            shared_image:imageArray[0]
+
           };
         });
         console.log('taaa',advertisementsWithImages)
