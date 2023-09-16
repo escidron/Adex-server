@@ -1,9 +1,55 @@
-import database from ".././db.js";
+import  getDatabaseConnection  from '.././db.js';
+
+const db = getDatabaseConnection();
+
+export async function insertCompany(id,name,imageName,address,industry,hasPhysicalSpace,formattedCreatedAt) {
+
+  const insertCompanyQuery = `
+  INSERT INTO adex.companies (
+    user_id,
+    company_name,
+    company_logo,
+    address,
+    industry,
+    has_physical_space,
+    created_at
+  ) VALUES (
+    '${id}',
+    '${name}',
+    '${imageName}',
+    '${address}',
+    '${industry}',
+    '${hasPhysicalSpace}',
+    '${formattedCreatedAt}'
+  )
+`;  return new Promise((resolve, reject) => {
+    db.query(insertCompanyQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
 
 export async function getCompaniesQuery(userId) {
+
   const getCompanies = `SELECT * FROM companies WHERE user_id = '${userId}'`;
   return new Promise((resolve, reject) => {
-    database.query(getCompanies, (err, result) => {
+    db.query(getCompanies, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getCompaniesById(id) {
+
+  const getCompanyQuery = `SELECT * FROM companies WHERE id = '${id}'`;
+  return new Promise((resolve, reject) => {
+    db.query(getCompanyQuery, (err, result) => {
       if (err) {
         reject(err);
       }
@@ -13,9 +59,10 @@ export async function getCompaniesQuery(userId) {
 }
 
 export async function getCompanyQuery(id) {
+
   const getCompany = `SELECT * FROM companies WHERE id = '${id}'`;
   return new Promise((resolve, reject) => {
-    database.query(getCompany, (err, result) => {
+    db.query(getCompany, (err, result) => {
       if (err) {
         reject(err);
       }
@@ -39,7 +86,7 @@ export async function addCompanyImagesQuery(id,userId,images,imagesGroup) {
   WHERE user_id = ${userId} and id = ${id}
 `;
   return new Promise((resolve, reject) => {
-    database.query(addGalleryImage, (err, result) => {
+    db.query(addGalleryImage, (err, result) => {
       if (err) {
         reject(err);
       }
@@ -47,3 +94,5 @@ export async function addCompanyImagesQuery(id,userId,images,imagesGroup) {
     });
   });
 }
+
+
