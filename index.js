@@ -13,7 +13,7 @@ import * as fs from "fs";
 import https from 'https'
 
 dotenv.config();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5001;
 
 const io = new Server({
   cors: {
