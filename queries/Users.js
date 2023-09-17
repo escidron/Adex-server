@@ -178,6 +178,32 @@ export async function getUserNotifications(id) {
   });
 }
 
+export async function updateNotificationStatus(notificationId, key) {
+  let UpdateNotificationsQuery = "";
+  
+  if (key) {
+    UpdateNotificationsQuery = `
+    UPDATE notifications SET
+      readed = '1'
+    WHERE notifications.key = '${key}' and readed = '0'
+  `;
+  } else {
+    UpdateNotificationsQuery = `
+   UPDATE notifications SET
+     readed = '1'
+   WHERE id = '${notificationId}' and readed = '0'
+ `;
+  }
+  return new Promise((resolve, reject) => {
+    db.query(UpdateNotificationsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 //contact us querie
 export async function insertContactUs(
   name,
@@ -202,6 +228,39 @@ export async function insertContactUs(
     )`;
   return new Promise((resolve, reject) => {
     db.query(contactUsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+//messages queries
+export async function getAllMessages() {
+  const allMessagesQuery = `SELECT * FROM messages`;
+
+  return new Promise((resolve, reject) => {
+    db.query(allMessagesQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+//chat queries
+export async function getAllMessages(userId) {
+  const messagesChatQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name
+  FROM messages as m
+  JOIN advertisement as a ON m.advertisement_id = a.id COLLATE utf8mb4_unicode_ci
+  JOIN users as u ON (u.id = m.seller_id or u.id = m.buyer_id) and u.id != ${userId} COLLATE utf8mb4_unicode_ci
+  where m.seller_id = ${userId} or m.buyer_id = ${userId}
+  order by m.created_at 
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(messagesChatQuery, (err, result) => {
       if (err) {
         reject(err);
       }

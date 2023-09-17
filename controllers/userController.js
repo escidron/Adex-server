@@ -508,7 +508,7 @@ const getMyNotifications = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, "usersecrettoken");
       const userId = decoded.userId;
-      result = await getUserNotifications(userId);
+      const result = await getUserNotifications(userId);
       res.status(200).json({
         notifications: result,
       });
@@ -527,7 +527,7 @@ const getMyNotifications = asyncHandler(async (req, res) => {
 
 const resetPassword = asyncHandler(async (req, res) => {
   const { password, email } = req.body;
-  result = await getUsersByEmail(email);
+  const result = await getUsersByEmail(email);
   if (result.length == 0) {
     res.status(401).json({ error: "User do not exist, please sign up" });
   } else {

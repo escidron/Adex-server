@@ -1,10 +1,11 @@
 import asyncHandler from 'express-async-handler';
-import database from '.././db.js'
+import getDatabaseConnection from ".././db.js";
 
+const db = getDatabaseConnection();
 const getListPropertyRoutes = asyncHandler(async (req, res) => {
 
     const sql = `SELECT * FROM adex.categories;`;
-    database.query(sql,  (err, result) => {
+    db.query(sql,  (err, result) => {
         if (err) throw err;
         if (result.length == 0) {
           res.status(401).json({
