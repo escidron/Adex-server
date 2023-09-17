@@ -1,5 +1,5 @@
 import asyncHandler from "express-async-handler";
-import database from ".././db.js";
+import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import * as fs from "fs";
 import Stripe from "stripe";
@@ -25,6 +25,8 @@ import {
   getAllMessages,
   getAllChatMessages
 } from "../queries/Users.js";
+
+dotenv.config();
 
 const getAdvertisement = asyncHandler(async (req, res) => {
   const { type, adGroup, priceMin, priceMax } = req.body;
@@ -79,7 +81,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getAdvertisementByCreater(userId, id);
 
@@ -190,7 +192,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       let result = "";
       if (advertisementId) {
@@ -241,7 +243,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   const data = req.body;
 
@@ -253,7 +255,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     .replace("T", " ");
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
   const parsedValue = parseFloat(data.price.replace(/,/g, ""));
 
@@ -461,7 +463,7 @@ const getChatInfo = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       // const messagesQuery = `SELECT * FROM messages`;
       const messages = await getAllChatMessages(userId);

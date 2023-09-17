@@ -9,15 +9,14 @@ import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import database from "./db.js";
 import { Server } from "socket.io";
-import * as fs from "fs";
-import https from 'https'
+
 
 dotenv.config();
 const port = process.env.PORT || 5001;
 
 const io = new Server({
   cors: {
-    origin: 'https://adexconnect.com',
+    origin:  process.env.CLIENT_IP,
   },
 });
 
@@ -147,7 +146,7 @@ io.listen(4400);
 const app = express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
-  origin: 'https://adexconnect.com',
+  origin:  process.env.CLIENT_IP,
   credentials: true,
   exposedHeaders: ["Authorization"],
   allowedHeaders: [

@@ -3,17 +3,19 @@ import database from ".././db.js";
 import Stripe from "stripe";
 import jwt from "jsonwebtoken";
 import sendEmail from "../utils/sendEmail.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const CreateCustomer = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   //get userID
   const { cardId, cardNumber, exp_year, exp_month, nameOnCard, brand } =
     req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
   const fullName = decoded.fullName;
   const email = decoded.email;
@@ -171,13 +173,13 @@ const CreateCustomer = asyncHandler(async (req, res) => {
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   //get userID
   const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
     req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   const createdAt = new Date();
@@ -295,7 +297,7 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 const GetCards = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   if (token) {
@@ -323,7 +325,7 @@ const GetCards = asyncHandler(async (req, res) => {
 const GetBankAccounts = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   if (token) {
@@ -350,13 +352,13 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 
 const SetDefaultCard = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   //get userID
   const { cardId } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   const upuatedAt = new Date();
@@ -445,13 +447,13 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
 
 const SetDefaultBank = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   //get userID
   const { bankId } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   const upuatedAt = new Date();
@@ -531,12 +533,12 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   //get userID
   const { data, start_date, duration, current_discount } = req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   const createdAt = new Date();
@@ -804,7 +806,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
 
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   const startDate = new Date(start_date.substring(0, 10));
@@ -909,7 +911,7 @@ const DeclineRequest = asyncHandler(async (req, res) => {
     .replace("T", " ");
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   if (token) {

@@ -10,7 +10,7 @@ import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
 import { signUpTamplate } from "../utils/emailTamplates/signUp.js";
 import { getCompaniesQuery, getCompanyQuery } from "../queries/Companies.js";
-import getDatabaseConnection from ".././db.js";
+import dotenv from "dotenv";
 import {
   getUsersByEmail,
   getSeller,
@@ -27,6 +27,8 @@ import {
   getCompaniesById,
   addCompanyImagesQuery,
 } from "../queries/Companies.js";
+
+dotenv.config();
 
 const authUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -89,7 +91,7 @@ const autoLogin = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getUsersById(userId);
       if (result.length == 0) {
@@ -177,7 +179,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getSeller(userId);
       if (result.length == 0) {
@@ -205,13 +207,13 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 
 const updateUserAddress = asyncHandler(async (req, res) => {
   const stripe = new Stripe(
-    "sk_test_51Hz3inL3Lxo3VPLop5yMlq0Ov3D9Az2pTd8KJoj6h6Kk6PxFa08IwdTYhP0oa1Ag4aijQNRqWaDicDawyaAYRbTm00imWxlHre"
+    process.env.STRIPE_SECRET_KEY
   );
   const { address } = pkg;
   const { idNumber, bod, street, city, state, zip } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
   const updatedAt = new Date();
@@ -320,7 +322,7 @@ const getExternalAccount = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getSeller(userId);
       if (result.length == 0) {
@@ -357,7 +359,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getUsersById(id ? id : userId);
       if (result.length == 0) {
@@ -425,7 +427,7 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
   const { image } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const imageName = Date.now() + ".png";
       const path = "./images/" + imageName;
@@ -467,7 +469,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   } = req.body;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       updatePublicProfile(
         name,
@@ -506,7 +508,7 @@ const getMyNotifications = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getUserNotifications(userId);
       res.status(200).json({
@@ -542,7 +544,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 const changePassword = asyncHandler(async (req, res) => {
   const { newPassword, current } = req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, "usersecrettoken");
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
   const result = await getUsersById(userId);
   if (result.length == 0) {
@@ -606,7 +608,7 @@ const addCompany = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const imageName = Date.now() + ".png";
       const path = "./images/" + imageName;
@@ -642,7 +644,7 @@ const getCompanies = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getCompaniesQuery(userId);
 
@@ -721,7 +723,7 @@ const companyGallery = asyncHandler(async (req, res) => {
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, "usersecrettoken");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getCompaniesById(id);
       if (result.length == 0) {
