@@ -251,7 +251,7 @@ export async function getAllMessages() {
 }
 
 //chat queries
-export async function getAllMessages(userId) {
+export async function getAllChatMessages(userId) {
   const messagesChatQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name
   FROM messages as m
   JOIN advertisement as a ON m.advertisement_id = a.id COLLATE utf8mb4_unicode_ci

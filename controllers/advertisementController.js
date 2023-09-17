@@ -23,7 +23,7 @@ import {
   updateNotificationStatus,
   getUsersById,
   getAllMessages,
-  getAllMessages,
+  getAllChatMessages
 } from "../queries/Users.js";
 
 const getAdvertisement = asyncHandler(async (req, res) => {
@@ -464,7 +464,7 @@ const getChatInfo = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, "usersecrettoken");
       const userId = decoded.userId;
       // const messagesQuery = `SELECT * FROM messages`;
-      const messages = await getAllMessages(userId);
+      const messages = await getAllChatMessages(userId);
       const results = await updateNotificationStatus("", key);
 
       const notifications = results.affectedRows;
