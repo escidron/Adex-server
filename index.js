@@ -7,16 +7,14 @@ import userRoutes from "./routes/userRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
-import database from "./db.js";
 import { Server } from "socket.io";
-
-
+import { insertUserNotifications } from "./queries/Users.js";
 dotenv.config();
 const port = process.env.PORT || 5001;
 
 const io = new Server({
   cors: {
-    origin:  process.env.CLIENT_IP,
+    origin: process.env.CLIENT_IP,
   },
 });
 
@@ -28,57 +26,20 @@ io.on("connection", (socket) => {
       .slice(0, 19)
       .replace("T", " ");
 
-    const messageQuery = `
-    INSERT INTO messages (
-      sended_by,
-      seller_id,
-      buyer_id,
-      advertisement_id,
-      message,
-      created_at
-    ) VALUES (
-      '${data.sended_by}',
-      '${data.seller_id}',
-      '${data.buyer_id}',
-      '${data.advertisement_id}',
-      '${data.message}',
-      '${formattedCreatedAt}'
-    )
-  `;
-    database.query(messageQuery, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        return;
-      }
-      console.log("chegou no resend");
-      socket.broadcast.emit("resend-data", data);
-    });
+    insertMessages(data, formattedCreatedAt);
+    socket.broadcast.emit("resend-data", data);
 
-    const notificationQuery = `
-    INSERT INTO notifications (
-      user_id,
-      header,
-      message,
-      created_at,
-      redirect,
-      notifications.key
-    ) VALUES (
-      '${data.seller_id}',
-      'You have a new message',
-      '${data.message}',
-      '${formattedCreatedAt}',
-      '/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}',
-      '${data.advertisement_id}${data.seller_id}${data.buyer_id}'
-    )
-  `;
-    database.query(notificationQuery, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        return;
-      }
-      socket.broadcast.emit("resend-data", data);
-    });
+    insertUserNotifications(
+      data.seller_id,
+      "You have a new message",
+      data.message,
+      formattedCreatedAt,
+      `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
+      `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
+    );
+    socket.broadcast.emit("resend-data", data);
   });
+
   socket.on("send-message", (data) => {
     const createdAt = new Date();
     const formattedCreatedAt = createdAt
@@ -86,6 +47,7 @@ io.on("connection", (socket) => {
       .slice(0, 19)
       .replace("T", " ");
 
+    insertMessages(data, formattedCreatedAt);
     const messageQuery = `
     INSERT INTO messages (
       sended_by,
@@ -103,37 +65,18 @@ io.on("connection", (socket) => {
       '${formattedCreatedAt}'
     )
   `;
-    database.query(messageQuery, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        return;
-      }
-      socket.broadcast.emit("resend-data", data);
-    });
 
-    const notificationQuery = `
-    INSERT INTO notifications (
-      user_id,
-      header,
-      message,
-      created_at,
-      redirect
-    ) VALUES (
-      '${data.sended_by}',
-      '${data.seller_id}',
-      '${data.buyer_id}',
-      '${data.advertisement_id}',
-      '${data.message}',
-      '${formattedCreatedAt}'
-    )
-  `;
-    database.query(notificationQuery, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        return;
-      }
-      socket.broadcast.emit("resend-data", data);
-    });
+    socket.broadcast.emit("resend-data", data);
+
+    insertUserNotifications(
+      data.seller_id,
+      "You have a new message",
+      data.message,
+      formattedCreatedAt,
+      `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
+      `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
+    );
+    socket.broadcast.emit("resend-data", data);
   });
 
   socket.on("disconnect", () => {
@@ -146,7 +89,7 @@ io.listen(4400);
 const app = express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
-  origin:  process.env.CLIENT_IP,
+  origin: process.env.CLIENT_IP,
   credentials: true,
   exposedHeaders: ["Authorization"],
   allowedHeaders: [

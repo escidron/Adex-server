@@ -3,13 +3,30 @@ import database from ".././db.js";
 import Stripe from "stripe";
 import jwt from "jsonwebtoken";
 import sendEmail from "../utils/sendEmail.js";
+import {
+  insertCard,
+  updateCard,
+  insertAccount,
+  updateAccount,
+  getCard,
+  getExternalAccount,
+  insetContract,
+} from "../queries/Payments.js";
+import {
+  getBuyer,
+  updateBuyer,
+  insertBuyer,
+  updateSeller,
+  getSeller,
+  insertUserNotifications,
+  getUsersById,
+} from "../queries/Users.js";
+import { updateAdvertismentById } from "../queries/Advertisements.js";
 import dotenv from "dotenv";
 dotenv.config();
 
 const CreateCustomer = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { cardId, cardNumber, exp_year, exp_month, nameOnCard, brand } =
     req.body;
@@ -26,41 +43,16 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
   let customerId = "";
-
-  //save card
-  const queryCards = `
-    INSERT INTO cards (
-      user_id,
-      stripe_payment_method_id,
-      card_brand,
-      name,
-      card_number,
-      expiry_date,
-      is_default,
-      is_active,
-      created_at
-    ) VALUES (
-      '${userId}',
-      '${cardId}',
-      '${brand}',
-      '${nameOnCard}',
-      '${cardNumber}',
-      STR_TO_DATE(CONCAT(${exp_year}, '-', ${exp_month}, '-01'), '%Y-%m-%d'),
-      '1',
-      '1',
-      '${formattedCreatedAt}'
-
-    )
-  `;
-  database.query(queryCards, (err, results) => {
-    if (err) {
-      console.log("Error saving information to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-      return;
-    }
-  });
+  insertCard(
+    userId,
+    cardId,
+    brand,
+    nameOnCard,
+    cardNumber,
+    exp_year,
+    exp_month,
+    formattedCreatedAt
+  );
 
   const queryUpDateDefaultCard = `
     UPDATE cards
@@ -68,113 +60,54 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     WHERE user_id = ${userId}
     AND stripe_payment_method_id <> '${cardId}'
 `;
-  database.query(queryUpDateDefaultCard, (err, results) => {
-    if (err) {
-      console.log("Error saving information to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-      return;
-    }
-  });
+  updateCard(queryUpDateDefaultCard);
 
-  //check if the customer exist
-  const checkCustomerExist = `SELECT * FROM adex.buyers where user_id = ${userId}`;
-  database.query(checkCustomerExist, (err, results) => {
-    if (err) {
-      console.log("Error getting information to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-      return;
-    }
-    if (results.length > 0) {
-      customerId = results[0].customer_id;
-    }
-    createCustomer();
-  });
-  //save customer
+  const results = await getBuyer(userId);
 
-  async function createCustomer() {
-    if (customerId != "") {
-      const paymentMethod = await stripe.paymentMethods.attach(cardId, {
-        customer: customerId,
-      });
-
-      const customerUpdated = await stripe.customers.update(customerId, {
-        invoice_settings: {
-          default_payment_method: cardId,
-        },
-      });
-
-      const queryCustomers = `
-        UPDATE adex.buyers
-        SET default_card = '${cardId}'
-        WHERE user_id = ${userId}
-      `;
-      saveCustomer(queryCustomers);
-    } else {
-      const customer = await stripe.customers.create({
-        description: fullName,
-        email: email,
-        // test_clock: "clock_1NWoYSEPsNRBDePlOrqqSAvc",
-      });
-
-      customerId = customer.id;
-      const paymentMethod = await stripe.paymentMethods.attach(cardId, {
-        customer: customerId,
-      });
-
-      const customerUpdated = await stripe.customers.update(customerId, {
-        invoice_settings: {
-          default_payment_method: cardId,
-        },
-      });
-
-      const queryCustomers = `
-          INSERT INTO buyers (
-            user_id,
-            customer_id,
-            name,
-            email,
-            created_at,
-            default_card
-          ) VALUES (
-            '${userId}',
-            '${customer.id}',
-            '${fullName}',
-            '${email}',
-            '${formattedCreatedAt}',
-            '${cardId}'
-    
-          )
-        `;
-
-      saveCustomer(queryCustomers);
-    }
+  if (results.length > 0) {
+    customerId = results[0].customer_id;
   }
 
-  //Storage card informations
-  function saveCustomer(queryCustomers) {
-    database.query(queryCustomers, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        res.status(500).json({
-          error: "An error occurred while saving the information.",
-        });
-        return;
-      }
-      res.status(200).json({
-        message: "Payment method saved successfully.",
-      });
+  if (customerId != "") {
+    const paymentMethod = await stripe.paymentMethods.attach(cardId, {
+      customer: customerId,
     });
+
+    const customerUpdated = await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: cardId,
+      },
+    });
+
+    updateBuyer(userId, cardId);
+  } else {
+    const customer = await stripe.customers.create({
+      description: fullName,
+      email: email,
+      // test_clock: "clock_1NWoYSEPsNRBDePlOrqqSAvc",
+    });
+
+    customerId = customer.id;
+    const paymentMethod = await stripe.paymentMethods.attach(cardId, {
+      customer: customerId,
+    });
+
+    const customerUpdated = await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: cardId,
+      },
+    });
+
+    insertBuyer(userId, customer, fullName, email, cardId, formattedCreatedAt);
   }
+
+  res.status(200).json({
+    message: "Payment method saved successfully.",
+  });
 });
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
     req.body;
@@ -201,91 +134,26 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
         },
       }
     );
+    insertAccount(
+      userId,
+      routingNumber,
+      accountNumber,
+      bankAccount,
+      bankAccountName,
+      formattedCreatedAt
+    );
+    updateAccount(userId, bankAccount, formattedCreatedAt);
+    updateSeller(userId, bankAccount, formattedCreatedAt);
 
     const query = `
-    INSERT INTO external_bank_accounts (
-      user_id,
-      routing_number,
-      account_number,
-      external_account_id,
-      bank_name,
-      is_default,
-      is_active,
-      created_at
-    ) VALUES (
-      '${userId}',
-      '${routingNumber}',
-      '${accountNumber}',
-      '${bankAccount.id}',
-      '${bankAccountName}',
-      '1',
-      '1',
-      '${formattedCreatedAt}'
-    )
-  `;
-    database.query(query, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        res.status(500).json({
-          error: "An error occurred while saving the information.",
-        });
-        return;
-      }
-    });
-
-    // update the default account
-    const queryUpdate = `
-  UPDATE external_bank_accounts
-  SET updated_at = '${formattedCreatedAt}',
-  is_default = CASE
-  WHEN external_account_id <> '${bankAccount.id}' THEN 0
-  WHEN external_account_id = '${bankAccount.id}' THEN 1
-  END
-  WHERE user_id = ${userId}
-`;
-    database.query(queryUpdate, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        res.status(500).json({
-          error: "An error occurred while saving the information.",
-        });
-        return;
-      }
-    });
-    // update the default account in the seller table
-    const queryUpdateSeller = `
-  UPDATE sellers
-  SET 
-  updated_at = '${formattedCreatedAt}',
-  external_account_id = '${bankAccount.id}'
-  WHERE user_id = ${userId}
-`;
-    database.query(queryUpdateSeller, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        res.status(500).json({
-          error: "An error occurred while saving the information.",
-        });
-        return;
-      }
-      const query = `
       UPDATE advertisement SET
         status = '1',
         updated_at = '${formattedCreatedAt}'
       WHERE created_by = ${userId} and status = '0'
     `;
-      database.query(query, (err, results) => {
-        if (err) {
-          console.error("Error updating advertisement in MySQL database:", err);
-          res.status(500).json({
-            error: "An error occurred while updating the advertisement.",
-          });
-          return;
-        }
+    updateAdvertismentById(query);
 
-        res.status(200).json({ message: "Bank account created" });
-      });
-    });
+    res.status(200).json({ message: "Bank account created" });
   } catch (error) {
     console.log("error", error.message);
     res.status(400).json({ error: error.message });
@@ -297,17 +165,14 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 const GetCards = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const userId = decoded.userId;
 
   if (token) {
     try {
-      const sql = `SELECT * FROM adex.cards where user_id = ${userId}`;
-      database.query(sql, (err, result) => {
-        if (err) throw err;
-        res.status(200).json({
-          data: result,
-        });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+      const result = await getCard(userId);
+      res.status(200).json({
+        data: result,
       });
     } catch (error) {
       console.error(error);
@@ -325,17 +190,14 @@ const GetCards = asyncHandler(async (req, res) => {
 const GetBankAccounts = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const userId = decoded.userId;
 
   if (token) {
     try {
-      const sql = `SELECT * FROM adex.external_bank_accounts where user_id = ${userId}`;
-      database.query(sql, (err, result) => {
-        if (err) throw err;
-        res.status(200).json({
-          data: result,
-        });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+      const result = await getExternalAccount(userId);
+      res.status(200).json({
+        data: result,
       });
     } catch (error) {
       console.error(error);
@@ -351,10 +213,7 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultCard = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
-  //get userID
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const { cardId } = req.body;
 
   const token = req.cookies.jwt;
@@ -380,75 +239,34 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
     WHERE user_id = ${userId}
      
 `;
-  database.query(queryUpDateDefaultCard, (err, results) => {
-    if (err) {
-      console.log("Error saving information to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-      return;
-    }
-  });
+  updateCard(queryUpDateDefaultCard);
 
-  //check if the customer exist
-  const checkCustomerExist = `SELECT * FROM adex.buyers where user_id = ${userId}`;
-  database.query(checkCustomerExist, (err, results) => {
-    if (err) {
-      console.log("Error getting information to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-      return;
-    }
-    if (results.length > 0) {
-      customerId = results[0].customer_id;
-    }
-    createCustomer();
-  });
-  //save customer
+  const results = await getBuyer(userId);
 
-  async function createCustomer() {
-    if (customerId != "") {
-      const paymentMethod = await stripe.paymentMethods.attach(cardId, {
-        customer: customerId,
-      });
-
-      const customerUpdated = await stripe.customers.update(customerId, {
-        invoice_settings: {
-          default_payment_method: cardId,
-        },
-      });
-
-      const queryCustomers = `
-        UPDATE adex.buyers
-        SET default_card = '${cardId}',updated_at= '${formattedUpdatedAt}'
-        WHERE user_id = ${userId}
-      `;
-      saveCustomer(queryCustomers);
-    }
+  if (results.length > 0) {
+    customerId = results[0].customer_id;
   }
+  //save customer
+  if (customerId != "") {
+    const paymentMethod = await stripe.paymentMethods.attach(cardId, {
+      customer: customerId,
+    });
 
-  //Storage card informations
-  function saveCustomer(queryCustomers) {
-    database.query(queryCustomers, (err, results) => {
-      if (err) {
-        console.log("Error saving information to MySQL database:", err);
-        res.status(500).json({
-          error: "An error occurred while saving the information.",
-        });
-        return;
-      }
-      res.status(200).json({
-        message: "Default payment method saved successfully.",
-      });
+    const customerUpdated = await stripe.customers.update(customerId, {
+      invoice_settings: {
+        default_payment_method: cardId,
+      },
+    });
+    updateBuyer(userId, cardId);
+
+    res.status(200).json({
+      message: "Default payment method saved successfully.",
     });
   }
 });
 
 const SetDefaultBank = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { bankId } = req.body;
 
@@ -463,78 +281,31 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
     .replace("T", " ");
 
   // get the seller account
-  const queryGetSellerAccount = `
-    SELECT * FROM sellers WHERE user_id = ${userId}
-  `;
-  database.query(queryGetSellerAccount, (err, results) => {
-    if (err) {
-      console.log("Error saving information to MySQL database:", err);
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-      return;
-    }
-    const account = results[0].stripe_account;
-    upDateDefaultBank(account);
-    // res.status(200).json({ message: "default bank changed" });
-  });
+  const results = await getSeller(userId);
 
-  async function upDateDefaultBank(account) {
-    const bankAccount = await stripe.accounts.updateExternalAccount(
-      account,
-      bankId,
-      { default_for_currency: true }
-    );
-    if (account) {
-      const queryUpDateDefaultBank = `
-      UPDATE external_bank_accounts
-      SET updated_at = '${formattedUpdatedAt}',
-      is_default = CASE
-      WHEN external_account_id <> '${bankId}' THEN 0
-      WHEN external_account_id = '${bankId}' THEN 1
-      END
-      WHERE user_id = ${userId} 
-  `;
-      database.query(queryUpDateDefaultBank, (err, results) => {
-        if (err) {
-          console.log("Error saving information to MySQL database:", err);
-          res.status(500).json({
-            error: "An error occurred while saving the information.",
-          });
-          return;
-        }
-      });
+  const account = results[0].stripe_account;
+  // res.status(200).json({ message: "default bank changed" });
 
-      // update the default account in the seller table
-      const queryUpdateSeller = `
-        UPDATE sellers
-        SET 
-        updated_at = '${formattedUpdatedAt}',
-        external_account_id = '${bankId}'
-        WHERE user_id = ${userId}
-      `;
-      database.query(queryUpdateSeller, (err, results) => {
-        if (err) {
-          console.log("Error saving information to MySQL database:", err);
-          res.status(500).json({
-            error: "An error occurred while saving the information.",
-          });
-          return;
-        }
-        res.status(200).json({ message: "default bank changed" });
-      });
-    } else {
-      res.status(500).json({
-        error: "An error occurred while saving the information.",
-      });
-    }
+  const bankAccount = await stripe.accounts.updateExternalAccount(
+    account,
+    bankId,
+    { default_for_currency: true }
+  );
+
+  if (account) {
+    updateAccount(userId, bankId, formattedUpdatedAt);
+    updateSeller(userId, bankId, formattedUpdatedAt);
+
+    res.status(200).json({ message: "default bank changed" });
+  } else {
+    res.status(500).json({
+      error: "An error occurred while saving the information.",
+    });
   }
 });
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { data, start_date, duration, current_discount } = req.body;
   const token = req.cookies.jwt;
@@ -569,35 +340,62 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   let sellerAccount = "";
   //get the seller connected stripe account
-  const querySellers = `SELECT * FROM adex.sellers where user_id = ${data.created_by}`;
-  database.query(querySellers, (err, result) => {
-    if (err) throw err;
-
-    sellerAccount = result[0].stripe_account;
-  });
+  const result = await getSeller(data.created_by);
+  sellerAccount = result[0].stripe_account;
 
   //get the buyer info
-  const query = `SELECT * FROM adex.buyers where user_id = ${
+  const results = await getBuyer(
     data.requested_by ? data.requested_by : userId
-  }`;
-  database.query(query, (err, result) => {
-    if (err) throw err;
-    const customerId = result[0].customer_id;
-    connectCustomer(customerId);
-  });
+  );
 
-  async function connectCustomer(customerId) {
-    let subscription = "";
-    try {
-      if (data.ad_duration_type === "0") {
-        const startDate = new Date();
-        const endDate = new Date();
+  const customerId = results[0].customer_id;
 
-        endDate.setMonth(endDate.getMonth() + 1);
+  let subscription = "";
+  try {
+    if (data.ad_duration_type === "0") {
+      const startDate = new Date();
+      const endDate = new Date();
 
-        var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-        var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+      endDate.setMonth(endDate.getMonth() + 1);
 
+      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+
+      subscription = await stripe.subscriptionSchedules.create({
+        customer: customerId,
+        start_date: timeStampStartDate,
+        end_behavior: "cancel",
+        phases: [
+          {
+            items: [
+              {
+                price: data.stripe_price,
+                quantity: 1,
+              },
+            ],
+            end_date: timeStampEndDate,
+
+            transfer_data: {
+              destination: sellerAccount,
+            },
+            application_fee_percent: 10,
+          },
+        ],
+      });
+    } else {
+      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+
+      let coupon = "";
+
+      if (current_discount > 0) {
+        coupon = await stripe.coupons.create({
+          percent_off: current_discount,
+          duration: "forever",
+        });
+      }
+
+      if (coupon.id) {
         subscription = await stripe.subscriptionSchedules.create({
           customer: customerId,
           start_date: timeStampStartDate,
@@ -611,7 +409,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
                 },
               ],
               end_date: timeStampEndDate,
-
+              coupon: coupon.id,
               transfer_data: {
                 destination: sellerAccount,
               },
@@ -620,111 +418,56 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
           ],
         });
       } else {
-        var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-        var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-
-        let coupon = "";
-
-        if (current_discount > 0) {
-          coupon = await stripe.coupons.create({
-            percent_off: current_discount,
-            duration: "forever",
-          });
-        }
-
-        if (coupon.id) {
-          subscription = await stripe.subscriptionSchedules.create({
-            customer: customerId,
-            start_date: timeStampStartDate,
-            end_behavior: "cancel",
-            phases: [
-              {
-                items: [
-                  {
-                    price: data.stripe_price,
-                    quantity: 1,
-                  },
-                ],
-                end_date: timeStampEndDate,
-                coupon: coupon.id,
-                transfer_data: {
-                  destination: sellerAccount,
+        subscription = await stripe.subscriptionSchedules.create({
+          customer: customerId,
+          start_date: timeStampStartDate,
+          end_behavior: "cancel",
+          phases: [
+            {
+              items: [
+                {
+                  price: data.stripe_price,
+                  quantity: 1,
                 },
-                application_fee_percent: 10,
+              ],
+              end_date: timeStampEndDate,
+              transfer_data: {
+                destination: sellerAccount,
               },
-            ],
-          });
-        } else {
-          subscription = await stripe.subscriptionSchedules.create({
-            customer: customerId,
-            start_date: timeStampStartDate,
-            end_behavior: "cancel",
-            phases: [
-              {
-                items: [
-                  {
-                    price: data.stripe_price,
-                    quantity: 1,
-                  },
-                ],
-                end_date: timeStampEndDate,
-                transfer_data: {
-                  destination: sellerAccount,
-                },
-                application_fee_percent: 10,
-              },
-            ],
-          });
-        }
-      }
-    } catch (error) {
-      console.log(error);
-      if (
-        error.raw.message.includes(
-          "You can not create a subscription schedule with `phases` that already ended"
-        )
-      ) {
-        res.status(400).json({
-          message: "The start date must be higer that the current date",
+              application_fee_percent: 10,
+            },
+          ],
         });
-      } else {
-        res.status(400).json({ message: error.raw.message });
       }
-      return;
     }
-
-    if (subscription.id) {
-      const query = `
-      INSERT INTO contracts (
-        subscription_id,
-        seller_id,
-        buyer_id,
-        advertisement_id,
-        contract_status,
-        start_date,
-        end_date,
-        created_at
-      ) VALUES (
-        '${subscription.id}',
-        '${sellerAccount}',
-        '${customerId}',
-        '${data.id}',
-        '1',
-        '${startDateFormatted}',
-        '${endDateFormatted}',
-        '${formattedUpdatedAt}'
+  } catch (error) {
+    console.log(error);
+    if (
+      error.raw.message.includes(
+        "You can not create a subscription schedule with `phases` that already ended"
       )
-    `;
-      database.query(query, (err, results) => {
-        if (err) {
-          console.log("Error saving information to MySQL database:", err);
-          res.status(500).json({
-            error: "An error occurred while saving the information.",
-          });
-        }
+    ) {
+      res.status(400).json({
+        message: "The start date must be higer that the current date",
       });
+    } else {
+      res.status(400).json({ message: error.raw.message });
+    }
+    return;
+  }
 
-      const queryUpDateAdStatus = `
+  if (subscription.id) {
+    insetContract(
+      subscription,
+      sellerAccount,
+      customerId,
+      data,
+      startDateFormatted,
+      endDateFormatted,
+      formattedUpdatedAt
+    );
+
+    const queryUpDateAdStatus = `
         UPDATE advertisement
         SET status = 2,
         start_date = '${startDateFormatted}',
@@ -732,72 +475,36 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         duration = '${duration}'
         WHERE id = ${data.id}
     `;
-      database.query(queryUpDateAdStatus, (err, results) => {
-        if (err) {
-          console.log("Error saving information to MySQL database:", err);
-          res.status(500).json({
-            error: "An error occurred while saving the information.",
-          });
-        }
+    updateAdvertismentById(queryUpDateAdStatus);
+    insertUserNotifications(
+      data.created_by == userId ? data.requested_by : data.created_by,
+      data.created_by == userId ? "Booking Request accepted" : "Listing booked",
+      data.created_by == userId
+        ? "Your Booking request was accepted, see more details"
+        : "One of your listing was booked, see more details",
+      formattedUpdatedAt,
+      data.created_by == userId
+        ? `/my-booking?id=${data.id}`
+        : `/my-listing?id=${data.id}`
+    );
 
-        const notificationQuery = `
-        INSERT INTO notifications (
-          user_id,
-          header,
-          message,
-          created_at,
-          redirect
-        ) VALUES (
-          '${data.created_by == userId ? data.requested_by : data.created_by}',
-          '${
-            data.created_by == userId
-              ? "Booking Request accepted"
-              : "Listing booked"
-          }',
-          '${
-            data.created_by == userId
-              ? "Your Booking request was accepted, see more details"
-              : "One of your listing was booked, see more details"
-          }',
-          '${formattedUpdatedAt}',
-          '${
-            data.created_by == userId
-              ? `/my-booking?id=${data.id}`
-              : `/my-listing?id=${data.id}`
-          }'
-        )
-      `;
-        database.query(notificationQuery, (err, results) => {
-          if (err) {
-            console.log("Error saving information to MySQL database:", err);
-            return;
-          }
-        });
+    const results = await getUsersById(
+      data.created_by == userId ? data.requested_by : data.created_by
+    );
 
-        const userQuery = `SELECT * FROM users WHERE id = '${
-          data.created_by == userId ? data.requested_by : data.created_by
-        }'`;
-        database.query(userQuery, (err, results) => {
-          if (err) {
-            console.log("Error saving information to MySQL database:", err);
-            return;
-          }
-          if (results.length > 0) {
-            const email = results[0].email;
-            sendEmail(
-              email,
-              data.created_by == userId
-                ? "Booking Request accepted"
-                : "Listing booked",
-              data.created_by == userId
-                ? "Your Booking request was accepted, see more details"
-                : "One of your listing was booked, see more details"
-            );
-          }
-        });
-        res.status(200).json({ message: "subscription created successfuly" });
-      });
+    if (results.length > 0) {
+      const email = results[0].email;
+      sendEmail(
+        email,
+        data.created_by == userId
+          ? "Booking Request accepted"
+          : "Listing booked",
+        data.created_by == userId
+          ? "Your Booking request was accepted, see more details"
+          : "One of your listing was booked, see more details"
+      );
     }
+    res.status(200).json({ message: "subscription created successfuly" });
   }
 });
 
@@ -847,46 +554,24 @@ const RequestReserve = asyncHandler(async (req, res) => {
         requested_by = ${userId}
         WHERE id = ${data.id}
     `;
-      database.query(queryUpDateAdStatus, (err, result) => {
-        if (err) throw err;
+      const result = await updateAdvertismentById(queryUpDateAdStatus);
+      insertUserNotifications(
+        data.created_by,
+        "Booking Request",
+        "You have a booking request",
+        createdAtFormatted,
+        `/my-listing?id=${data.id}`
+      );
 
-        const notificationQuery = `
-        INSERT INTO notifications (
-          user_id,
-          header,
-          message,
-          created_at,
-          redirect
-        ) VALUES (
-          '${data.created_by}',
-          'Booking Request',
-          'You have a booking request',
-          '${createdAtFormatted}',
-          '/my-listing?id=${data.id}'
-        )
-      `;
-        database.query(notificationQuery, (err, results) => {
-          if (err) {
-            console.log("Error saving information to MySQL database:", err);
-            return;
-          }
-        });
+      const results = await getUsersById(data.created_by);
 
-        const userQuery = `SELECT * FROM users WHERE id = '${data.created_by}'`;
-        database.query(userQuery, (err, results) => {
-          if (err) {
-            console.log("Error saving information to MySQL database:", err);
-            return;
-          }
-          if (results.length > 0) {
-            const email = results[0].email;
-            sendEmail(email, "Booking request", "You have a booking request");
-          }
-        });
+      if (results.length > 0) {
+        const email = results[0].email;
+        sendEmail(email, "Booking request", "You have a booking request");
+      }
 
-        res.status(200).json({
-          data: result,
-        });
+      res.status(200).json({
+        data: result,
       });
     } catch (error) {
       console.error(error);
@@ -926,49 +611,26 @@ const DeclineRequest = asyncHandler(async (req, res) => {
         requested_by = ''
         WHERE id = ${id}
     `;
-      database.query(queryUpDateAdStatus, (err, result) => {
-        if (err) throw err;
-        const notificationQuery = `
-        INSERT INTO notifications (
-          user_id,
-          header,
-          message,
-          created_at,
-          redirect
-        ) VALUES (
-          '${requestedBy}',
-          'Booking Request rejected',
-          'Your booking request was rejected, see more details',
-          '${createdAtFormatted}',
-          '/my-listing?id=${id}'
-        )
-      `;
-        database.query(notificationQuery, (err, results) => {
-          if (err) {
-            console.log("Error saving information to MySQL database:", err);
-            return;
-          }
-        });
+      const result = await updateAdvertismentById(queryUpDateAdStatus);
+      insertUserNotifications(
+        requestedBy,
+        "Booking Request rejected",
+        "Your booking request was rejected, see more details",
+        createdAtFormatted,
+        `/my-listing?id=${id}`
+      );
 
-        const userQuery = `SELECT * FROM users WHERE id = '${requestedBy}'`;
-        database.query(userQuery, (err, results) => {
-          if (err) {
-            console.log("Error saving information to MySQL database:", err);
-            return;
-          }
-          if (results.length > 0) {
-            const email = results[0].email;
-            sendEmail(
-              email,
-              "Booking request Rejected",
-              "Your booking request was rejected"
-            );
-          }
-        });
-
-        res.status(200).json({
-          data: result,
-        });
+      const results = await getUsersById(requestedBy);
+      if (results.length > 0) {
+        const email = results[0].email;
+        sendEmail(
+          email,
+          "Booking request Rejected",
+          "Your booking request was rejected"
+        );
+      }
+      res.status(200).json({
+        data: result,
       });
     } catch (error) {
       console.error(error);
