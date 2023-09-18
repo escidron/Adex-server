@@ -47,10 +47,7 @@ const authUser = asyncHandler(async (req, res) => {
 
     let image = "";
     if (result[0].profile_image) {
-      const nameImage = {
-        image: result[0].profile_image,
-      };
-      image = getImageBase64(nameImage);
+      image = getImageBase64(result[0].profile_image);
     }
     bcrypt.compare(password, hashPass).then(async function (result) {
       if (result) {
@@ -100,12 +97,10 @@ const autoLogin = asyncHandler(async (req, res) => {
         });
       } else {
         const firstName = result[0].first_name;
-        const nameImage = {
-          image: result[0].profile_image,
-        };
+
         let image = "";
         if (result[0].profile_image) {
-          image = getImageBase64(nameImage);
+          image = getImageBase64(result[0].profile_image);
         }
         res.status(200).json({
           name: firstName,
@@ -383,12 +378,9 @@ const getUserProfile = asyncHandler(async (req, res) => {
         const city = result[0].city;
         const cityIsPublic = result[0].city_is_public;
 
-        const nameImage = {
-          image: result[0].profile_image,
-        };
         let image = "";
         if (result[0].profile_image) {
-          image = getImageBase64(nameImage);
+          image = getImageBase64(result[0].profile_image);
         }
         res.status(200).json({
           name,
@@ -650,10 +642,9 @@ const getCompanies = asyncHandler(async (req, res) => {
 
       if (result.length > 0) {
         result.map((item, index) => {
-          const nameImage = item.company_logo;
           let image = "";
           if (item.company_logo) {
-            image = getImageBase64(nameImage);
+            image = getImageBase64(item.company_logo);
             result[index].company_logo = image;
           }
         });
@@ -681,10 +672,9 @@ const getCompany = asyncHandler(async (req, res) => {
 
       if (result.length > 0) {
         result.map((item, index) => {
-          const nameImage = item.company_logo;
           let image = "";
           if (item.company_logo) {
-            image = getImageBase64(nameImage);
+            image = getImageBase64(item.company_logo);
             result[index].company_logo = image;
           }
         });
