@@ -165,7 +165,58 @@ export async function insertSeller(id, stripeAccount, formattedCreatedAt) {
   });
 }
 
+export async function updateSeller(userId, bankAccount, formattedCreatedAt) {
+  const updateSellerQuery = `
+  UPDATE sellers
+  SET 
+  updated_at = '${formattedCreatedAt}',
+  external_account_id = '${bankAccount.id}'
+  WHERE user_id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateSellerQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
 //Notifications queries
+export async function insertUserNotifications(
+  userId,
+  header,
+  message,
+  createdAt,
+  redirect,
+  key
+) {
+  const insertNotificationQuery = `
+  INSERT INTO notifications (
+    user_id,
+    header,
+    message,
+    created_at,
+    redirect,
+    notifications.key
+  ) VALUES (
+    '${userId}',
+    '${header}',
+    '${message}',
+    '${createdAt}',
+    '${redirect}',
+    ${key?key:''}
+  )
+`;  return new Promise((resolve, reject) => {
+    db.query(insertNotificationQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 export async function getUserNotifications(id) {
   const userNotificationsQuery = `SELECT * FROM notifications WHERE user_id = '${id}' and readed = 0`;
   return new Promise((resolve, reject) => {
@@ -180,7 +231,7 @@ export async function getUserNotifications(id) {
 
 export async function updateNotificationStatus(notificationId, key) {
   let UpdateNotificationsQuery = "";
-  
+
   if (key) {
     UpdateNotificationsQuery = `
     UPDATE notifications SET
@@ -250,6 +301,34 @@ export async function getAllMessages() {
   });
 }
 
+export async function insertMessages(data,formattedCreatedAt) {
+  const insertMessageQuery = `
+  INSERT INTO messages (
+    sended_by,
+    seller_id,
+    buyer_id,
+    advertisement_id,
+    message,
+    created_at
+  ) VALUES (
+    '${data.sended_by}',
+    '${data.seller_id}',
+    '${data.buyer_id}',
+    '${data.advertisement_id}',
+    '${data.message}',
+    '${formattedCreatedAt}'
+  )
+`;
+  return new Promise((resolve, reject) => {
+    db.query(insertMessageQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 //chat queries
 export async function getAllChatMessages(userId) {
   const messagesChatQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name
@@ -261,6 +340,78 @@ export async function getAllChatMessages(userId) {
   `;
   return new Promise((resolve, reject) => {
     db.query(messagesChatQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+//Buyers queries
+export async function getBuyer(userId) {
+  const getBuyerQuery = `SELECT * FROM adex.buyers where user_id = ${userId}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(getBuyerQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateBuyer(userId, cardId) {
+  const updatedAt = new Date();
+  const formattedUpdatedAt = updatedAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+  const updateBuyerQuery = `
+        UPDATE adex.buyers
+        SET default_card = '${cardId}',updated_at= '${formattedUpdatedAt}'
+        WHERE user_id = ${userId}
+      `;
+  return new Promise((resolve, reject) => {
+    db.query(updateBuyerQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function insertBuyer(
+  userId,
+  customer,
+  fullName,
+  email,
+  cardId,
+  formattedCreatedAt
+) {
+  const insertbuyerQuery = `
+  INSERT INTO buyers (
+    user_id,
+    customer_id,
+    name,
+    email,
+    created_at,
+    default_card
+  ) VALUES (
+    '${userId}',
+    '${customer.id}',
+    '${fullName}',
+    '${email}',
+    '${formattedCreatedAt}',
+    '${cardId}'
+
+  )
+`;
+  return new Promise((resolve, reject) => {
+    db.query(insertbuyerQuery, (err, result) => {
       if (err) {
         reject(err);
       }
