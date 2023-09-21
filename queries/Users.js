@@ -197,17 +197,18 @@ export async function insertUserNotifications(
     header,
     message,
     created_at,
-    redirect,
-    notifications.key
+    redirect
+    ${key?',notifications.key':''}
   ) VALUES (
     '${userId}',
     '${header}',
     '${message}',
     '${createdAt}',
-    '${redirect}',
-    ${key?key:''}
-  )
-`;  return new Promise((resolve, reject) => {
+    '${redirect}'
+    ${key?','+key:''}
+    )
+`; 
+return new Promise((resolve, reject) => {
     db.query(insertNotificationQuery, (err, result) => {
       if (err) {
         reject(err);

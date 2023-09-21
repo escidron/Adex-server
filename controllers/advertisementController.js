@@ -394,7 +394,7 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
     const seller = await getUsersById(sellerId);
     let image = "";
     if (seller[0].profile_image) {
-      image = getImageBase64(seller[0].profile_imageImage);
+      image = getImageBase64(seller[0].profile_image);
     }
 
     const advertisementWithImage = result.map((advertisement) => {
