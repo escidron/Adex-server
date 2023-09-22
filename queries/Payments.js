@@ -124,8 +124,7 @@ export async function insertAccount(
   });
 }
 
-export async function updateAccount(userId,bankAccount,formattedCreatedAt) {
-
+export async function updateAccount(userId, bankAccount, formattedCreatedAt) {
   const updateAccountQuery = `
   UPDATE external_bank_accounts
   SET updated_at = '${formattedCreatedAt}',
@@ -145,7 +144,6 @@ export async function updateAccount(userId,bankAccount,formattedCreatedAt) {
     });
   });
 }
-
 
 //contarcts queries
 export async function insetContract(
@@ -187,3 +185,49 @@ export async function insetContract(
     });
   });
 }
+
+export async function getContract(
+  advertisementId,
+  sellerStripeId,
+  buyerStripeId,
+
+) {
+  const getContractQuery = `
+  SELECT * FROM adex.contracts where 
+  advertisement_id = ${advertisementId} and 
+  seller_id = '${sellerStripeId}' and 
+  buyer_id ='${buyerStripeId}'
+  and contract_status = '1'
+  
+`;
+  return new Promise((resolve, reject) => {
+    db.query(getContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateContract(
+  contractId,
+  status,
+  cancelMessage,
+) {
+  const updateContractQuery = `
+  UPDATE contracts
+  SET contract_status = '${status}',
+      cancel_message = '${cancelMessage?cancelMessage:''}'
+  WHERE subscription_id = '${contractId}'
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+

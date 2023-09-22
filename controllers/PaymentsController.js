@@ -11,6 +11,8 @@ import {
   getCard,
   getExternalAccount,
   insetContract,
+  getContract,
+  updateContract
 } from "../queries/Payments.js";
 import {
   getBuyer,
@@ -25,8 +27,9 @@ import { updateAdvertismentById } from "../queries/Advertisements.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 const CreateCustomer = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { cardId, cardNumber, exp_year, exp_month, nameOnCard, brand } =
     req.body;
@@ -107,7 +110,6 @@ const CreateCustomer = asyncHandler(async (req, res) => {
 });
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
     req.body;
@@ -213,7 +215,6 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultCard = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const { cardId } = req.body;
 
   const token = req.cookies.jwt;
@@ -266,7 +267,6 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
 });
 
 const SetDefaultBank = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   //get userID
   const { bankId } = req.body;
 
@@ -305,8 +305,6 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 });
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  //get userID
   const { data, start_date, duration, current_discount } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -644,6 +642,71 @@ const DeclineRequest = asyncHandler(async (req, res) => {
     });
   }
 });
+
+
+const CancelBooking = asyncHandler(async (req, res) => {
+  const { advertisementId, sellerId,buyerId,cancelMessage } = req.body;
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  console.log('cancel message',cancelMessage)
+  const currentDate = new Date();
+  const createdAtFormatted = currentDate
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+    
+    
+    if (token) {
+      try {
+      const userId = decoded.userId;
+      
+      const sellerInfo = await getSeller(sellerId)
+      const sellerStripeId = sellerInfo[0].stripe_account
+
+      const buyerInfo = await getBuyer(buyerId)
+      const buyerStripeId = buyerInfo[0].customer_id
+      
+      const contractInfo = await getContract(advertisementId,sellerStripeId,buyerStripeId)
+      const contractStripeId = contractInfo[0].subscription_id
+      
+      const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
+        contractStripeId
+      );
+      
+      if(subscriptionSchedule.id){
+        //change contract status ,mandar assim apra testar retorno
+        updateContract(contractStripeId,'3',cancelMessage)
+        
+        const query  = `
+        UPDATE advertisement SET
+          status = '1'
+        WHERE id = '${advertisementId}' 
+      `;
+        updateAdvertismentById(query)
+      }
+
+      res.status(200).json({
+        data: 'Contract cancelled',
+      });
+    } catch (error) {
+      console.error(error);
+      let message = ''
+      if(error.type === 'StripeInvalidRequestError'){
+        message = error.raw.message.includes('currently in the `canceled` status')?'This booking was already canceled':'Something went wrong,please try again'
+      }else{
+        message = 'Something went wrong,please try again'
+      }
+      res.status(401).json({
+        error: message,
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   // CreateSubscribing,
   CreateCustomer,
@@ -655,4 +718,5 @@ export {
   CreatePaymentIntent,
   RequestReserve,
   DeclineRequest,
+  CancelBooking
 };
