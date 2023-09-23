@@ -21,6 +21,7 @@ import {
   updatePublicProfile,
   getUserNotifications,
   resetUserPassword,
+  insertUser,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -125,39 +126,32 @@ const registerUser = asyncHandler(async (req, res) => {
   const { name, firstName, lastName, phone, email, accountType, password } =
     req.body;
 
-  const result = getUsersByEmail(email);
+  const result = await getUsersByEmail(email);
   if (result.length > 0) {
     res
       .status(401)
       .json({ error: "User already exist. Please use a diferent email" });
   } else {
-    bcrypt.hash(password, 10).then(function (hashedPass) {
+    bcrypt.hash(password, 10).then(async function (hashedPass) {
       // Store hash in your password DB.
-      database.query(
-        "INSERT INTO users (name,first_name,last_name,mobile_number,email,user_type, password,profile_pic) VALUES (?, ?, ?, ?, ?, ?, ?,?)",
-        [name, firstName, lastName, phone, email, accountType, hashedPass, ""],
-        (error, results, rows) => {
-          if (error) {
-            console.error(error);
-            res.status(500).send("Server error");
-          } else {
-            const userId = results.insertId;
-            generateToken(res, userId, firstName + " " + lastName, email);
-            // send the email
-            sendEmail(
-              email,
-              "User registered",
-              "Welcome to Adex",
-              signUpTamplate
-            );
-
-            res.status(200).json({
-              name: firstName,
-              userId: userId,
-            });
-          }
-        }
+      const results = await insertUser(
+        name,
+        firstName,
+        lastName,
+        phone,
+        email,
+        accountType,
+        hashedPass
       );
+      const userId = results.insertId;
+      generateToken(res, userId, firstName + " " + lastName, email);
+      // send the email
+      sendEmail(email, "User registered", "Welcome to Adex", signUpTamplate);
+
+      res.status(200).json({
+        name: firstName,
+        userId: userId,
+      });
     });
   }
 });
@@ -201,9 +195,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 });
 
 const updateUserAddress = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const { address } = pkg;
   const { idNumber, bod, street, city, state, zip } = req.body;
 

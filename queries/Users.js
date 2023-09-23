@@ -2,6 +2,44 @@ import getDatabaseConnection from ".././db.js";
 
 const db = getDatabaseConnection();
 
+export async function insertUser(name, firstName, lastName, phone, email,accountType,hashedPass) {
+  const createddAt = new Date();
+  const formattedCreatedAt = createddAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+  const insertUserQuery = `
+    INSERT INTO users (
+      name,
+      first_name,
+      last_name,
+      mobile_number,
+      email,
+      user_type,
+      password,
+      created_at
+    ) VALUES (
+      '${name}',
+      '${firstName}',
+      '${lastName}',
+      '${phone}',
+      '${email}',
+      '${accountType}',
+      '${hashedPass}',
+      '${formattedCreatedAt}'
+    )
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(insertUserQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 export async function getUsersByEmail(email) {
   const usersQuery = `SELECT * FROM users WHERE email = '${email}'`;
   return new Promise((resolve, reject) => {
@@ -198,17 +236,17 @@ export async function insertUserNotifications(
     message,
     created_at,
     redirect
-    ${key?',notifications.key':''}
+    ${key ? ",notifications.key" : ""}
   ) VALUES (
     '${userId}',
     '${header}',
     '${message}',
     '${createdAt}',
     '${redirect}'
-    ${key?','+key:''}
+    ${key ? "," + key : ""}
     )
-`; 
-return new Promise((resolve, reject) => {
+`;
+  return new Promise((resolve, reject) => {
     db.query(insertNotificationQuery, (err, result) => {
       if (err) {
         reject(err);
@@ -302,7 +340,7 @@ export async function getAllMessages() {
   });
 }
 
-export async function insertMessages(data,formattedCreatedAt) {
+export async function insertMessages(data, formattedCreatedAt) {
   const insertMessageQuery = `
   INSERT INTO messages (
     sended_by,

@@ -12,7 +12,7 @@ import {
   getExternalAccount,
   insetContract,
   getContract,
-  updateContract
+  updateContract,
 } from "../queries/Payments.js";
 import {
   getBuyer,
@@ -87,7 +87,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      // test_clock: "clock_1NWoYSEPsNRBDePlOrqqSAvc",
+      test_clock: "clock_1NtesLL3Lxo3VPLoxWRMkoSA",
     });
 
     customerId = customer.id;
@@ -372,7 +372,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
               },
             ],
             end_date: timeStampEndDate,
-
+            proration_behavior: "none",
             transfer_data: {
               destination: sellerAccount,
             },
@@ -408,6 +408,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
               ],
               end_date: timeStampEndDate,
               coupon: coupon.id,
+              proration_behavior: "none",
               transfer_data: {
                 destination: sellerAccount,
               },
@@ -429,6 +430,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
                 },
               ],
               end_date: timeStampEndDate,
+              proration_behavior: "none",
               transfer_data: {
                 destination: sellerAccount,
               },
@@ -643,58 +645,105 @@ const DeclineRequest = asyncHandler(async (req, res) => {
   }
 });
 
-
 const CancelBooking = asyncHandler(async (req, res) => {
-  const { advertisementId, sellerId,buyerId,cancelMessage } = req.body;
+  
+
+  const { advertisementId, sellerId, buyerId, cancelMessage } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  console.log('cancel message',cancelMessage)
+  console.log("cancel message", cancelMessage);
   const currentDate = new Date();
   const createdAtFormatted = currentDate
     .toISOString()
     .slice(0, 19)
     .replace("T", " ");
-    
-    
-    if (token) {
-      try {
-      const userId = decoded.userId;
-      
-      const sellerInfo = await getSeller(sellerId)
-      const sellerStripeId = sellerInfo[0].stripe_account
 
-      const buyerInfo = await getBuyer(buyerId)
-      const buyerStripeId = buyerInfo[0].customer_id
-      
-      const contractInfo = await getContract(advertisementId,sellerStripeId,buyerStripeId)
-      const contractStripeId = contractInfo[0].subscription_id
-      
-      const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
-        contractStripeId
+  if (token) {
+    try {
+      const userId = decoded.userId;
+
+      const sellerInfo = await getSeller(sellerId);
+      const sellerStripeId = sellerInfo[0].stripe_account;
+
+      const buyerInfo = await getBuyer(buyerId);
+      const buyerStripeId = buyerInfo[0].customer_id;
+
+      const contractInfo = await getContract(
+        advertisementId,
+        sellerStripeId,
+        buyerStripeId
       );
+      const contractStripeId = contractInfo[0].subscription_id;
+
+      const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
+        contractStripeId,
+        { prorate: false }
+      );
+
+      // const subscriptionSchedule = await stripe.subscriptionSchedules.retrieve(
+      //   contractStripeId
+      // );
+
+      //Process for getting the payment intent id and refund the payment
+      const subscription = await stripe.subscriptions.retrieve(
+        subscriptionSchedule.subscription
+      );
+      const invoice = await stripe.invoices.retrieve(
+        subscription.latest_invoice
+      );
+      const paymentIntentId = invoice.payment_intent;
+      const chargeId = invoice.charge;
+
+      const charge = await stripe.charges.retrieve(chargeId);
       
-      if(subscriptionSchedule.id){
+      const aplicationFeesID = charge.application_fee;
+      const connectedAccountId = charge.destination
+      const totalValue = charge.amount
+      const feeValue = charge.application_fee_amount
+      
+      const applicationFee = await stripe.applicationFees.retrieve(
+        aplicationFeesID
+      );
+    
+      const connectChargeId = applicationFee.charge;
+    //fazer o calculo para refund sem fees
+      const refundConnectAccount = await stripe.refunds.create(
+        { charge: connectChargeId,
+        amount: totalValue - feeValue },
+        { stripeAccount: connectedAccountId }
+      );
+
+      const refundCustomer = await stripe.refunds.create({
+        payment_intent: paymentIntentId,
+      });
+      ///
+
+      if (subscriptionSchedule.id) {
         //change contract status ,mandar assim apra testar retorno
-        updateContract(contractStripeId,'3',cancelMessage)
-        
-        const query  = `
+        updateContract(contractStripeId, "3", cancelMessage);
+
+        const query = `
         UPDATE advertisement SET
           status = '1'
         WHERE id = '${advertisementId}' 
       `;
-        updateAdvertismentById(query)
+        updateAdvertismentById(query);
       }
 
       res.status(200).json({
-        data: 'Contract cancelled',
+        data: "Contract cancelled",
       });
     } catch (error) {
       console.error(error);
-      let message = ''
-      if(error.type === 'StripeInvalidRequestError'){
-        message = error.raw.message.includes('currently in the `canceled` status')?'This booking was already canceled':'Something went wrong,please try again'
-      }else{
-        message = 'Something went wrong,please try again'
+      let message = "";
+      if (error.type === "StripeInvalidRequestError") {
+        message = error.raw.message.includes(
+          "currently in the `canceled` status"
+        )
+          ? "This booking was already canceled"
+          : "Something went wrong,please try again";
+      } else {
+        message = "Something went wrong,please try again";
       }
       res.status(401).json({
         error: message,
@@ -718,5 +767,5 @@ export {
   CreatePaymentIntent,
   RequestReserve,
   DeclineRequest,
-  CancelBooking
+  CancelBooking,
 };
