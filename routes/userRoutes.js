@@ -19,7 +19,8 @@ import {
   getCompanies,
   getCompany,
   companyGallery,
-  getCompanyGallery
+  getCompanyGallery,
+  clearUserNotifications
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -45,6 +46,8 @@ router.get('/get-companies', getCompanies);
 router.post('/my-company', getCompany);
 router.post('/company-gallery', companyGallery);
 router.post('/get-company-gallery', getCompanyGallery);
+router.post('/clear-notifications', clearUserNotifications);
+
 router
   .route('/seller-profile')
   .get(protect, getSellerProfile)

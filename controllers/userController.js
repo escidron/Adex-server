@@ -22,6 +22,8 @@ import {
   getUserNotifications,
   resetUserPassword,
   insertUser,
+  updateNotificationStatus,
+
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -146,7 +148,7 @@ const registerUser = asyncHandler(async (req, res) => {
       const userId = results.insertId;
       generateToken(res, userId, firstName + " " + lastName, email);
       // send the email
-      sendEmail(email, "User registered", "Welcome to Adex", signUpTamplate);
+      sendEmail(email, "User registered", "Welcome to ADEX", signUpTamplate);
 
       res.status(200).json({
         name: firstName,
@@ -779,6 +781,33 @@ const getCompanyGallery = asyncHandler(async (req, res) => {
     });
   }
 });
+
+const clearUserNotifications = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { notifications } = req.body;
+
+  if (token) {
+    try {
+      notifications.map((notification) => {
+        updateNotificationStatus(notification.id);
+      });
+
+      res.status(200).json({
+        message: "Notifications readed",
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -800,4 +829,5 @@ export {
   getCompany,
   companyGallery,
   getCompanyGallery,
+  clearUserNotifications
 };
