@@ -87,7 +87,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      // test_clock: "clock_1NtfFCL3Lxo3VPLosFl7wNpb",
+      test_clock: "clock_1NtwoJL3Lxo3VPLow8djzBlI",
     });
 
     customerId = customer.id;
@@ -731,7 +731,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
       }
 
       res.status(200).json({
-        data: "Contract cancelled",
+        data: "Contract canceled",
       });
     } catch (error) {
       console.error(error);
