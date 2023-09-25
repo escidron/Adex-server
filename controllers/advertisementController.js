@@ -4,10 +4,7 @@ import jwt from "jsonwebtoken";
 import * as fs from "fs";
 import Stripe from "stripe";
 import getImageBase64 from "../utils/getImageBase64.js";
-import {
-  getCompanyQuery,
-  addCompanyImagesQuery,
-} from "../queries/Companies.js";
+import { getCompanyQuery, addGalleryImages } from "../queries/Companies.js";
 import {
   getFilteredAdvertisements,
   getAdvertisementByCreater,
@@ -23,7 +20,7 @@ import {
   updateNotificationStatus,
   getUsersById,
   getAllMessages,
-  getAllChatMessages
+  getAllChatMessages,
 } from "../queries/Users.js";
 
 dotenv.config();
@@ -242,9 +239,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 });
 
 const createAdvertisement = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(
-    process.env.STRIPE_SECRET_KEY
-  );
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const data = req.body;
 
   const createdAt = new Date();
@@ -289,10 +284,15 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     });
     images = images.slice(0, -1);
 
-    if (result[0]) {
-      const imagesGroup = images;
+    const imagesGroup = images;
+
+    const user = await getUsersById(userId);
+    const userImages = user[0].image_gallery;
+    addGalleryImages("", userId, userImages, imagesGroup);
+
+    if (data.company_id) {
       const id = data.company_id;
-      addCompanyImagesQuery(id, userId, result[0].company_gallery, imagesGroup);
+      addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
     }
   }
 

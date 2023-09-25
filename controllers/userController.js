@@ -9,7 +9,7 @@ import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
 import { signUpTamplate } from "../utils/emailTamplates/signUp.js";
-import { getCompaniesQuery, getCompanyQuery } from "../queries/Companies.js";
+import { getCompaniesQuery } from "../queries/Companies.js";
 import dotenv from "dotenv";
 import {
   getUsersByEmail,
@@ -23,12 +23,11 @@ import {
   resetUserPassword,
   insertUser,
   updateNotificationStatus,
-
 } from "../queries/Users.js";
 import {
   insertCompany,
   getCompaniesById,
-  addCompanyImagesQuery,
+  addGalleryImages,
 } from "../queries/Companies.js";
 
 dotenv.config();
@@ -371,6 +370,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
         const bioIsPublic = result[0].bio_is_public;
         const city = result[0].city;
         const cityIsPublic = result[0].city_is_public;
+        const userType = result[0].user_type;
 
         let image = "";
         if (result[0].profile_image) {
@@ -393,6 +393,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
           bioIsPublic,
           city,
           cityIsPublic,
+          userType
         });
       }
     } catch (error) {
@@ -687,7 +688,7 @@ const getCompany = asyncHandler(async (req, res) => {
   }
 });
 
-const companyGallery = asyncHandler(async (req, res) => {
+const imageGallery = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id, images } = req.body;
 
@@ -709,16 +710,22 @@ const companyGallery = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getCompaniesById(id);
+      const result = await getUsersById(userId);
+
       if (result.length == 0) {
         res.status(401).json({
-          error: "This Company does not have images",
+          error: "This Gallery does not have images",
         });
       } else {
         // Add base64 image to each advertisement object
-        const images = result[0].company_gallery;
-        addCompanyImagesQuery(id, userId, images, imagesGroup);
-
+        const images = result[0].image_gallery;
+        addGalleryImages('', userId, images, imagesGroup);
+        if(id){
+          const company = await getCompaniesById(id);
+          const companyImages = company[0].company_gallery
+          addGalleryImages(id, userId, companyImages, imagesGroup);
+         }
+       
         res.status(200).json({ message: "Image added to the gallery" });
       }
     } catch (error) {
@@ -734,25 +741,44 @@ const companyGallery = asyncHandler(async (req, res) => {
   }
 });
 
-const getCompanyGallery = asyncHandler(async (req, res) => {
+const getImageGallery = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
 
   if (token) {
     try {
-      const result = await getCompaniesById(id);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+
+      let result = []
+      if(id){
+         result = await getCompaniesById(id);
+      }else{
+         result = await getUsersById(userId);
+      }
 
       if (result.length == 0) {
         res.status(401).json({
-          error: "This Company does not have images",
+          error: "This gallery does not have images",
         });
       } else {
         // Add base64 image to each advertisement object
         const galleryWithImages = result.map((gallery) => {
           const images = [];
-
+          let imageArray = []
           if (gallery.company_gallery) {
-            const imageArray = gallery.company_gallery.split(";");
+            imageArray = gallery.company_gallery.split(";");
+            imageArray.map((image) => {
+              if (image) {
+                images.push({ data_url: getImageBase64(image) });
+              }
+            });
+            return {
+              ...gallery,
+              company_gallery: images.length > 0 ? images : [],
+            };
+          }else if(gallery.image_gallery){
+            imageArray = gallery.image_gallery.split(";");
             imageArray.map((image) => {
               if (image) {
                 images.push({ data_url: getImageBase64(image) });
@@ -807,7 +833,6 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
     });
   }
 });
-
 export {
   authUser,
   registerUser,
@@ -827,7 +852,7 @@ export {
   addCompany,
   getCompanies,
   getCompany,
-  companyGallery,
-  getCompanyGallery,
-  clearUserNotifications
+  imageGallery,
+  getImageGallery,
+  clearUserNotifications,
 };

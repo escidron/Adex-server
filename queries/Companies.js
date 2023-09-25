@@ -71,7 +71,7 @@ export async function getCompanyQuery(id) {
   });
 }
 
-export async function addCompanyImagesQuery(id,userId,images,imagesGroup) {
+export async function addGalleryImages(id,userId,images,imagesGroup) {
   
   const createdAt = new Date();
   const formattedUpdatedAt = createdAt
@@ -79,14 +79,25 @@ export async function addCompanyImagesQuery(id,userId,images,imagesGroup) {
   .slice(0, 19)
   .replace("T", " ");
 
-  const addGalleryImage = `
-  UPDATE adex.companies SET
-    company_gallery = '${images ? images + ";" + imagesGroup : imagesGroup}',
-    updated_at = '${formattedUpdatedAt}'
-  WHERE user_id = ${userId} and id = ${id}
-`;
+  let addGalleryImageQuery = ''
+  if(id){
+
+    addGalleryImageQuery = `
+    UPDATE adex.companies SET
+      company_gallery = '${images ? images + ";" + imagesGroup : imagesGroup}',
+      updated_at = '${formattedUpdatedAt}'
+    WHERE user_id = ${userId} and id = ${id}
+    `;
+  }else{
+    addGalleryImageQuery = `
+    UPDATE adex.users SET
+      image_gallery = '${images ? images + ";" + imagesGroup : imagesGroup}',
+      updated_at = '${formattedUpdatedAt}'
+    WHERE  id = ${userId}
+    `;
+  }
   return new Promise((resolve, reject) => {
-    db.query(addGalleryImage, (err, result) => {
+    db.query(addGalleryImageQuery, (err, result) => {
       if (err) {
         reject(err);
       }
