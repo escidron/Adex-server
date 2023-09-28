@@ -10,9 +10,10 @@ import {
   updateAccount,
   getCard,
   getExternalAccount,
-  insetContract,
+  insertContract,
   getContract,
   updateContract,
+  getContractById
 } from "../queries/Payments.js";
 import {
   getBuyer,
@@ -25,6 +26,7 @@ import {
 } from "../queries/Users.js";
 import { updateAdvertismentById } from "../queries/Advertisements.js";
 import dotenv from "dotenv";
+import { listingBookedTamplate } from "../utils/emailTamplates/listingBooked.js";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -87,7 +89,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      test_clock: "clock_1NtwoJL3Lxo3VPLow8djzBlI",
+      // test_clock: "clock_1NtesLL3Lxo3VPLoxWRMkoSA",
     });
 
     customerId = customer.id;
@@ -316,7 +318,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
 
-  const startDate = new Date(start_date.substring(0, 10));
+  let startDate = new Date(start_date.substring(0, 10));
   const startDateFormatted = startDate
     .toISOString()
     .slice(0, 19)
@@ -351,95 +353,48 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   let subscription = "";
   try {
     if (data.ad_duration_type === "0") {
-      const startDate = new Date();
-      const endDate = new Date();
+      startDate = new Date();
+      endDate = new Date();
 
       endDate.setMonth(endDate.getMonth() + 1);
-
-      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-
-      subscription = await stripe.subscriptionSchedules.create({
-        customer: customerId,
-        start_date: timeStampStartDate,
-        end_behavior: "cancel",
-        phases: [
-          {
-            items: [
-              {
-                price: data.stripe_price,
-                quantity: 1,
-              },
-            ],
-            end_date: timeStampEndDate,
-            proration_behavior: "none",
-            transfer_data: {
-              destination: sellerAccount,
-            },
-            application_fee_percent: 10,
-          },
-        ],
-      });
-    } else {
-      var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-      var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-
-      let coupon = "";
-
-      if (current_discount > 0) {
-        coupon = await stripe.coupons.create({
-          percent_off: current_discount,
-          duration: "forever",
-        });
-      }
-
-      if (coupon.id) {
-        subscription = await stripe.subscriptionSchedules.create({
-          customer: customerId,
-          start_date: timeStampStartDate,
-          end_behavior: "cancel",
-          phases: [
-            {
-              items: [
-                {
-                  price: data.stripe_price,
-                  quantity: 1,
-                },
-              ],
-              end_date: timeStampEndDate,
-              coupon: coupon.id,
-              proration_behavior: "none",
-              transfer_data: {
-                destination: sellerAccount,
-              },
-              application_fee_percent: 10,
-            },
-          ],
-        });
-      } else {
-        subscription = await stripe.subscriptionSchedules.create({
-          customer: customerId,
-          start_date: timeStampStartDate,
-          end_behavior: "cancel",
-          phases: [
-            {
-              items: [
-                {
-                  price: data.stripe_price,
-                  quantity: 1,
-                },
-              ],
-              end_date: timeStampEndDate,
-              proration_behavior: "none",
-              transfer_data: {
-                destination: sellerAccount,
-              },
-              application_fee_percent: 10,
-            },
-          ],
-        });
-      }
     }
+    var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+    var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+
+    let coupon = "";
+
+    if (current_discount > 0) {
+      coupon = await stripe.coupons.create({
+        percent_off: current_discount,
+        duration: "forever",
+      });
+    }
+
+    subscription = await stripe.subscriptionSchedules.create({
+      customer: customerId,
+      start_date: timeStampStartDate,
+      end_behavior: "cancel",
+      metadata:{
+        userId
+      },
+      phases: [
+        {
+          items: [
+            {
+              price: data.stripe_price,
+              quantity: 1,
+            },
+          ],
+          end_date: timeStampEndDate,
+          coupon: coupon.id ? coupon.id : undefined,
+          proration_behavior: "none",
+          transfer_data: {
+            destination: sellerAccount,
+          },
+          application_fee_percent: 10,
+        },
+      ],
+    });
   } catch (error) {
     console.log(error);
     if (
@@ -457,7 +412,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   }
 
   if (subscription.id) {
-    insetContract(
+    insertContract(
       subscription,
       sellerAccount,
       customerId,
@@ -646,12 +601,9 @@ const DeclineRequest = asyncHandler(async (req, res) => {
 });
 
 const CancelBooking = asyncHandler(async (req, res) => {
-  
-
   const { advertisementId, sellerId, buyerId, cancelMessage } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  console.log("cancel message", cancelMessage);
   const currentDate = new Date();
   const createdAtFormatted = currentDate
     .toISOString()
@@ -667,6 +619,18 @@ const CancelBooking = asyncHandler(async (req, res) => {
 
       const buyerInfo = await getBuyer(buyerId);
       const buyerStripeId = buyerInfo[0].customer_id;
+
+      const cancelNotificationUser = await getUsersById(
+        userId == sellerId ? buyerId : sellerId
+      );
+      const cancelNotificationEmail = cancelNotificationUser[0].email;
+
+      sendEmail(
+        cancelNotificationEmail,
+        "Booking Canceled",
+        "This booking has been cancelled",
+        listingBookedTamplate
+      );
 
       const contractInfo = await getContract(
         advertisementId,
@@ -695,21 +659,20 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const chargeId = invoice.charge;
 
       const charge = await stripe.charges.retrieve(chargeId);
-      
+
       const aplicationFeesID = charge.application_fee;
-      const connectedAccountId = charge.destination
-      const totalValue = charge.amount
-      const feeValue = charge.application_fee_amount
-      
+      const connectedAccountId = charge.destination;
+      const totalValue = charge.amount;
+      const feeValue = charge.application_fee_amount;
+
       const applicationFee = await stripe.applicationFees.retrieve(
         aplicationFeesID
       );
-    
+
       const connectChargeId = applicationFee.charge;
-    //fazer o calculo para refund sem fees
+      //fazer o calculo para refund sem fees
       const refundConnectAccount = await stripe.refunds.create(
-        { charge: connectChargeId,
-        amount: totalValue - feeValue },
+        { charge: connectChargeId, amount: totalValue - feeValue },
         { stripeAccount: connectedAccountId }
       );
 
@@ -756,6 +719,37 @@ const CancelBooking = asyncHandler(async (req, res) => {
   }
 });
 
+const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
+  const event = req.body;
+  console.log('entrouuuuu')
+
+  if(event.type === 'subscription_schedule.canceled'){
+    
+    const updatedAt = new Date();
+    const formattedUpdateddAt = updatedAt
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " ");
+
+    console.log('eventttt',event.data.object.phases)
+    const contractId = event.data.object.id
+    updateContract(contractId,'3','Contract is ended')
+    
+    const result = await getContractById(contractId)
+    const advertisementId = result[0].advertisement_id
+    const query = `
+    UPDATE advertisement SET
+      status = '1',
+      updated_at = '${formattedUpdateddAt}'
+    WHERE id = ${advertisementId} 
+  `;
+  updateAdvertismentById(query);
+  }
+  res.status(401).json({
+    error: "Not authorized, token failed",
+  });
+});
+
 export {
   // CreateSubscribing,
   CreateCustomer,
@@ -768,4 +762,5 @@ export {
   RequestReserve,
   DeclineRequest,
   CancelBooking,
+  subscriptionEndedWebhook
 };

@@ -10,7 +10,8 @@ import {
     CreatePaymentIntent,
     RequestReserve,
     DeclineRequest,
-    CancelBooking
+    CancelBooking,
+    subscriptionEndedWebhook
 } from '../controllers/PaymentsController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -26,5 +27,6 @@ router.post('/create-payment-intent', CreatePaymentIntent);
 router.post('/request-reserve', RequestReserve);
 router.post('/decline-request', DeclineRequest);
 router.post('/cancel-booking', CancelBooking);
+router.post('/subscription-webhook', subscriptionEndedWebhook);
 
 export default router;

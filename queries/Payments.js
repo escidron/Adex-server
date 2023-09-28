@@ -145,8 +145,8 @@ export async function updateAccount(userId, bankAccount, formattedCreatedAt) {
   });
 }
 
-//contarcts queries
-export async function insetContract(
+//contracts queries
+export async function insertContract(
   subscription,
   sellerAccount,
   customerId,
@@ -199,6 +199,21 @@ export async function getContract(
   buyer_id ='${buyerStripeId}'
   and contract_status = '1'
   
+`;
+  return new Promise((resolve, reject) => {
+    db.query(getContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getContractById(contractId) {
+  const getContractQuery = `
+  SELECT * FROM adex.contracts where 
+  subscription_id = '${contractId}'
 `;
   return new Promise((resolve, reject) => {
     db.query(getContractQuery, (err, result) => {
