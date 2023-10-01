@@ -96,7 +96,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      test_clock: "clock_1NwEqJL3Lxo3VPLoQyzb6k4q",
+      test_clock: "clock_1NwQlNL3Lxo3VPLoScEeJvzD",
     });
 
     customerId = customer.id;
