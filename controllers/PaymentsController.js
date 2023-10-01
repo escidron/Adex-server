@@ -13,7 +13,11 @@ import {
   insertContract,
   getContract,
   updateContract,
-  getContractById
+  getContractById,
+  getContractBySub,
+  updateContractInvoidePaid,
+  updateContractSubscriptionId,
+  updatePhaseDateContract
 } from "../queries/Payments.js";
 import {
   getBuyer,
@@ -24,7 +28,10 @@ import {
   insertUserNotifications,
   getUsersById,
 } from "../queries/Users.js";
-import { updateAdvertismentById } from "../queries/Advertisements.js";
+import {
+  getAdvertisementById,
+  updateAdvertismentById,
+} from "../queries/Advertisements.js";
 import dotenv from "dotenv";
 import { listingBookedTamplate } from "../utils/emailTamplates/listingBooked.js";
 dotenv.config();
@@ -89,7 +96,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      // test_clock: "clock_1NtesLL3Lxo3VPLoxWRMkoSA",
+      test_clock: "clock_1NwEqJL3Lxo3VPLoQyzb6k4q",
     });
 
     customerId = customer.id;
@@ -359,6 +366,10 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
       endDate.setMonth(endDate.getMonth() + 1);
     }
     var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
+    startDate.setDate(startDate.getDate() + 5);
+    var timeStampFirstBill = Math.floor(startDate.getTime() / 1000);
+    endDate.setDate(endDate.getDate() + 5);
+
     var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
 
     let coupon = "";
@@ -369,13 +380,12 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         duration: "forever",
       });
     }
-
     subscription = await stripe.subscriptionSchedules.create({
       customer: customerId,
-      start_date: timeStampStartDate,
+      start_date: timeStampFirstBill,
       end_behavior: "cancel",
-      metadata:{
-        userId
+      metadata: {
+        userId,
       },
       phases: [
         {
@@ -386,6 +396,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
             },
           ],
           end_date: timeStampEndDate,
+          // trial_end:timeStampFirstBill,
           coupon: coupon.id ? coupon.id : undefined,
           proration_behavior: "none",
           transfer_data: {
@@ -637,7 +648,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
         sellerStripeId,
         buyerStripeId
       );
-      const contractStripeId = contractInfo[0].subscription_id;
+      const contractStripeId = contractInfo[0].schedule_subscription_id;
 
       const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
         contractStripeId,
@@ -721,29 +732,77 @@ const CancelBooking = asyncHandler(async (req, res) => {
 
 const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
   const event = req.body;
-  console.log('entrouuuuu')
 
-  if(event.type === 'subscription_schedule.canceled'){
-    
+  if (event.type === "subscription_schedule.canceled") {
     const updatedAt = new Date();
     const formattedUpdateddAt = updatedAt
       .toISOString()
       .slice(0, 19)
       .replace("T", " ");
 
-    console.log('eventttt',event.data.object.phases)
-    const contractId = event.data.object.id
-    updateContract(contractId,'3','Contract is ended')
-    
-    const result = await getContractById(contractId)
-    const advertisementId = result[0].advertisement_id
+    const contractId = event.data.object.id;
+    updateContract(contractId, "3", "Contract is ended");
+
+    const result = await getContractById(contractId);
+    const advertisementId = result[0].advertisement_id;
     const query = `
     UPDATE advertisement SET
       status = '1',
       updated_at = '${formattedUpdateddAt}'
     WHERE id = ${advertisementId} 
   `;
-  updateAdvertismentById(query);
+    updateAdvertismentById(query);
+  } else if (event.type === "subscription_schedule.updated") {
+    const scheduleId = event.data.object.id;
+    const subscriptionId = event.data.object.subscription;
+    
+    if (subscriptionId) {
+      updateContractSubscriptionId(subscriptionId, scheduleId);
+    }
+  } else if (event.type === "invoice.paid") {
+    const subscriptionId = event.data.object.subscription;
+    const contract = await getContractBySub(subscriptionId);
+    const advertisementId = contract[0].advertisement_id;
+    const scheduleId = contract[0].schedule_subscription_id;
+    const price =  event.data.object.lines.data[0].price.id
+    
+    let endDate = contract[0].end_date;
+    endDate = new Date(endDate);
+    var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+    
+    const invoicesPaidAmount = contract[0].invoices_paid;
+    
+    const advertisement = await getAdvertisementById(advertisementId);
+    const duration = advertisement[0].duration;
+    let timeStampStartDate
+    if(invoicesPaidAmount == 0){
+       timeStampStartDate = event.data.object.lines.data[0].period.start;
+      }else{
+      timeStampStartDate = contract[0].phase_start_date;
+    }
+    if (duration == invoicesPaidAmount + 1) {
+      const subscriptionSchedule = await stripe.subscriptionSchedules.update(
+        scheduleId,
+        {
+          proration_behavior:'none',
+          phases: [
+            {
+              items:[
+                {
+                  price:price
+                }
+              ],
+              start_date: timeStampStartDate,
+              end_date: timeStampEndDate,
+            },
+          ],
+        }
+      );
+    }else if(invoicesPaidAmount == 0){
+      updatePhaseDateContract(scheduleId,timeStampStartDate)
+    }
+    //update the amount of invoices paid
+    updateContractInvoidePaid(subscriptionId);
   }
   res.status(401).json({
     error: "Not authorized, token failed",
@@ -762,5 +821,5 @@ export {
   RequestReserve,
   DeclineRequest,
   CancelBooking,
-  subscriptionEndedWebhook
+  subscriptionEndedWebhook,
 };

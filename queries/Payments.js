@@ -157,6 +157,7 @@ export async function insertContract(
 ) {
   const inserContract = `
   INSERT INTO contracts (
+    schedule_subscription_id,
     subscription_id,
     seller_id,
     buyer_id,
@@ -167,6 +168,7 @@ export async function insertContract(
     created_at
   ) VALUES (
     '${subscription.id}',
+    '${subscription.subscription}',
     '${sellerAccount}',
     '${customerId}',
     '${data.id}',
@@ -213,7 +215,23 @@ export async function getContract(
 export async function getContractById(contractId) {
   const getContractQuery = `
   SELECT * FROM adex.contracts where 
-  subscription_id = '${contractId}'
+  schedule_subscription_id = '${contractId}'
+`;
+  return new Promise((resolve, reject) => {
+    db.query(getContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+
+export async function getContractBySub(subscriptionId) {
+  const getContractQuery = `
+  SELECT * FROM adex.contracts where 
+  subscription_id = '${subscriptionId}'
 `;
   return new Promise((resolve, reject) => {
     db.query(getContractQuery, (err, result) => {
@@ -234,7 +252,64 @@ export async function updateContract(
   UPDATE contracts
   SET contract_status = '${status}',
       cancel_message = '${cancelMessage?cancelMessage:''}'
-  WHERE subscription_id = '${contractId}'
+  WHERE schedule_subscription_id = '${contractId}'
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updatePhaseDateContract(
+  contractId,
+  phaseStartDate
+) {
+  const updateContractQuery = `
+  UPDATE contracts
+  SET phase_start_date = '${phaseStartDate}'
+  WHERE schedule_subscription_id = '${contractId}'
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateContractInvoidePaid(
+  subscriptionId
+) {
+  const updateContractQuery = `
+  UPDATE adex.contracts
+  SET invoices_paid = invoices_paid + 1
+  WHERE subscription_id = '${subscriptionId}'
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateContractSubscriptionId(
+  subscriptionId,
+  scheduleId,
+  phaseStartDate
+) {
+  const updateContractQuery = `
+  UPDATE adex.contracts
+  SET subscription_id = '${subscriptionId}' ${phaseStartDate?`,phase_start_date = ${phaseStartDate}`:''}
+  WHERE schedule_subscription_id = '${scheduleId}'
 `;
   return new Promise((resolve, reject) => {
     db.query(updateContractQuery, (err, result) => {

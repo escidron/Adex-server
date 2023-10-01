@@ -56,7 +56,7 @@ export async function getAdvertisementAndBuyers(userId) {
     FROM contracts
     JOIN buyers ON contracts.buyer_id = buyers.customer_id COLLATE utf8mb4_unicode_ci
     JOIN advertisement ON advertisement.id = contracts.advertisement_id COLLATE utf8mb4_unicode_ci
-    where buyers.user_id = ${userId} 
+    where buyers.user_id = ${userId}  and contract_status = '1'
     `;
   return new Promise((resolve, reject) => {
     db.query(advertisementAndBuyersQuery, (err, result) => {

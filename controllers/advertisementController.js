@@ -256,9 +256,10 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
   let images = "";
   const result = await getCompanyQuery(data.company_id);
-
+  const user = await getUsersById(userId);
+  const userImages = user[0].image_gallery;
   if (data.importFromGallery) {
-    const imageArray = result[0].company_gallery.split(";");
+    const imageArray = userImages.split(";");
     imageArray.map((image) => {
       if (image) {
         const base64Image = getImageBase64(image);
@@ -286,8 +287,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     const imagesGroup = images;
 
-    const user = await getUsersById(userId);
-    const userImages = user[0].image_gallery;
+
     addGalleryImages("", userId, userImages, imagesGroup);
 
     if (data.company_id) {
