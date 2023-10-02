@@ -76,7 +76,8 @@ export async function insertAdvertisement(
   formattedCreatedAt,
   product,
   price,
-  userType
+  userType,
+  startDateFormatted
 ) {
   const CreateAdvertisementQuery = `
     INSERT INTO advertisement (
@@ -100,6 +101,7 @@ export async function insertAdvertisement(
       is_automatic,
       created_by_type,
       company_id
+      ${data.start_date ? ',start_date':''}
     ) VALUES (
       '${data.category_id}',
       '${userId}',
@@ -120,7 +122,9 @@ export async function insertAdvertisement(
       '${price.id}',
       '${data.is_automatic}',
       '${userType}',
-      '${data.company_id}'
+      '${data.company_id}' 
+      ${data.start_date ? `,'${startDateFormatted}'`: ''}
+      
     )
   `;
   return new Promise((resolve, reject) => {

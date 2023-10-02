@@ -96,7 +96,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      test_clock: "clock_1NwR5VL3Lxo3VPLoGg7kxeIM",
+      test_clock: "clock_1Nwa66L3Lxo3VPLocnAE94ao",
     });
 
     customerId = customer.id;
@@ -339,7 +339,10 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
     endDate.setMonth(startDate.getMonth() + duration * 3);
   } else if (data.ad_duration_type == "3") {
     endDate.setFullYear(startDate.getFullYear() + duration);
+  } else if (data.ad_duration_type == "0") {
+    endDate.setMonth(startDate.getMonth() + 1);
   }
+  
   endDate = endDate.toISOString().substring(0, 10);
 
   endDate = new Date(endDate);
@@ -359,18 +362,13 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   let subscription = "";
   try {
-    if (data.ad_duration_type === "0") {
-      startDate = new Date();
-      endDate = new Date();
 
-      endDate.setMonth(endDate.getMonth() + 1);
+    if(data.ad_duration_type != "0"){
+      startDate.setDate(startDate.getDate() + 6);
+      endDate.setDate(endDate.getDate() + 6);
     }
-    var timeStampStartDate = Math.floor(startDate.getTime() / 1000);
-    startDate.setDate(startDate.getDate() + 5);
-    var timeStampFirstBill = Math.floor(startDate.getTime() / 1000);
-    endDate.setDate(endDate.getDate() + 5);
-
-    var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+    let timeStampFirstBill = Math.floor(startDate.getTime() / 1000);
+    let timeStampEndDate = Math.floor(endDate.getTime() / 1000);
 
     let coupon = "";
 
@@ -396,7 +394,6 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
             },
           ],
           end_date: timeStampEndDate,
-          // trial_end:timeStampFirstBill,
           coupon: coupon.id ? coupon.id : undefined,
           proration_behavior: "none",
           transfer_data: {
@@ -616,10 +613,10 @@ const CancelBooking = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const currentDate = new Date();
-  const createdAtFormatted = currentDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  // const createdAtFormatted = currentDate
+  //   .toISOString()
+  //   .slice(0, 19)
+  //   .replace("T", " ");
 
   if (token) {
     try {
@@ -649,64 +646,44 @@ const CancelBooking = asyncHandler(async (req, res) => {
         buyerStripeId
       );
       const contractStripeId = contractInfo[0].schedule_subscription_id;
-
-      const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
-        contractStripeId,
-        { prorate: false }
-      );
-
-      // const subscriptionSchedule = await stripe.subscriptionSchedules.retrieve(
-      //   contractStripeId
-      // );
-
-      //Process for getting the payment intent id and refund the payment
-      const subscription = await stripe.subscriptions.retrieve(
-        subscriptionSchedule.subscription
-      );
-      const invoice = await stripe.invoices.retrieve(
-        subscription.latest_invoice
-      );
-      const paymentIntentId = invoice.payment_intent;
-      const chargeId = invoice.charge;
-
-      const charge = await stripe.charges.retrieve(chargeId);
-
-      const aplicationFeesID = charge.application_fee;
-      const connectedAccountId = charge.destination;
-      const totalValue = charge.amount;
-      const feeValue = charge.application_fee_amount;
-
-      const applicationFee = await stripe.applicationFees.retrieve(
-        aplicationFeesID
-      );
-
-      const connectChargeId = applicationFee.charge;
-      //fazer o calculo para refund sem fees
-      const refundConnectAccount = await stripe.refunds.create(
-        { charge: connectChargeId, amount: totalValue - feeValue },
-        { stripeAccount: connectedAccountId }
-      );
-
-      const refundCustomer = await stripe.refunds.create({
-        payment_intent: paymentIntentId,
-      });
-      ///
-
-      if (subscriptionSchedule.id) {
-        //change contract status ,mandar assim apra testar retorno
-        updateContract(contractStripeId, "3", cancelMessage);
-
-        const query = `
-        UPDATE advertisement SET
-          status = '1'
-        WHERE id = '${advertisementId}' 
-      `;
-        updateAdvertismentById(query);
+      let cancellationAllowed = contractInfo[0].cancellation_allowed == '1';
+      
+      const advertisement = await getAdvertisementById(advertisementId)
+      const advertisementDurationType = advertisement[0].ad_duration_type
+       
+      let cancellationRange = true
+      if(advertisementDurationType == '0'){
+        const startFormattedDate = contractInfo[0].start_date;
+        cancellationRange = startFormattedDate > currentDate
       }
+      
+      if(cancellationAllowed && cancellationRange){
 
-      res.status(200).json({
-        data: "Contract canceled",
+        const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
+          contractStripeId,
+          { prorate: false }
+        );
+
+        if (subscriptionSchedule.id) {
+          //change contract status ,mandar assim apra testar retorno
+          updateContract(contractStripeId, "3", cancelMessage);
+  
+          const query = `
+          UPDATE advertisement SET
+            status = '1'
+          WHERE id = '${advertisementId}' 
+        `;
+          updateAdvertismentById(query);
+        }
+  
+        res.status(200).json({
+          data: "Contract canceled",
+        });
+      }
+      res.status(401).json({
+        error: 'It is not possible to cancel this booking',
       });
+
     } catch (error) {
       console.error(error);
       let message = "";
@@ -761,43 +738,62 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     }
   } else if (event.type === "invoice.paid") {
     const subscriptionId = event.data.object.subscription;
+    const price =  event.data.object.lines.data[0].price.id
+    
     const contract = await getContractBySub(subscriptionId);
     const advertisementId = contract[0].advertisement_id;
     const scheduleId = contract[0].schedule_subscription_id;
-    const price =  event.data.object.lines.data[0].price.id
-    
-    let endDate = contract[0].end_date;
-    endDate = new Date(endDate);
-    var timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-    
     const invoicesPaidAmount = contract[0].invoices_paid;
+    let endDate = contract[0].end_date;
     
     const advertisement = await getAdvertisementById(advertisementId);
     const duration = advertisement[0].duration;
+    const advertisementDurationType = advertisement[0].ad_duration_type;
+    
+
+    let timeStampEndDate = ''
+    if(advertisementDurationType == 0){
+        //  sum 86400 sec to increment the end date one day 
+       timeStampEndDate =  event.data.object.status_transitions.paid_at + 86400
+    }else{
+      endDate = new Date(endDate);
+       timeStampEndDate = Math.floor(endDate.getTime() / 1000);
+    }
+
     let timeStampStartDate
     if(invoicesPaidAmount == 0){
-       timeStampStartDate = event.data.object.lines.data[0].period.start;
+       timeStampStartDate = event.data.object.lines.data[0].period.start ;
       }else{
       timeStampStartDate = contract[0].phase_start_date;
     }
     if (duration == invoicesPaidAmount + 1) {
-      const subscriptionSchedule = await stripe.subscriptionSchedules.update(
-        scheduleId,
-        {
-          proration_behavior:'none',
-          phases: [
-            {
-              items:[
-                {
-                  price:price
-                }
-              ],
-              start_date: timeStampStartDate,
-              end_date: timeStampEndDate,
-            },
-          ],
-        }
-      );
+      if(advertisementDurationType == 0){
+
+        const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
+          scheduleId,
+          { prorate: false }
+        );
+      }else{
+        
+        const subscriptionSchedule = await stripe.subscriptionSchedules.update(
+          scheduleId,
+          {
+            proration_behavior:'none',
+            phases: [
+              {
+                items:[
+                  {
+                    price:price
+                  }
+                ],
+                start_date: timeStampStartDate,
+                end_date: timeStampEndDate,
+              },
+            ],
+          }
+        );
+      }
+
     }else if(invoicesPaidAmount == 0){
       updatePhaseDateContract(scheduleId,timeStampStartDate)
     }

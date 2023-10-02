@@ -248,7 +248,13 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     .toISOString()
     .slice(0, 19)
     .replace("T", " ");
-  //get user id
+
+  let startDate = new Date(data.start_date.substring(0, 10));
+  const startDateFormatted = startDate
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
@@ -286,7 +292,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     images = images.slice(0, -1);
 
     const imagesGroup = images;
-
 
     addGalleryImages("", userId, userImages, imagesGroup);
 
@@ -326,7 +331,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     formattedCreatedAt,
     product,
     price,
-    userType
+    userType,
+    startDateFormatted
   );
 
   const advertisementId = newAdvertisement.insertId;
