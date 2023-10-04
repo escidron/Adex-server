@@ -249,11 +249,11 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
 
-  let startDate = new Date(data.start_date.substring(0, 10));
-  const startDateFormatted = startDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  let startDateFormatted = "";
+  if (data.start_date) {
+    let startDate = new Date(data.start_date.substring(0, 10));
+    startDateFormatted = startDate.toISOString().slice(0, 19).replace("T", " ");
+  }
 
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);

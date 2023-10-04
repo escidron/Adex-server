@@ -321,3 +321,28 @@ export async function updateContractSubscriptionId(
   });
 }
 
+export async function updateContractCancellationStatus(
+  advertisementId,
+  sellerStripeId,
+  buyerStripeId,
+
+) {
+  const updateContractQuery = `
+  UPDATE contracts
+  SET cancellation_allowed = '0' where 
+  advertisement_id = ${advertisementId} and 
+  seller_id = '${sellerStripeId}' and 
+  buyer_id ='${buyerStripeId}'
+  and contract_status = '1'
+  
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateContractQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
