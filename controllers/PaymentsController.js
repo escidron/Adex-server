@@ -97,7 +97,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      // test_clock: "clock_1NxKLdL3Lxo3VPLot4nh5oky",
+      test_clock: "clock_1NxKLdL3Lxo3VPLot4nh5oky",
     });
 
     customerId = customer.id;
@@ -841,6 +841,54 @@ const getContractInfo = asyncHandler(async (req, res) => {
   res.status(200).json(contract[0]);
 });
 
+const getAccountBalance = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  if (token) {
+    try {
+      const userId = decoded.userId;
+
+      const sellerInfo = await getSeller(userId);
+      if(sellerInfo.length > 0){
+
+        const sellerStripeId = sellerInfo[0].stripe_account;
+        const balance = await stripe.balance.retrieve({
+          stripeAccount: sellerStripeId,
+        });
+
+        res.status(200).json(balance);
+      }
+
+      const buyerInfo = await getBuyer(userId);
+      if(buyerInfo.length > 0){
+
+        const buyerStripeId = buyerInfo[0].customer_id;
+        const customer = await stripe.customers.retrieve(
+          buyerStripeId
+        );
+        const invoice = await stripe.invoices.search({
+          query: `customer : "${buyerStripeId}" `,
+        });
+
+        res.status(200).json(customer);
+      }
+
+    } catch (error) {
+      console.error(error);
+      let message = "Something went wrong";
+
+      res.status(401).json({
+        error: message,
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   // CreateSubscribing,
   CreateCustomer,
@@ -856,4 +904,5 @@ export {
   subscriptionEndedWebhook,
   updateCancellationStatus,
   getContractInfo,
+  getAccountBalance
 };
