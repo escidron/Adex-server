@@ -22,6 +22,8 @@ import {
   getAllMessages,
   getAllChatMessages,
 } from "../queries/Users.js";
+import renderEmail from "../utils/emailTamplates/emailTemplate.js";
+import sendEmail from "../utils/sendEmail.js";
 
 dotenv.config();
 
@@ -258,6 +260,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
+  const email = decoded.email
   const parsedValue = parseFloat(data.price.replace(/,/g, ""));
 
   let images = "";
@@ -337,6 +340,24 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
   const advertisementId = newAdvertisement.insertId;
 
+
+  const imageName = images.split(';')
+  const emailData = {
+    title: 'ADEX Listing',
+    subTitle: 'Listing  created',
+    message: 'Your Listing has been successfully created ',
+    icon:'listing-created',
+    advertisement:{
+      title:data.title,
+      address:data.address,
+      description:data.description,
+      image:imageName[0],
+      price:parsedValue
+    }
+  };
+  const emailContent = renderEmail(emailData);
+  sendEmail(email, "Listing Created", emailContent);
+
   data.discounts.map((item) => {
     const createdAt = new Date();
     const formattedCreatedAt = createdAt
@@ -388,6 +409,26 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     WHERE id = ${data.id}
   `;
   updateAdvertismentById(query);
+
+  const user = await getUsersById(data.created_by)
+  const email = user[0].email
+  const imageName = images.split(';')
+  const emailData = {
+    title: 'ADEX Listing',
+    subTitle: 'Listing  created',
+    message: 'Your Listing has been successfully updated ',
+    icon:'listing-created',
+    advertisement:{
+      title:data.title,
+      address:data.address,
+      description:data.description,
+      image:imageName[0],
+      price:data.price
+    }
+  };
+  const emailContent = renderEmail(emailData);
+  sendEmail(email, "Listing Updated", emailContent);
+  
   res.status(200).json({ message: "Advertisement updated successfully." });
 });
 

@@ -8,7 +8,6 @@ import * as fs from "fs";
 import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
-import { signUpTamplate } from "../utils/emailTamplates/signUp.js";
 import { getCompaniesQuery } from "../queries/Companies.js";
 import dotenv from "dotenv";
 import {
@@ -29,6 +28,7 @@ import {
   getCompaniesById,
   addGalleryImages,
 } from "../queries/Companies.js";
+import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 
 dotenv.config();
 
@@ -147,8 +147,15 @@ const registerUser = asyncHandler(async (req, res) => {
       const userId = results.insertId;
       generateToken(res, userId, firstName + " " + lastName, email);
       // send the email
-      sendEmail(email, "User registered", "Welcome to ADEX", signUpTamplate);
-
+      const emailData = {
+        title: 'Welcome to ADEX!',
+        subTitle: '',
+        message: 'Welcome to ADEX, the place where you are the Asset! Browse or create listings to get started today. We hope you have a wonderful experience on our platform.',
+        icon:'user-registered'
+      };
+      const emailContent = renderEmail(emailData);
+      sendEmail(email, "User registered", emailContent);
+    
       res.status(200).json({
         name: firstName,
         userId: userId,
@@ -543,6 +550,15 @@ const changePassword = asyncHandler(async (req, res) => {
         bcrypt.hash(newPassword, 10).then(function (hashedPass) {
           // Store hash in your password DB.
           resetUserPassword(hashedPass, email);
+          
+          const emailData = {
+            title: 'ADEX Password Changed!',
+            subTitle: 'Your password has been changed.',
+            message: 'If you did not initiate a change to your user profile, please contact us immediately at security@adexemailcontact.com.',
+            icon:'password-changed'
+          };
+          const emailContent = renderEmail(emailData);
+          sendEmail(email, "Password Changed", emailContent);
           res.status(200).json({ message: "Password changed successfuly" });
         });
       } else {
@@ -554,11 +570,16 @@ const changePassword = asyncHandler(async (req, res) => {
 
 const sendResetPasswordEmail = asyncHandler(async (req, res) => {
   const { email, codeOTP } = req.body;
-  sendEmail(
-    email,
-    "Reset password",
-    `Your security code for reset your password is ${codeOTP}`
-  );
+
+  const emailData = {
+    title: 'ADEX Password Reset Requested!',
+    subTitle: '',
+    message: `Your security code for reset your password is ${codeOTP}`,
+    icon:'password-changed'
+  };
+  const emailContent = renderEmail(emailData);
+  sendEmail(email, "Reset Password", emailContent);
+
   res.status(200).json({ message: "Email sended successfuly" });
 });
 

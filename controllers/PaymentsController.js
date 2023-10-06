@@ -34,7 +34,7 @@ import {
   updateAdvertismentById,
 } from "../queries/Advertisements.js";
 import dotenv from "dotenv";
-import { listingBookedTamplate } from "../utils/emailTamplates/listingBooked.js";
+import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -451,22 +451,50 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         : `/my-listing?id=${data.id}`
     );
 
-    const results = await getUsersById(
-      data.created_by == userId ? data.requested_by : data.created_by
-    );
+    ////////////////////////////////////////////////////////////////////////
+    const createdByUser = await getUsersById(data.created_by);
+    const sellerName = createdByUser[0].name;
 
-    if (results.length > 0) {
-      const email = results[0].email;
-      sendEmail(
-        email,
-        data.created_by == userId
-          ? "Booking Request accepted"
-          : "Listing booked",
-        data.created_by == userId
-          ? "Your Booking request was accepted, see more details"
-          : "One of your listing was booked, see more details"
-      );
+    const requestedByUser = await getUsersById(data.requested_by);
+    const buyerName = requestedByUser[0].name;
+    const buyerEmail = requestedByUser[0].email;
+    //send email to the seller
+    if (createdByUser.length > 0) {
+      const email = createdByUser[0].email;
+
+      const emailData = {
+        title: "ADEX Listing",
+        subTitle: "Listing Booked",
+        message: `Your listing has been successfully booked by ${buyerName}!`,
+        icon: "listing-created",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      const emailContent = renderEmail(emailData);
+      sendEmail(email, "Listing Booked", emailContent);
     }
+    //send email to the buyer
+    const emailData = {
+      title: "ADEX Booking",
+      subTitle: "Booking Accepted",
+      message: `Congratulations, ${sellerName} has accepted your booking request and you are successfully booked!`,
+      icon: "booking-request",
+      advertisement: {
+        title: data.title,
+        address: data.address,
+        description: data.description,
+        image: imageName[0],
+        price: data.price,
+      },
+    };
+    const emailContent = renderEmail(emailData);
+    sendEmail(buyerEmail, "Booking Request Accepted", emailContent);
+    ///////////////////////////////////////////////////////////////////////////
     res.status(200).json({ message: "subscription created successfuly" });
   }
 });
@@ -485,7 +513,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
   } else {
     startDate = new Date(start_date.substring(0, 10));
   }
-  
+
   const startDateFormatted = startDate
     .toISOString()
     .slice(0, 19)
@@ -532,12 +560,50 @@ const RequestReserve = asyncHandler(async (req, res) => {
         `/my-listing?id=${data.id}`
       );
 
-      const results = await getUsersById(data.created_by);
+      const createdByUser = await getUsersById(data.created_by);
+      const sellerName = createdByUser[0].name;
 
-      if (results.length > 0) {
-        const email = results[0].email;
-        sendEmail(email, "Booking request", "You have a booking request");
+      const requestedByUser = await getUsersById(userId);
+      const buyerName = requestedByUser[0].name;
+      const buyerEmail = requestedByUser[0].email;
+      const advertisement = await getAdvertisementById(data.id);
+      const imageName = advertisement[0].image.split(";");
+      //send email to the seller
+      if (createdByUser.length > 0) {
+        const email = createdByUser[0].email;
+
+        const emailData = {
+          title: "ADEX Booking",
+          subTitle: "Booking Request",
+          message: `${buyerName} has requested to book your listing`,
+          icon: "booking-request",
+          advertisement: {
+            title: data.title,
+            address: data.address,
+            description: data.description,
+            image: imageName[0],
+            price: data.price,
+          },
+        };
+        const emailContent = renderEmail(emailData);
+        sendEmail(email, "Booking Request", emailContent);
       }
+      //send email to the buyer
+      const emailData = {
+        title: "ADEX Booking",
+        subTitle: "Booking Request",
+        message: `Your booking request was successfully sent to ${sellerName}.`,
+        icon: "booking-request",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      const emailContent = renderEmail(emailData);
+      sendEmail(buyerEmail, "Booking Request", emailContent);
 
       res.status(200).json({
         data: result,
@@ -634,18 +700,56 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const buyerInfo = await getBuyer(buyerId);
       const buyerStripeId = buyerInfo[0].customer_id;
 
-      const cancelNotificationUser = await getUsersById(
-        userId == sellerId ? buyerId : sellerId
-      );
-      const cancelNotificationEmail = cancelNotificationUser[0].email;
 
-      sendEmail(
-        cancelNotificationEmail,
-        "Booking Canceled",
-        "This booking has been cancelled",
-        listingBookedTamplate
-      );
+      ////////////////////////////////////////////////////////////////////////
+      const createdByUser = await getUsersById(sellerId);
+      const sellerName = createdByUser[0].name;
 
+      const requestedByUser = await getUsersById(buyerId);
+      const buyerName = requestedByUser[0].name;
+      const buyerEmail = requestedByUser[0].email;
+
+      const advertisementInfo = await getAdvertisementById(advertisementId);
+      const data = advertisementInfo[0];
+      const imageName = data.image.split(";");
+
+      //send email to the seller
+      if (createdByUser.length > 0) {
+        const email = createdByUser[0].email;
+
+        const emailData = {
+          title: "ADEX Booking",
+          subTitle: "Booking Canceled",
+          message: `${buyerName} has cancelled this booking!`,
+          icon: "sem-image",
+          advertisement: {
+            title: data.title,
+            address: data.address,
+            description: data.description,
+            image: imageName[0],
+            price: data.price,
+          },
+        };
+        const emailContent = renderEmail(emailData);
+        sendEmail(email, "Booking Cancelled", emailContent);
+      }
+      //send email to the buyer
+      const emailData = {
+        title: "ADEX Booking",
+        subTitle: "Booking Cancelled",
+        message: `Booking cancelled successfully!`,
+        icon: "sem-image",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      const emailContent = renderEmail(emailData);
+      sendEmail(buyerEmail, "Booking Cancelled", emailContent);
+      //////////////////////////////////////////////////////////////////////
       const contractInfo = await getContract(
         advertisementId,
         sellerStripeId,
@@ -726,6 +830,10 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
 
     const result = await getContractById(contractId);
     const advertisementId = result[0].advertisement_id;
+    const advertisement = await getAdvertisementById(advertisementId);
+    const data = advertisement[0];
+    const imageName = data.image.split(";");
+
     const query = `
     UPDATE advertisement SET
       status = '1',
@@ -733,6 +841,52 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     WHERE id = ${advertisementId} 
   `;
     updateAdvertismentById(query);
+
+    if (updatedAt == data.end_date) {
+      let emailData;
+      let emailContent;
+
+      const sellerId = data[0].created_by;
+      const seller = await getUsersById(sellerId);
+      const email = seller[0].email;
+
+      const buyerId = data[0].requested_by;
+      const buyer = await getUsersById(buyerId);
+      const buyerEmail = buyer[0].email;
+      //send email to the seller
+      emailData = {
+        title: "ADEX Booking",
+        subTitle: "Booking Expired",
+        message: `Your booking has expired!`,
+        icon: "booking-expired",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      emailContent = renderEmail(emailData);
+      sendEmail(email, "Booking Expired", emailContent);
+
+      //email to the buyer
+      emailData = {
+        title: "ADEX Booking",
+        subTitle: "Booking Expired",
+        message: `Your booking has expired!`,
+        icon: "booking-expired",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      emailContent = renderEmail(emailData);
+      sendEmail(buyerEmail, "Booking Expired", emailContent);
+    }
   } else if (event.type === "subscription_schedule.updated") {
     const scheduleId = event.data.object.id;
     const subscriptionId = event.data.object.subscription;
@@ -752,6 +906,19 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
 
     const advertisement = await getAdvertisementById(advertisementId);
     const duration = advertisement[0].duration;
+    const data = advertisement[0];
+    const imageName = data.image.split(";");
+
+    const sellerId = advertisement[0].created_by;
+    const seller = await getUsersById(sellerId);
+    const sellerName = seller[0].name;
+    const email = seller[0].email;
+
+    const buyerId = advertisement[0].requested_by;
+    const buyer = await getUsersById(buyerId);
+    const buyerName = buyer[0].name;
+    const buyerEmail = buyer[0].email;
+
     const advertisementDurationType = advertisement[0].ad_duration_type;
 
     let timeStampEndDate = "";
@@ -799,6 +966,43 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     }
     //update the amount of invoices paid
     updateContractInvoidePaid(subscriptionId);
+
+    let emailData;
+    let emailContent;
+    const amountPaid = event.data.object.amount_paid;
+    //send email to the seller
+    emailData = {
+      title: "An ADEX Payment Has Been Made!",
+      subTitle: "",
+      message: `A Payment from ${buyerName} has been sent to your account.`,
+      icon: "sem-image",
+      advertisement: {
+        title: data.title,
+        address: data.address,
+        description: data.description,
+        image: imageName[0],
+        price: data.price,
+      },
+    };
+    emailContent = renderEmail(emailData);
+    sendEmail(email, "Booking Payment", emailContent);
+
+    //email to the buyer
+    emailData = {
+      title: "ADEX Payment Made!!",
+      subTitle: "",
+      message: `You have made a payment of $${amountPaid} to ${sellerName}`,
+      icon: "payment-made",
+      advertisement: {
+        title: data.title,
+        address: data.address,
+        description: data.description,
+        image: imageName[0],
+        price: data.price,
+      },
+    };
+    emailContent = renderEmail(emailData);
+    sendEmail(buyerEmail, "Booking Payment", emailContent);
   }
   res.status(401).json({
     error: "Not authorized, token failed",
@@ -850,8 +1054,7 @@ const getAccountBalance = asyncHandler(async (req, res) => {
       const userId = decoded.userId;
 
       const sellerInfo = await getSeller(userId);
-      if(sellerInfo.length > 0){
-
+      if (sellerInfo.length > 0) {
         const sellerStripeId = sellerInfo[0].stripe_account;
         const balance = await stripe.balance.retrieve({
           stripeAccount: sellerStripeId,
@@ -861,19 +1064,15 @@ const getAccountBalance = asyncHandler(async (req, res) => {
       }
 
       const buyerInfo = await getBuyer(userId);
-      if(buyerInfo.length > 0){
-
+      if (buyerInfo.length > 0) {
         const buyerStripeId = buyerInfo[0].customer_id;
-        const customer = await stripe.customers.retrieve(
-          buyerStripeId
-        );
+        const customer = await stripe.customers.retrieve(buyerStripeId);
         const invoice = await stripe.invoices.search({
           query: `customer : "${buyerStripeId}" `,
         });
 
         res.status(200).json(customer);
       }
-
     } catch (error) {
       console.error(error);
       let message = "Something went wrong";
@@ -904,5 +1103,5 @@ export {
   subscriptionEndedWebhook,
   updateCancellationStatus,
   getContractInfo,
-  getAccountBalance
+  getAccountBalance,
 };
