@@ -132,16 +132,16 @@ export async function updatePublicProfile(
     last_name = '${lastName}', 
     email = '${email}', 
     mobile_number = '${phone}', 
-    bio = "${bio}" ,
-    sex = "${sex}" ,
-    handle = "${handle}" ,
+    bio = "${bio ? bio : ''}" ,
+    ${sex ? `sex = ${sex},`:''}
+    handle = "${handle ? handle : ''}" ,
     handle_is_public = "${handleIsPublic}" ,
     profession_is_public = "${professionIsPublic}" ,
     sex_is_public = "${sexIsPublic}" ,
     bio_is_public = "${bioIsPublic}" ,
     city = "${city}" ,
     city_is_public = "${cityIsPublic}" ,
-    profession = "${profession}" 
+    profession = "${profession ? profession :''}" 
     WHERE id = ${id}`;
 
   return new Promise((resolve, reject) => {
