@@ -19,6 +19,8 @@ import {
   updateContractSubscriptionId,
   updatePhaseDateContract,
   updateContractCancellationStatus,
+  deleteExternalBankAccount,
+  deleteCreditCard,
 } from "../queries/Payments.js";
 import {
   getBuyer,
@@ -41,8 +43,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const CreateCustomer = asyncHandler(async (req, res) => {
   //get userID
-  const { cardId, cardNumber, exp_year, exp_month, nameOnCard, brand } =
-    req.body;
+  const { cardId, nameOnCard } = req.body;
 
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -56,24 +57,33 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
   let customerId = "";
+
+  const buyer = await getBuyer(userId)
+  const customertId = buyer[0].customer_id
+  
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: customertId,
+    type: 'card',
+  });
+  const isDefault = paymentMethods.data.length == 0
+
   insertCard(
     userId,
     cardId,
-    brand,
     nameOnCard,
-    cardNumber,
-    exp_year,
-    exp_month,
-    formattedCreatedAt
+    formattedCreatedAt,
+    isDefault
   );
 
-  const queryUpDateDefaultCard = `
-    UPDATE cards
-    SET is_default = 0
-    WHERE user_id = ${userId}
-    AND stripe_payment_method_id <> '${cardId}'
-`;
-  updateCard(queryUpDateDefaultCard);
+
+
+//   const queryUpDateDefaultCard = `
+//     UPDATE cards
+//     SET is_default = ${stripeCards.length > 0 ? '0' : '1'}
+//     WHERE user_id = ${userId}
+//     AND stripe_payment_method_id <> '${cardId}'
+// `;
+//   updateCard(queryUpDateDefaultCard);
 
   const results = await getBuyer(userId);
 
@@ -146,15 +156,21 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
         },
       }
     );
+
+    const seller = await getSeller(userId)
+    const accountId = seller[0].stripe_account
+    
+    const bankAccounts = await stripe.accounts.listExternalAccounts(
+      accountId,
+      {object: 'bank_account'}
+    );
+    const isDefault = bankAccounts.data.length == 0
     insertAccount(
       userId,
-      routingNumber,
-      accountNumber,
       bankAccount,
-      bankAccountName,
-      formattedCreatedAt
+      formattedCreatedAt,
+      isDefault
     );
-    updateAccount(userId, bankAccount, formattedCreatedAt);
     updateSeller(userId, bankAccount, formattedCreatedAt);
 
     const query = `
@@ -182,9 +198,34 @@ const GetCards = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getCard(userId);
+      const storagedCards = await getCard(userId);
+      
+      const buyer = await getBuyer(userId)
+      const customertId = buyer[0].customer_id
+      
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: customertId,
+        type: 'card',
+      });
+      const stripeCards = paymentMethods.data
+      const cards = stripeCards.map((card) => {
+        // Procurando o elemento correspondente em array2 com o mesmo ID
+        const storagedCard = storagedCards.find((item) => item.stripe_payment_method_id === card.id);
+      
+        // Se encontrarmos um elemento correspondente em array2, adicionamos o parâmetro "age"
+        if (storagedCard) {
+          return {
+            ...card, // Mantém as propriedades originais de card
+            is_default: storagedCard.is_default,
+            name_on_card: storagedCard.name// Adiciona o parâmetro "age" de storagedCard
+          };
+        }
+      
+        // Se não encontrarmos um elemento correspondente em array2, retornamos card sem alterações
+        return card;
+      });
       res.status(200).json({
-        data: result,
+        data: cards,
       });
     } catch (error) {
       console.error(error);
@@ -207,10 +248,15 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getExternalAccount(userId);
-      res.status(200).json({
-        data: result,
-      });
+      const seller = await getSeller(userId)
+      const accountId = seller[0].stripe_account
+      
+      const bankAccounts = await stripe.accounts.listExternalAccounts(
+        accountId,
+        {object: 'bank_account'}
+      );
+
+      res.status(200).json(bankAccounts);
     } catch (error) {
       console.error(error);
       res.status(401).json({
@@ -294,7 +340,6 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
   const results = await getSeller(userId);
 
   const account = results[0].stripe_account;
-  // res.status(200).json({ message: "default bank changed" });
 
   const bankAccount = await stripe.accounts.updateExternalAccount(
     account,
@@ -1088,6 +1133,89 @@ const getAccountBalance = asyncHandler(async (req, res) => {
   }
 });
 
+const deleteBankAccount = asyncHandler(async (req, res) => {
+  const { bankAccountId } = req.body;
+
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  const deletedAt = new Date();
+  const formattedDeletedAt = deletedAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+  if (token) {
+    try {
+      const userId = decoded.userId;
+
+      const sellerInfo = await getSeller(userId);
+      const connectAccountId = sellerInfo[0].stripe_account
+
+      const deleted = await stripe.accounts.deleteExternalAccount(
+        connectAccountId,
+        bankAccountId
+      );
+        deleteExternalBankAccount(userId,bankAccountId,formattedDeletedAt)
+        res.status(200).json({message : 'Payout Method deleted successfully'})
+    } catch (error) {
+      console.error(error);
+      let message = "";
+
+      if(error.type =='StripeInvalidRequestError'){
+        if(error.raw.message.includes('You cannot delete the default external account')){
+          message = "You cannot delete the default external account, Please make another external account the default and try to delete this one again";
+        }else{
+          message = "Something went wrong,Please try again later ";
+        }
+      }else{
+
+        message = "Something went wrong,Please try again later";
+      }
+
+      res.status(401).json({
+        error: message,
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const deleteCard = asyncHandler(async (req, res) => {
+  const { cardId } = req.body;
+
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  const deletedAt = new Date();
+  const formattedDeletedAt = deletedAt
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+  if (token) {
+    try {
+      const userId = decoded.userId;
+      const paymentMethod = await stripe.paymentMethods.detach(
+        cardId
+      );
+      deleteCreditCard(userId,cardId,formattedDeletedAt)
+      res.status(200).json({message : 'Card deleted successfully'})
+    } catch (error) {
+      console.error(error);
+
+      res.status(401).json({
+        error: message,
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   // CreateSubscribing,
   CreateCustomer,
@@ -1104,4 +1232,6 @@ export {
   updateCancellationStatus,
   getContractInfo,
   getAccountBalance,
+  deleteBankAccount,
+  deleteCard
 };

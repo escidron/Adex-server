@@ -18,32 +18,23 @@ export async function getCard(userId) {
 export async function insertCard(
   userId,
   cardId,
-  brand,
   nameOnCard,
-  cardNumber,
-  exp_year,
-  exp_month,
-  formattedCreatedAt
+  formattedCreatedAt,
+  isDefault
 ) {
   const queryInsertCard = `
     INSERT INTO cards (
       user_id,
       stripe_payment_method_id,
-      card_brand,
       name,
-      card_number,
-      expiry_date,
       is_default,
       is_active,
       created_at
     ) VALUES (
       '${userId}',
       '${cardId}',
-      '${brand}',
       '${nameOnCard}',
-      '${cardNumber}',
-      STR_TO_DATE(CONCAT(${exp_year}, '-', ${exp_month}, '-01'), '%Y-%m-%d'),
-      '1',
+      ${isDefault ? '1' : '0'},
       '1',
       '${formattedCreatedAt}'
 
@@ -70,6 +61,24 @@ export async function updateCard(query) {
   });
 }
 
+export async function deleteCreditCard(userId, cardId, formattedDeletedAt) {
+  const deleteCardQuery = `
+  UPDATE cards
+  SET deleted_at = '${formattedDeletedAt}',
+  is_active = '0',
+  is_default = '0'
+  WHERE user_id = ${userId} and stripe_payment_method_id = '${cardId}'
+`;
+
+  return new Promise((resolve, reject) => {
+    db.query(deleteCardQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
 //account queries
 //delete infos
 
@@ -87,29 +96,21 @@ export async function getExternalAccount(userId) {
 
 export async function insertAccount(
   userId,
-  routingNumber,
-  accountNumber,
   bankAccount,
-  bankAccountName,
-  formattedCreatedAt
+  formattedCreatedAt,
+  isDefault
 ) {
   const insertAccountQuery = `
   INSERT INTO external_bank_accounts (
     user_id,
-    routing_number,
-    account_number,
     external_account_id,
-    bank_name,
     is_default,
     is_active,
     created_at
   ) VALUES (
     '${userId}',
-    '${routingNumber}',
-    '${accountNumber}',
     '${bankAccount.id}',
-    '${bankAccountName}',
-    '1',
+    ${isDefault ? '1' : '0'},
     '1',
     '${formattedCreatedAt}'
   )
@@ -129,8 +130,8 @@ export async function updateAccount(userId, bankAccount, formattedCreatedAt) {
   UPDATE external_bank_accounts
   SET updated_at = '${formattedCreatedAt}',
   is_default = CASE
-  WHEN external_account_id <> '${bankAccount.id}' THEN 0
-  WHEN external_account_id = '${bankAccount.id}' THEN 1
+  WHEN external_account_id <> '${bankAccount}' THEN 0
+  WHEN external_account_id = '${bankAccount}' THEN 1
   END
   WHERE user_id = ${userId}
 `;
@@ -144,6 +145,25 @@ export async function updateAccount(userId, bankAccount, formattedCreatedAt) {
     });
   });
 }
+
+export async function deleteExternalBankAccount(userId, bankAccount, formattedDeletedAt) {
+  const deleteAccountQuery = `
+  UPDATE external_bank_accounts
+  SET deleted_at = '${formattedDeletedAt}',
+  is_active = '0'
+  WHERE user_id = ${userId} and external_account_id = '${bankAccount}'
+`;
+
+  return new Promise((resolve, reject) => {
+    db.query(deleteAccountQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 
 //contracts queries
 export async function insertContract(
