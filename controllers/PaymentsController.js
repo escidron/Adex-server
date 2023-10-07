@@ -58,32 +58,18 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     .replace("T", " ");
   let customerId = "";
 
-  const buyer = await getBuyer(userId)
-  const customertId = buyer[0].customer_id
-  
-  const paymentMethods = await stripe.paymentMethods.list({
-    customer: customertId,
-    type: 'card',
-  });
-  const isDefault = paymentMethods.data.length == 0
-
-  insertCard(
-    userId,
-    cardId,
-    nameOnCard,
-    formattedCreatedAt,
-    isDefault
-  );
-
-
-
-//   const queryUpDateDefaultCard = `
-//     UPDATE cards
-//     SET is_default = ${stripeCards.length > 0 ? '0' : '1'}
-//     WHERE user_id = ${userId}
-//     AND stripe_payment_method_id <> '${cardId}'
-// `;
-//   updateCard(queryUpDateDefaultCard);
+  const buyer = await getBuyer(userId);
+  let paymentMethods = "";
+  let isDefault = true;
+  if (buyer.length > 0) {
+    const customertId = buyer[0].customer_id;
+    paymentMethods = await stripe.paymentMethods.list({
+      customer: customertId,
+      type: "card",
+    });
+    isDefault = paymentMethods.data.length == 0;
+  }
+  insertCard(userId, cardId, nameOnCard, formattedCreatedAt, isDefault);
 
   const results = await getBuyer(userId);
 
@@ -157,20 +143,14 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
       }
     );
 
-    const seller = await getSeller(userId)
-    const accountId = seller[0].stripe_account
-    
-    const bankAccounts = await stripe.accounts.listExternalAccounts(
-      accountId,
-      {object: 'bank_account'}
-    );
-    const isDefault = bankAccounts.data.length == 0
-    insertAccount(
-      userId,
-      bankAccount,
-      formattedCreatedAt,
-      isDefault
-    );
+    const seller = await getSeller(userId);
+    const accountId = seller[0].stripe_account;
+
+    const bankAccounts = await stripe.accounts.listExternalAccounts(accountId, {
+      object: "bank_account",
+    });
+    const isDefault = bankAccounts.data.length == 0;
+    insertAccount(userId, bankAccount, formattedCreatedAt, isDefault);
     updateSeller(userId, bankAccount, formattedCreatedAt);
 
     const query = `
@@ -199,28 +179,30 @@ const GetCards = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const storagedCards = await getCard(userId);
-      
-      const buyer = await getBuyer(userId)
-      const customertId = buyer[0].customer_id
-      
+
+      const buyer = await getBuyer(userId);
+      const customertId = buyer[0].customer_id;
+
       const paymentMethods = await stripe.paymentMethods.list({
         customer: customertId,
-        type: 'card',
+        type: "card",
       });
-      const stripeCards = paymentMethods.data
+      const stripeCards = paymentMethods.data;
       const cards = stripeCards.map((card) => {
         // Procurando o elemento correspondente em array2 com o mesmo ID
-        const storagedCard = storagedCards.find((item) => item.stripe_payment_method_id === card.id);
-      
+        const storagedCard = storagedCards.find(
+          (item) => item.stripe_payment_method_id === card.id
+        );
+
         // Se encontrarmos um elemento correspondente em array2, adicionamos o parâmetro "age"
         if (storagedCard) {
           return {
             ...card, // Mantém as propriedades originais de card
             is_default: storagedCard.is_default,
-            name_on_card: storagedCard.name// Adiciona o parâmetro "age" de storagedCard
+            name_on_card: storagedCard.name, // Adiciona o parâmetro "age" de storagedCard
           };
         }
-      
+
         // Se não encontrarmos um elemento correspondente em array2, retornamos card sem alterações
         return card;
       });
@@ -248,12 +230,12 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const seller = await getSeller(userId)
-      const accountId = seller[0].stripe_account
-      
+      const seller = await getSeller(userId);
+      const accountId = seller[0].stripe_account;
+
       const bankAccounts = await stripe.accounts.listExternalAccounts(
         accountId,
-        {object: 'bank_account'}
+        { object: "bank_account" }
       );
 
       res.status(200).json(bankAccounts);
@@ -745,7 +727,6 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const buyerInfo = await getBuyer(buyerId);
       const buyerStripeId = buyerInfo[0].customer_id;
 
-
       ////////////////////////////////////////////////////////////////////////
       const createdByUser = await getUsersById(sellerId);
       const sellerName = createdByUser[0].name;
@@ -1149,26 +1130,30 @@ const deleteBankAccount = asyncHandler(async (req, res) => {
       const userId = decoded.userId;
 
       const sellerInfo = await getSeller(userId);
-      const connectAccountId = sellerInfo[0].stripe_account
+      const connectAccountId = sellerInfo[0].stripe_account;
 
       const deleted = await stripe.accounts.deleteExternalAccount(
         connectAccountId,
         bankAccountId
       );
-        deleteExternalBankAccount(userId,bankAccountId,formattedDeletedAt)
-        res.status(200).json({message : 'Payout Method deleted successfully'})
+      deleteExternalBankAccount(userId, bankAccountId, formattedDeletedAt);
+      res.status(200).json({ message: "Payout Method deleted successfully" });
     } catch (error) {
       console.error(error);
       let message = "";
 
-      if(error.type =='StripeInvalidRequestError'){
-        if(error.raw.message.includes('You cannot delete the default external account')){
-          message = "You cannot delete the default external account, Please make another external account the default and try to delete this one again";
-        }else{
+      if (error.type == "StripeInvalidRequestError") {
+        if (
+          error.raw.message.includes(
+            "You cannot delete the default external account"
+          )
+        ) {
+          message =
+            "You cannot delete the default external account, Please make another external account the default and try to delete this one again";
+        } else {
           message = "Something went wrong,Please try again later ";
         }
-      }else{
-
+      } else {
         message = "Something went wrong,Please try again later";
       }
 
@@ -1197,11 +1182,9 @@ const deleteCard = asyncHandler(async (req, res) => {
   if (token) {
     try {
       const userId = decoded.userId;
-      const paymentMethod = await stripe.paymentMethods.detach(
-        cardId
-      );
-      deleteCreditCard(userId,cardId,formattedDeletedAt)
-      res.status(200).json({message : 'Card deleted successfully'})
+      const paymentMethod = await stripe.paymentMethods.detach(cardId);
+      deleteCreditCard(userId, cardId, formattedDeletedAt);
+      res.status(200).json({ message: "Card deleted successfully" });
     } catch (error) {
       console.error(error);
 
@@ -1233,5 +1216,5 @@ export {
   getContractInfo,
   getAccountBalance,
   deleteBankAccount,
-  deleteCard
+  deleteCard,
 };
