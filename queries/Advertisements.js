@@ -8,6 +8,15 @@ export async function getFilteredAdvertisements(
   type,
   adGroup
 ) {
+  let types = "";
+  if (type == 1) {
+    types = "4,5,6,7,8";
+  } else if (type == 2) {
+    types = "9,10,11,12";
+  } else if (type == 3) {
+    types = "17,18";
+  }
+  
   const FilteredAdvertisementsQuery = `SELECT * FROM adex.advertisement where status <> '0' and price BETWEEN ${
     priceMin != "" ? priceMin : 0
   } AND ${priceMax != "" ? priceMax : 0} ${

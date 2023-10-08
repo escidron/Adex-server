@@ -30,14 +30,7 @@ dotenv.config();
 const getAdvertisement = asyncHandler(async (req, res) => {
   const { type, adGroup, priceMin, priceMax } = req.body;
 
-  let types = "";
-  if (type == 1) {
-    types = "4,5,6,7,8";
-  } else if (type == 2) {
-    types = "9,10,11,12";
-  } else if (type == 3) {
-    types = "17,18";
-  }
+
 
   try {
     const result = await getFilteredAdvertisements(
