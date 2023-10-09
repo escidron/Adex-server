@@ -97,6 +97,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           };
         });
         const status = {
+          all:0,
           available: 0,
           running: 0,
           finished: 0,
@@ -105,15 +106,18 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
         advertisementsWithImages.map((item) => {
           if (item.status == "1") {
             status.available++;
+            status.all++;
           } else if (item.status == "2") {
             status.running++;
+            status.all++;
           } else if (item.status == "3") {
             status.finished++;
+            status.all++;
           } else if (item.status == "4") {
             status.pending++;
+            status.all++;
           }
         });
-
         if (notificationId != undefined) {
           const results = await updateNotificationStatus(notificationId);
           const notifications = results.affectedRows;

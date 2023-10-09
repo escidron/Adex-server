@@ -499,6 +499,8 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
     const buyerName = requestedByUser[0].name;
     const buyerEmail = requestedByUser[0].email;
     //send email to the seller
+    const advertisement =  await getAdvertisementById(data.id)
+    const imageName = advertisement[0].image.split(";");
     if (createdByUser.length > 0) {
       const email = createdByUser[0].email;
 
