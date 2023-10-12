@@ -181,15 +181,17 @@ export async function getSeller(id) {
   });
 }
 
-export async function insertSeller(id, stripeAccount, formattedCreatedAt) {
+export async function insertSeller(id, stripeAccount, formattedCreatedAt,verifiedAccount) {
   const insertSellerQuery = `
     INSERT INTO sellers (
       user_id,
       stripe_account,
+      verified_identity,
       created_at
     ) VALUES (
       '${id}',
       '${stripeAccount}',
+      '${verifiedAccount }',
       '${formattedCreatedAt}'
     )
   `;
@@ -213,6 +215,23 @@ export async function updateSeller(userId, bankAccount, formattedCreatedAt) {
 `;
   return new Promise((resolve, reject) => {
     db.query(updateSellerQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateSellerVerificationStatus(userId) {
+  const updateSellerStatusQuery = `
+  UPDATE sellers
+  SET 
+  verified_identity = '1'
+  WHERE user_id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateSellerStatusQuery, (err, result) => {
       if (err) {
         reject(err);
       }

@@ -22,6 +22,7 @@ import {
   resetUserPassword,
   insertUser,
   updateNotificationStatus,
+  updateSellerVerificationStatus,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -148,14 +149,15 @@ const registerUser = asyncHandler(async (req, res) => {
       generateToken(res, userId, firstName + " " + lastName, email);
       // send the email
       const emailData = {
-        title: 'Welcome to ADEX!',
-        subTitle: '',
-        message: 'Welcome to ADEX, the place where you are the Asset! Browse or create listings to get started today. We hope you have a wonderful experience on our platform.',
-        icon:'user-registered'
+        title: "Welcome to ADEX!",
+        subTitle: "",
+        message:
+          "Welcome to ADEX, the place where you are the Asset! Browse or create listings to get started today. We hope you have a wonderful experience on our platform.",
+        icon: "user-registered",
       };
       const emailContent = renderEmail(emailData);
       sendEmail(email, "User registered", emailContent);
-    
+
       res.status(200).json({
         name: firstName,
         userId: userId,
@@ -205,99 +207,166 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 const updateUserAddress = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const { address } = pkg;
-  const { idNumber, bod, street, city, state, zip } = req.body;
+  const { idNumber, bod, street, city, state, zip, verificationImage } =
+    req.body;
 
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
-  const updatedAt = new Date();
-  const formattedUpdatedAt = updatedAt
+  const currentDate = new Date();
+  const formattedCreatedAt = currentDate
     .toISOString()
     .slice(0, 19)
     .replace("T", " ");
 
   const result = await getUsersById(userId);
+
   if (result.length > 0) {
-    updateUserAddressInfo(
-      idNumber,
-      bod.substring(0, 10),
-      street,
-      city,
-      state,
-      zip,
-      formattedUpdatedAt,
-      userId
-    );
-    createAccount(result[0]);
-  } else {
-    res.status(400).json({ error: "User does't  exists" });
-  }
-
-  async function createAccount(user) {
-    const { idNumber, bod, street, city, state, zip } = req.body;
-
-    var currentDate = new Date();
-
-    // create the account and enable the charge option
     try {
-      const account = await stripe.accounts.create({
-        type: "custom",
-        business_type: "individual",
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        business_profile: {
-          mcc: 7299,
-          url: "www." + user.email.substring(0, user.email.indexOf("@")),
-        },
-        individual: {
-          email: user.email,
-          first_name: user.first_name,
-          last_name: user.last_name,
-          id_number: idNumber,
-          phone: user.mobile_number,
-          address: {
-            country: "US",
-            city: city, //city,
-            line1: street,
-            postal_code: zip,
-            state: state, //state
-          },
-          political_exposure: "none",
-          dob: {
-            day: bod.substring(8, 10),
-            month: bod.substring(5, 7),
-            year: bod.substring(0, 4),
-          },
+      const user = result[0];
+      const imageName = userId + "_verification.png";
+      const path = "./images/verification/" + imageName;
+      const imgdata = verificationImage;
+      // to convert base64 format into random filename
+      const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+      fs.writeFileSync(path, base64Data, { encoding: "base64" });
 
-          verification: {
-            document: {
-              front: "file_identity_document_success",
+      const fp = fs.readFileSync(path);
+
+      fs.unlink(path, (err) => {
+        if (err) throw err;
+        console.log("image was deleted");
+      });
+
+      const file = await stripe.files.create({
+        purpose: "identity_document",
+        file: {
+          data: fp,
+          name: imageName,
+          type: "application/octet-stream",
+        },
+      });
+
+      const seller = await getSeller(userId);
+
+      if (seller.length > 0) {
+        const sellerStripeAccount = seller[0].stripe_account;
+        //update the connect account
+        const account = await stripe.accounts.update(sellerStripeAccount, {
+          individual: {
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            id_number: idNumber,
+            phone: user.mobile_number,
+            address: {
+              country: "US",
+              city: city, //city,
+              line1: street,
+              postal_code: zip,
+              state: state, //state
+            },
+            political_exposure: "none",
+            dob: {
+              day: bod.substring(8, 10),
+              month: bod.substring(5, 7),
+              year: bod.substring(0, 4),
+            },
+
+            verification: {
+              document: {
+                front: file.id,
+                // front: "file_identity_document_success",
+              },
             },
           },
-        },
-      });
+        });
+        if (account.id) {
+          const {status,error} = await verifyIdentity(account.id);
 
-      const accountAccepted = await stripe.accounts.update(account.id, {
-        tos_acceptance: {
-          date: currentDate,
-          ip: address(),
-        },
-      });
-
-      const createdAt = new Date();
-      const formattedCreatedAt = createdAt
-        .toISOString()
-        .slice(0, 19)
-        .replace("T", " ");
-
-      if (account.id) {
-        insertSeller(userId, account.id, formattedCreatedAt);
-        res.status(200).json({ account: account.id });
+          if (status) {
+            updateSellerVerificationStatus(userId);
+            res.status(200).json({ account: sellerStripeAccount });
+          } else {
+            res.status(400).json({
+              error: error ? error : "Something went wrong, please try again.",
+            });
+          }
+        }
       } else {
-        res.status(400).json({ error: account });
+        //create the connect account
+        const account = await stripe.accounts.create({
+          type: "custom",
+          business_type: "individual",
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          business_profile: {
+            mcc: 7299,
+            url: "www." + user.email.substring(0, user.email.indexOf("@")),
+          },
+          tos_acceptance: {
+            date: currentDate,
+            ip: address(),
+          },
+          individual: {
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            id_number: idNumber,
+            phone: user.mobile_number,
+            address: {
+              country: "US",
+              city: city, //city,
+              line1: street,
+              postal_code: zip,
+              state: state, //state
+            },
+            political_exposure: "none",
+            dob: {
+              day: bod.substring(8, 10),
+              month: bod.substring(5, 7),
+              year: bod.substring(0, 4),
+            },
+
+            verification: {
+              document: {
+                front: file.id,
+                // front: "file_identity_document_success",
+              },
+            },
+          },
+        });
+
+        if (account.id) {
+          let verifiedAccount = "";
+          const {status,error} = await verifyIdentity(account.id);
+          if (status) {
+            verifiedAccount = "1";
+            insertSeller(
+              userId,
+              account.id,
+              formattedCreatedAt,
+              verifiedAccount
+            );
+            res.status(200).json({ account: account.id });
+          } else {
+            verifiedAccount = "0";
+            insertSeller(
+              userId,
+              account.id,
+              formattedCreatedAt,
+              verifiedAccount
+            );
+            res.status(400).json({
+              error: error ? error : "Something went wrong, please try again.",
+            });
+          }
+        } else {
+          res.status(400).json({ error: account });
+        }
       }
     } catch (error) {
       if (error.message.includes("is not a valid phone number")) {
@@ -309,6 +378,30 @@ const updateUserAddress = asyncHandler(async (req, res) => {
       } else {
         res.status(400).json({ error: error.message });
       }
+    }
+  } else {
+    res.status(400).json({ error: "User does't  exists" });
+  }
+
+  function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async function verifyIdentity(accountId) {
+    let accountRetrieved = "";
+    let verifiedStatus = "";
+    let errorDetails = "";
+
+    while (true) {
+      accountRetrieved = await stripe.accounts.retrieve(accountId);
+
+      verifiedStatus = accountRetrieved.individual.verification.status;
+      errorDetails = accountRetrieved.individual.verification.document.details;
+
+      if (verifiedStatus !== "pending") {
+        return { status: verifiedStatus == "verified", error: errorDetails ? errorDetails : '' };
+      }
+      await delay(2000);
     }
   }
 });
@@ -400,7 +493,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
           bioIsPublic,
           city,
           cityIsPublic,
-          userType
+          userType,
         });
       }
     } catch (error) {
@@ -550,12 +643,13 @@ const changePassword = asyncHandler(async (req, res) => {
         bcrypt.hash(newPassword, 10).then(function (hashedPass) {
           // Store hash in your password DB.
           resetUserPassword(hashedPass, email);
-          
+
           const emailData = {
-            title: 'ADEX Password Changed!',
-            subTitle: 'Your password has been changed.',
-            message: 'If you did not initiate a change to your user profile, please contact us immediately at security@adexemailcontact.com.',
-            icon:'password-changed'
+            title: "ADEX Password Changed!",
+            subTitle: "Your password has been changed.",
+            message:
+              "If you did not initiate a change to your user profile, please contact us immediately at security@adexemailcontact.com.",
+            icon: "password-changed",
           };
           const emailContent = renderEmail(emailData);
           sendEmail(email, "Password Changed", emailContent);
@@ -572,10 +666,10 @@ const sendResetPasswordEmail = asyncHandler(async (req, res) => {
   const { email, codeOTP } = req.body;
 
   const emailData = {
-    title: 'ADEX Password Reset Requested!',
-    subTitle: '',
+    title: "ADEX Password Reset Requested!",
+    subTitle: "",
     message: `Your security code for reset your password is ${codeOTP}`,
-    icon:'password-changed'
+    icon: "password-changed",
   };
   const emailContent = renderEmail(emailData);
   sendEmail(email, "Reset Password", emailContent);
@@ -740,13 +834,13 @@ const imageGallery = asyncHandler(async (req, res) => {
       } else {
         // Add base64 image to each advertisement object
         const images = result[0].image_gallery;
-        addGalleryImages('', userId, images, imagesGroup);
-        if(id){
+        addGalleryImages("", userId, images, imagesGroup);
+        if (id) {
           const company = await getCompaniesById(id);
-          const companyImages = company[0].company_gallery
+          const companyImages = company[0].company_gallery;
           addGalleryImages(id, userId, companyImages, imagesGroup);
-         }
-       
+        }
+
         res.status(200).json({ message: "Image added to the gallery" });
       }
     } catch (error) {
@@ -771,11 +865,11 @@ const getImageGallery = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
 
-      let result = []
-      if(id){
-         result = await getCompaniesById(id);
-      }else{
-         result = await getUsersById(userId);
+      let result = [];
+      if (id) {
+        result = await getCompaniesById(id);
+      } else {
+        result = await getUsersById(userId);
       }
 
       if (result.length == 0) {
@@ -786,7 +880,7 @@ const getImageGallery = asyncHandler(async (req, res) => {
         // Add base64 image to each advertisement object
         const galleryWithImages = result.map((gallery) => {
           const images = [];
-          let imageArray = []
+          let imageArray = [];
           if (gallery.company_gallery) {
             imageArray = gallery.company_gallery.split(";");
             imageArray.map((image) => {
@@ -798,7 +892,7 @@ const getImageGallery = asyncHandler(async (req, res) => {
               ...gallery,
               company_gallery: images.length > 0 ? images : [],
             };
-          }else if(gallery.image_gallery){
+          } else if (gallery.image_gallery) {
             imageArray = gallery.image_gallery.split(";");
             imageArray.map((image) => {
               if (image) {

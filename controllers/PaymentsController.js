@@ -196,32 +196,35 @@ const GetCards = asyncHandler(async (req, res) => {
       const storagedCards = await getCard(userId);
       
       const buyer = await getBuyer(userId)
-      const customertId = buyer[0].customer_id
-      
-      const paymentMethods = await stripe.paymentMethods.list({
-        customer: customertId,
-        type: 'card',
-      });
-      const stripeCards = paymentMethods.data
-      const cards = stripeCards.map((card) => {
-        // Procurando o elemento correspondente em array2 com o mesmo ID
-        const storagedCard = storagedCards.find((item) => item.stripe_payment_method_id === card.id);
-      
-        // Se encontrarmos um elemento correspondente em array2, adicionamos o parâmetro "age"
-        if (storagedCard) {
-          return {
-            ...card, // Mantém as propriedades originais de card
-            is_default: storagedCard.is_default,
-            name_on_card: storagedCard.name// Adiciona o parâmetro "age" de storagedCard
-          };
-        }
-      
-        // Se não encontrarmos um elemento correspondente em array2, retornamos card sem alterações
-        return card;
-      });
-      res.status(200).json({
-        data: cards,
-      });
+      if(buyer.length > 0){
+
+        const customertId = buyer[0].customer_id
+        
+        const paymentMethods = await stripe.paymentMethods.list({
+          customer: customertId,
+          type: 'card',
+        });
+        const stripeCards = paymentMethods.data
+        const cards = stripeCards.map((card) => {
+          // Procurando o elemento correspondente em array2 com o mesmo ID
+          const storagedCard = storagedCards.find((item) => item.stripe_payment_method_id === card.id);
+        
+          // Se encontrarmos um elemento correspondente em array2, adicionamos o parâmetro "age"
+          if (storagedCard) {
+            return {
+              ...card, // Mantém as propriedades originais de card
+              is_default: storagedCard.is_default,
+              name_on_card: storagedCard.name// Adiciona o parâmetro "age" de storagedCard
+            };
+          }
+        
+          // Se não encontrarmos um elemento correspondente em array2, retornamos card sem alterações
+          return card;
+        });
+        res.status(200).json({
+          data: cards,
+        });
+      }
     } catch (error) {
       console.error(error);
       res.status(401).json({
@@ -244,14 +247,15 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const seller = await getSeller(userId)
-      const accountId = seller[0].stripe_account
-      
-      const bankAccounts = await stripe.accounts.listExternalAccounts(
-        accountId,
-        {object: 'bank_account'}
-      );
-
-      res.status(200).json(bankAccounts);
+      if(seller.length > 0){
+        const accountId = seller[0].stripe_account
+        const bankAccounts = await stripe.accounts.listExternalAccounts(
+          accountId,
+          {object: 'bank_account'}
+        );
+  
+        res.status(200).json(bankAccounts);
+      }
     } catch (error) {
       console.error(error);
       res.status(401).json({
