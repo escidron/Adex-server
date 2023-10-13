@@ -4,7 +4,8 @@ import {
   registerUser,
   logoutUser,
   getSellerProfile,
-  updateUserAddress,
+  createUserConnectAccount,
+  createCompanyConnectAccount,
   autoLogin,
   getExternalAccount,
   getUserProfile,
@@ -20,7 +21,8 @@ import {
   getCompany,
   imageGallery,
   getImageGallery,
-  clearUserNotifications
+  clearUserNotifications,
+  testRoute
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -30,7 +32,8 @@ router.post('/', registerUser);
 router.post('/auth', authUser);
 router.post('/logout', logoutUser);
 router.post('/my-profile-image', updateUserProfileImage);
-router.post('/update-address',updateUserAddress);
+router.post('/create-user-connect-account',createUserConnectAccount);
+router.post('/create-company-connect-account',createCompanyConnectAccount);
 router.post('/update-user-profile',updateUserProfile);
 router.post('/notifications',getMyNotifications);
 router.get('/autologin', autoLogin);
@@ -51,4 +54,7 @@ router
   .route('/seller-profile')
   .get(protect, getSellerProfile)
 //   .put(protect, updateUserAddress);
+
+router.post('/test', testRoute);
+
 export default router;

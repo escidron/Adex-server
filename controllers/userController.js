@@ -30,6 +30,7 @@ import {
   addGalleryImages,
 } from "../queries/Companies.js";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
+import { verifyIdentity } from "../utils/VerifyIdentity.js";
 
 dotenv.config();
 
@@ -181,14 +182,18 @@ const getSellerProfile = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getSeller(userId);
+      const user = await getUsersById(userId);
+      const userType = user[0].user_type;
+      let seller = {};
       if (result.length == 0) {
+        seller = { user_type: userType };
         res.status(200).json({
-          account: "",
+          data: seller,
         });
       } else {
-        const account = result[0].stripe_account;
+        seller = { ...result[0], user_type: userType };
         res.status(200).json({
-          account: account,
+          data: seller,
         });
       }
     } catch (error) {
@@ -204,7 +209,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
   }
 });
 
-const updateUserAddress = asyncHandler(async (req, res) => {
+const createUserConnectAccount = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const { address } = pkg;
   const { idNumber, bod, street, city, state, zip, verificationImage } =
@@ -283,7 +288,7 @@ const updateUserAddress = asyncHandler(async (req, res) => {
           },
         });
         if (account.id) {
-          const {status,error} = await verifyIdentity(account.id);
+          const { status, error } = await verifyIdentity(account.id);
 
           if (status) {
             updateSellerVerificationStatus(userId);
@@ -296,6 +301,7 @@ const updateUserAddress = asyncHandler(async (req, res) => {
         }
       } else {
         //create the connect account
+        console.log('id number',idNumber)
         const account = await stripe.accounts.create({
           type: "custom",
           business_type: "individual",
@@ -305,11 +311,15 @@ const updateUserAddress = asyncHandler(async (req, res) => {
           },
           business_profile: {
             mcc: 7299,
-            url: "www." + user.email.substring(0, user.email.indexOf("@")),
+            url: "www." + user.first_name,
           },
           tos_acceptance: {
             date: currentDate,
             ip: address(),
+          },
+          company:{
+            tax_id:idNumber,
+            name:user.name
           },
           individual: {
             email: user.email,
@@ -341,8 +351,9 @@ const updateUserAddress = asyncHandler(async (req, res) => {
         });
 
         if (account.id) {
+          console.log('account',account)
           let verifiedAccount = "";
-          const {status,error} = await verifyIdentity(account.id);
+          const { status, error } = await verifyIdentity(account.id);
           if (status) {
             verifiedAccount = "1";
             insertSeller(
@@ -399,11 +410,332 @@ const updateUserAddress = asyncHandler(async (req, res) => {
       errorDetails = accountRetrieved.individual.verification.document.details;
 
       if (verifiedStatus !== "pending") {
-        return { status: verifiedStatus == "verified", error: errorDetails ? errorDetails : '' };
+        return {
+          status: verifiedStatus == "verified",
+          error: errorDetails ? errorDetails : "",
+        };
       }
       await delay(2000);
     }
   }
+});
+
+const createCompanyConnectAccount = asyncHandler(async (req, res) => {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const { address } = pkg;
+  const {
+    idNumber,
+    mcc,
+    name,
+    street,
+    city,
+    state,
+    zip,
+    dob,
+    jobTitle,
+    ownerIdNumber,
+    ownerStreet,
+    ownerCity,
+    ownerState,
+    ownerZip,
+    verificationImage,
+  } = req.body;
+
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  const currentDate = new Date();
+  const formattedCreatedAt = currentDate
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+
+  const result = await getUsersById(userId);
+
+  if (result.length > 0) {
+    try {
+      const user = result[0];
+      const imageName = userId + "_verification.png";
+      const path = "./images/verification/" + imageName;
+      const imgdata = verificationImage;
+      const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+
+      const fp = fs.readFileSync(path);
+
+      fs.unlink(path, (err) => {
+        if (err) throw err;
+        console.log("image was deleted");
+      });
+
+      const file = await stripe.files.create({
+        purpose: "identity_document",
+        file: {
+          data: fp,
+          name: imageName,
+          type: "application/octet-stream",
+        },
+      });
+
+      const seller = await getSeller(userId);
+
+      if (seller.length > 0) {
+        const sellerStripeAccount = seller[0].stripe_account;
+        //update the connect account
+        const account = await stripe.accounts.update(sellerStripeAccount, {
+          company: {
+            name: name,
+            tax_id: idNumber,
+            phone: "3055282118",
+            address: {
+              country: "US",
+              city: city, //city,
+              line1: street,
+              postal_code: zip,
+              state: state, //state
+            },
+            verification: {
+              document: {
+                front: file.id,
+                // front: "file_identity_document_success",
+              },
+            },
+          },
+        });
+        if (account.id) {
+          const { status, error } = await verifyIdentity(account.id, true);
+
+          if (status) {
+            updateSellerVerificationStatus(userId);
+            res.status(200).json({ account: sellerStripeAccount });
+          } else {
+            res.status(400).json({
+              error: error ? error : "Something went wrong, please try again.",
+            });
+          }
+        }
+      } else {
+        //create the connect account
+        const account = await stripe.accounts.create({
+          type: "custom",
+          business_type: "company",
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          business_profile: {
+            mcc: mcc,
+            url:
+              "www." +
+              user.email.substring(
+                0,
+                user.email.indexOf("@") > 16 ? 16 : user.email.indexOf("@")
+              ),
+          },
+          company: {
+            name: name,
+            tax_id: idNumber,
+            phone: "3055282118",
+            address: {
+              country: "US",
+              city: city, //city,
+              line1: street,
+              postal_code: zip,
+              state: state, //state
+            },
+          },
+        });
+
+        if (account.id) {
+          let verifiedAccount = "";
+          const person = await stripe.accounts.createPerson(account.id, {
+            first_name: user.first_name,
+            last_name: user.last_name,
+            dob: {
+              day: dob.substring(8, 10),
+              month: dob.substring(5, 7),
+              year: dob.substring(0, 4),
+            },
+            email: user.email,
+            relationship: {
+              title: jobTitle,
+              owner: true,
+              representative: true,
+            },
+            id_number: ownerIdNumber,
+            phone: user.mobile_number,
+            address: {
+              country: "US",
+              city: ownerCity, //city,
+              line1: ownerStreet,
+              postal_code: ownerZip,
+              state: ownerState, //state
+            },
+            verification: {
+              document: {
+                front: file.id,
+              },
+            },
+          });
+
+          const { status, error } = await verifyIdentity(
+            account.id,
+            true,
+            person.id
+          );
+          if (status) {
+            const accountUpdate = await stripe.accounts.update(account.id, {
+              company: {
+                owners_provided: true,
+              },
+              tos_acceptance: {
+                date: currentDate,
+                ip: address(),
+              },
+            });
+
+            verifiedAccount = "1";
+            insertSeller(
+              userId,
+              account.id,
+              formattedCreatedAt,
+              verifiedAccount
+            );
+            res.status(200).json({ account: account.id });
+          } else {
+            verifiedAccount = "0";
+            insertSeller(
+              userId,
+              account.id,
+              formattedCreatedAt,
+              verifiedAccount
+            );
+            res.status(400).json({
+              error: error ? error : "Something went wrong, please try again.",
+            });
+          }
+        } else {
+          res.status(400).json({ error: account });
+        }
+      }
+    } catch (error) {
+      if (error.message.includes("is not a valid phone number")) {
+        res.status(400).json({
+          error:
+            error.message +
+            ". Please change your number in your personal information section",
+        });
+      } else {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  } else {
+    res.status(400).json({ error: "User does't  exists" });
+  }
+});
+
+const testRoute = asyncHandler(async (req, res) => {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const { address } = pkg;
+
+  const currentDate = new Date();
+
+  // const account = await stripe.accounts.create({
+  //   type: "custom",
+  //   business_type: "company",
+  //   capabilities: {
+  //     card_payments: { requested: true },
+  //     transfers: { requested: true },
+  //   },
+  //   business_profile: {
+  //     mcc: 5971,
+  //     url: "www.teste.com" ,
+  //   },
+  //   tos_acceptance: {
+  //     date: currentDate,
+  //     ip: address(),
+  //   },
+  //   company: {
+  //     name: 'adex connect',
+  //     tax_id: '123456789',
+  //     phone: '3055282118',
+  //     address: {
+  //       country: "US",
+  //       city: 'Fresno', //city,
+  //       line1: '2027 Edgewood Avenue',
+  //       postal_code: '93721',
+  //       state: 'CA', //state
+  //     },
+  //     // verification: {
+  //     //   document: {
+  //     //     front: file.id,
+  //     //     // front: "file_identity_document_success",
+  //     //   },
+  //     // },
+  //   },
+  // });
+
+  // const person = await stripe.accounts.createPerson(account.id, {
+
+  //   first_name: "Jane",
+  //   last_name: "Diaz",
+  //   dob: {
+  //     day: '02',
+  //     month: '07',
+  //     year: '1993',
+  //   },
+  //   email:'xxxx@gmail.com',
+  //   relationship:{
+  //     title :'CTO',
+  //     owner:true,
+  //     representative:true
+
+  //   },
+  //   id_number:'123456789',
+  //   phone:'3055282118',
+  //   address: {
+  //     country: "US",
+  //     city: 'Fresno', //city,
+  //     line1: '2027 Edgewood Avenue',
+  //     postal_code: '93721',
+  //     state: 'CA', //state
+  //   },
+  //   verification: {
+  //     document: {
+  //       front: "file_identity_document_success",
+  //     },
+  //   }
+
+  // });
+
+  // const person = await stripe.accounts.updatePerson(
+  //   'acct_1O0YM0Q0XgtK48Xb',
+  //   'person_1O0YMAQ0XgtK48Xb59XZtOxN',
+  //   {
+  //     email:'xxxx@gmail.com',
+  //     relationship:{
+  //       title :'CTO',
+  //       representative:true
+  //     },
+  //     id_number:'123456789',
+  //     phone:'3055282118',
+  //     address: {
+  //       country: "US",
+  //       city: 'Fresno', //city,
+  //       line1: '2027 Edgewood Avenue',
+  //       postal_code: '93721',
+  //       state: 'CA', //state
+  //     },
+  //     // verification: {
+  //     //   document: {
+  //     //     front: "file_identity_document_success",
+  //     //   },
+  //     // },
+  //   }
+  // );
+
+  res.status(200).json({ message: 1 });
 });
 
 const getExternalAccount = asyncHandler(async (req, res) => {
@@ -953,7 +1285,8 @@ export {
   registerUser,
   logoutUser,
   getSellerProfile,
-  updateUserAddress,
+  createUserConnectAccount,
+  createCompanyConnectAccount,
   autoLogin,
   getExternalAccount,
   getUserProfile,
@@ -970,4 +1303,5 @@ export {
   imageGallery,
   getImageGallery,
   clearUserNotifications,
+  testRoute,
 };
