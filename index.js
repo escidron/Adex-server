@@ -48,23 +48,6 @@ io.on("connection", (socket) => {
       .replace("T", " ");
 
     insertMessages(data, formattedCreatedAt);
-    const messageQuery = `
-    INSERT INTO messages (
-      sended_by,
-      seller_id,
-      buyer_id,
-      advertisement_id,
-      message,
-      created_at
-    ) VALUES (
-      '${data.sended_by}',
-      '${data.seller_id}',
-      '${data.buyer_id}',
-      '${data.advertisement_id}',
-      '${data.message}',
-      '${formattedCreatedAt}'
-    )
-  `;
 
     socket.broadcast.emit("resend-data", data);
 
@@ -84,7 +67,7 @@ io.on("connection", (socket) => {
   });
 });
 
-io.listen(4400);
+io.listen(4500);
 
 const app = express();
 app.use(express.json({ limit: "100mb" }));

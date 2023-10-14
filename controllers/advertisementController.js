@@ -30,8 +30,6 @@ dotenv.config();
 const getAdvertisement = asyncHandler(async (req, res) => {
   const { type, adGroup, priceMin, priceMax } = req.body;
 
-
-
   try {
     const result = await getFilteredAdvertisements(
       priceMin,
@@ -97,7 +95,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           };
         });
         const status = {
-          all:0,
+          all: 0,
           available: 0,
           running: 0,
           finished: 0,
@@ -257,7 +255,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
-  const email = decoded.email
+  const email = decoded.email;
   const parsedValue = parseFloat(data.price.replace(/,/g, ""));
 
   let images = "";
@@ -337,20 +335,19 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
   const advertisementId = newAdvertisement.insertId;
 
-
-  const imageName = images.split(';')
+  const imageName = images.split(";");
   const emailData = {
-    title: 'ADEX Listing',
-    subTitle: 'Listing  created',
-    message: 'Your Listing has been successfully created ',
-    icon:'listing-created',
-    advertisement:{
-      title:data.title,
-      address:data.address,
-      description:data.description,
-      image:imageName[0],
-      price:parsedValue
-    }
+    title: "ADEX Listing",
+    subTitle: "Listing  created",
+    message: "Your Listing has been successfully created ",
+    icon: "listing-created",
+    advertisement: {
+      title: data.title,
+      address: data.address,
+      description: data.description,
+      image: imageName[0],
+      price: parsedValue,
+    },
   };
   const emailContent = renderEmail(emailData);
   sendEmail(email, "Listing Created", emailContent);
@@ -407,25 +404,25 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   `;
   updateAdvertismentById(query);
 
-  const user = await getUsersById(data.created_by)
-  const email = user[0].email
-  const imageName = images.split(';')
+  const user = await getUsersById(data.created_by);
+  const email = user[0].email;
+  const imageName = images.split(";");
   const emailData = {
-    title: 'ADEX Listing',
-    subTitle: 'Listing  created',
-    message: 'Your Listing has been successfully updated ',
-    icon:'listing-created',
-    advertisement:{
-      title:data.title,
-      address:data.address,
-      description:data.description,
-      image:imageName[0],
-      price:data.price
-    }
+    title: "ADEX Listing",
+    subTitle: "Listing  created",
+    message: "Your Listing has been successfully updated ",
+    icon: "listing-created",
+    advertisement: {
+      title: data.title,
+      address: data.address,
+      description: data.description,
+      image: imageName[0],
+      price: data.price,
+    },
   };
   const emailContent = renderEmail(emailData);
   sendEmail(email, "Listing Updated", emailContent);
-  
+
   res.status(200).json({ message: "Advertisement updated successfully." });
 });
 
@@ -511,11 +508,16 @@ const getChatInfo = asyncHandler(async (req, res) => {
       const userId = decoded.userId;
       // const messagesQuery = `SELECT * FROM messages`;
       const messages = await getAllChatMessages(userId);
+
       const results = await updateNotificationStatus("", key);
 
       const notifications = results.affectedRows;
       const messagesWithImage = messages.map((advertisement) => {
         const images = [];
+        let profileImage = ''
+        if(advertisement.profile_image){
+           profileImage = getImageBase64(advertisement.profile_image)
+        }
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
           images.push({ data_url: getImageBase64(image) });
@@ -523,6 +525,7 @@ const getChatInfo = asyncHandler(async (req, res) => {
         return {
           ...advertisement,
           image: images,
+          profile_image:profileImage
         };
       });
       res.status(200).json({

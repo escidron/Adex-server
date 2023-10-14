@@ -301,7 +301,6 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
         }
       } else {
         //create the connect account
-        console.log('id number',idNumber)
         const account = await stripe.accounts.create({
           type: "custom",
           business_type: "individual",
