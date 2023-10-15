@@ -14,7 +14,7 @@ export default function sendEmail (sendTo,subject,template){
         from: 'eduardosanchezcidron@gmail.com',
         to: sendTo,
         subject: subject,
-        text: text,
+        text: '',
         html:template?template:''
       };
       
