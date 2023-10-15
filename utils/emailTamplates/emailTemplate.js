@@ -79,7 +79,7 @@ export default function renderEmail(data) {
             ADEX Login
           </a>
           <img
-            src="http://test.adexconnect.com/images/email/{{ icon }}.png"
+            src="http://test.adexconnect.com/email/{{ icon }}.png"
             alt="{{ icon }}"
             class="message-image"
             style="margin-top: 40px;display: block;margin-left: auto;margin-right: auto;"
