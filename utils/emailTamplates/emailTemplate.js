@@ -132,5 +132,7 @@ export default function renderEmail(data) {
     `
   const compiledTemplate = Handlebars.compile(emailTemplate);
   const renderedEmail = compiledTemplate(data);
+  console.log('renderedEmail',renderedEmail)
+
   return renderedEmail;
 }
