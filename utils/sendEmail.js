@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer'
 
-export default function sendEmail (sendTo,subject,text,template){
+export default function sendEmail (sendTo,subject,template){
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
