@@ -8,7 +8,8 @@ export default function sendEmail (sendTo,subject,text,template){
           pass: 'tdtetpgbvfzelfey'
         }
       });
-      
+      console.log('before email',template)
+
       var mailOptions = {
         from: 'eduardosanchezcidron@gmail.com',
         to: sendTo,
