@@ -39,7 +39,7 @@ export default function renderEmail(data) {
                     ">
                 <img
                 style="width: 150px;height: 150px;border-radius: 10px;"
-                src="http://test.adexconnect.com/images/email/{{ advertisement.image }}"
+                src="http://test.adexconnect.com/images/{{ advertisement.image }}"
                 alt={{ advertisement.image }}
                 />
                 <div style="margin-left: 20px;height: 100%;">
@@ -60,7 +60,7 @@ export default function renderEmail(data) {
           }
           
           
-          <a href="http://localhost:5000/login" target="_blank" id="login-button" class="login-button"
+          <a href="https://adexconnect.com/login" target="_blank" id="login-button" class="login-button"
             style="color: black;
                     margin-top: 20px;
                     text-decoration: none;
@@ -79,7 +79,7 @@ export default function renderEmail(data) {
             ADEX Login
           </a>
           <img
-            src="http://test.adexconnect.com/email/{{ icon }}.png"
+            src="http://test.adexconnect.com/images/email/{{ icon }}.png"
             alt="{{ icon }}"
             class="message-image"
             style="margin-top: 40px;display: block;margin-left: auto;margin-right: auto;"
