@@ -8,7 +8,7 @@ import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import { Server } from "socket.io";
-import { insertUserNotifications } from "./queries/Users.js";
+import { insertUserNotifications, insertMessages } from "./queries/Users.js";
 dotenv.config();
 const port = process.env.PORT || 5001;
 
