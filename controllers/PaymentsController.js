@@ -767,7 +767,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
           title: "ADEX Booking",
           subTitle: "Booking Canceled",
           message: `${buyerName} has cancelled this booking!`,
-          icon: "cancel-booking.png",
+          icon: "cancel-booking",
           advertisement: {
             title: data.title,
             address: data.address,
