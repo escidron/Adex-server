@@ -9,14 +9,7 @@ import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import { Server } from "socket.io";
 import { insertUserNotifications, insertMessages } from "./queries/Users.js";
-import https from 'https';
-import * as fs from "fs";
 
-
-const options = {
-  key: fs.readFileSync('./key.pem'),
-  cert: fs.readFileSync('./cert.pem'),
-};
 
 dotenv.config();
 const port = process.env.PORT || 5001;
@@ -112,6 +105,5 @@ app.use(errorHandler);
 
 // https.createServer(options, app).listen(port, console.log(`server https runs on port ${port}`))
 
-const server = https.createServer(options, app);
 
 server.listen(port, () => console.log(`Server Started on port ${port}`));
