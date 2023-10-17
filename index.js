@@ -10,6 +10,7 @@ import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import { Server } from "socket.io";
 import { insertUserNotifications, insertMessages } from "./queries/Users.js";
 import https from 'https';
+import * as fs from "fs";
 
 
 const options = {
