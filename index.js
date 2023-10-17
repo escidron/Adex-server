@@ -113,6 +113,5 @@ app.use(errorHandler);
 // https.createServer(options, app).listen(port, console.log(`server https runs on port ${port}`))
 
 const server = https.createServer(options, app);
-const PORT = 443;
 
-server.listen(PORT, () => console.log(`Server Started on port ${PORT}`));
+server.listen(port, () => console.log(`Server Started on port ${port}`));
