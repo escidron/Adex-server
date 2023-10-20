@@ -10,7 +10,8 @@ getMessages,
 getChatInfo,
 DeleteAdvertisment,
 getDiscounts,
-getSharedListing
+getSharedListing,
+getSellerListings
 } from '../controllers/advertisementController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -26,5 +27,6 @@ router.post('/messages', getMessages);
 router.post('/chat-info', getChatInfo);
 router.post('/discounts', getDiscounts);
 router.post('/shared-listing', getSharedListing);
+router.post('/seller-listings', getSellerListings);
 
 export default router;
