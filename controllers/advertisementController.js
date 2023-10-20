@@ -7,7 +7,7 @@ import getImageBase64 from "../utils/getImageBase64.js";
 import { getCompanyQuery, addGalleryImages } from "../queries/Companies.js";
 import {
   getFilteredAdvertisements,
-  getAdvertisementByCreater,
+  getAdvertisementByCreator,
   getAdvertisementById,
   getAdvertisementAndBuyers,
   insertAdvertisement,
@@ -24,6 +24,7 @@ import {
 } from "../queries/Users.js";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import sendEmail from "../utils/sendEmail.js";
+import getFormattedDate from "../utils/getFormattedDate.js";
 
 dotenv.config();
 
@@ -73,7 +74,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getAdvertisementByCreater(userId, id);
+      const result = await getAdvertisementByCreator(userId, id);
 
       if (result.length == 0) {
         res.status(401).json({
@@ -179,6 +180,39 @@ const getSharedListing = asyncHandler(async (req, res) => {
     });
   }
 });
+const getSellerListings = asyncHandler(async (req, res) => {
+  const { sellerId } = req.body;
+  try {
+    const result = await getAdvertisementByCreator(sellerId);
+    if (result.length == 0) {
+      res.status(401).json({
+        error: "Advertisement does not exists",
+      });
+    } else {
+      // Add base64 image to each advertisement object
+
+      const advertisementsWithImages = result.map((advertisement) => {
+        const images = [];
+
+        const imageArray = advertisement.image.split(";");
+        imageArray.map((image) => {
+          images.push({ data_url: getImageBase64(image) });
+        });
+        return {
+          ...advertisement,
+          image: images,
+          shared_image: imageArray[0],
+        };
+      });
+      res.status(200).json( advertisementsWithImages);
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
 
 const getMyBookings = asyncHandler(async (req, res) => {
   const { advertisementId, notificationId } = req.body;
@@ -241,15 +275,12 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
   const createdAt = new Date();
   // Format the createdAt value to match MySQL's datetime format
-  const formattedCreatedAt = createdAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(createdAt)
 
   let startDateFormatted = "";
   if (data.start_date) {
     let startDate = new Date(data.start_date.substring(0, 10));
-    startDateFormatted = startDate.toISOString().slice(0, 19).replace("T", " ");
+    startDateFormatted = getFormattedDate(startDate)
   }
 
   const token = req.cookies.jwt;
@@ -354,10 +385,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
   data.discounts.map((item) => {
     const createdAt = new Date();
-    const formattedCreatedAt = createdAt
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const formattedCreatedAt = getFormattedDate(createdAt);
 
     insertDiscounts(advertisementId, item, formattedCreatedAt);
   });
@@ -368,11 +396,12 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
 const updateAdvertisement = asyncHandler(async (req, res) => {
   const data = req.body;
+  
+  const newStartDate = new Date(data.start_date)
+  const formattedNewStartDate = getFormattedDate(newStartDate);
+
   const updatedAt = new Date();
-  const formattedUpdatedAt = updatedAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedUpdatedAt = getFormattedDate(updatedAt);
 
   let images = "";
   data.images.map((image, index) => {
@@ -392,6 +421,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     UPDATE advertisement SET
       title = '${data.title}',
       description = '${data.description}',
+      start_date = '${formattedNewStartDate}',
       price = '${data.price}',
       image = '${images}',
       address = '${data.address}',
@@ -593,4 +623,5 @@ export {
   DeleteAdvertisment,
   getDiscounts,
   getSharedListing,
+  getSellerListings
 };

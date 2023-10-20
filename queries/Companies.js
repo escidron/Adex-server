@@ -74,10 +74,7 @@ export async function getCompanyQuery(id) {
 export async function addGalleryImages(id,userId,images,imagesGroup) {
   
   const createdAt = new Date();
-  const formattedUpdatedAt = createdAt
-  .toISOString()
-  .slice(0, 19)
-  .replace("T", " ");
+  const formattedUpdatedAt = getFormattedDate(createdAt)
 
   let addGalleryImageQuery = ''
   if(id){

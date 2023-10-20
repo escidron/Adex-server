@@ -3,11 +3,8 @@ import getDatabaseConnection from ".././db.js";
 const db = getDatabaseConnection();
 
 export async function insertUser(name, firstName, lastName, phone, email,accountType,hashedPass) {
-  const createddAt = new Date();
-  const formattedCreatedAt = createddAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const createdAt = new Date();
+  const formattedCreatedAt = getFormattedDate(createdAt);
 
   const insertUserQuery = `
     INSERT INTO users (
@@ -389,7 +386,7 @@ export async function insertMessages(data, formattedCreatedAt) {
 
 //chat queries
 export async function getAllChatMessages(userId) {
-  const messagesChatQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name
+  const messagesChatQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name,u.profile_image
   FROM messages as m
   JOIN advertisement as a ON m.advertisement_id = a.id COLLATE utf8mb4_unicode_ci
   JOIN users as u ON (u.id = m.seller_id or u.id = m.buyer_id) and u.id != ${userId} COLLATE utf8mb4_unicode_ci
@@ -422,10 +419,7 @@ export async function getBuyer(userId) {
 
 export async function updateBuyer(userId, cardId) {
   const updatedAt = new Date();
-  const formattedUpdatedAt = updatedAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedUpdatedAt = getFormattedDate(updatedAt);
 
   const updateBuyerQuery = `
         UPDATE adex.buyers

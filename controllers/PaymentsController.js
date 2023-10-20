@@ -37,6 +37,7 @@ import {
 } from "../queries/Advertisements.js";
 import dotenv from "dotenv";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
+import getFormattedDate from "../utils/getFormattedDate.js";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -52,10 +53,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
   const email = decoded.email;
 
   const createdAt = new Date();
-  const formattedCreatedAt = createdAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(createdAt);
   let customerId = "";
 
   const buyer = await getBuyer(userId)
@@ -102,7 +100,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      // test_clock: "clock_1NxKLdL3Lxo3VPLot4nh5oky",
+      test_clock: "clock_1O37VLL3Lxo3VPLovDsUuytL",
     });
 
     customerId = customer.id;
@@ -133,10 +131,7 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
 
   const createdAt = new Date();
-  const formattedCreatedAt = createdAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(createdAt);
 
   try {
     const bankAccount = await stripe.accounts.createExternalAccount(
@@ -276,11 +271,8 @@ const SetDefaultCard = asyncHandler(async (req, res) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
-  const upuatedAt = new Date();
-  const formattedUpdatedAt = upuatedAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const updatedAt = new Date();
+  const formattedUpdatedAt = getFormattedDate(updatedAt);
   let customerId = "";
 
   //save card
@@ -329,11 +321,8 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
-  const upuatedAt = new Date();
-  const formattedUpdatedAt = upuatedAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const updatedAt = new Date();
+  const formattedUpdatedAt = getFormattedDate(updatedAt);
 
   // get the seller account
   const results = await getSeller(userId);
@@ -365,16 +354,10 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
 
   const createdAt = new Date();
-  const formattedUpdatedAt = createdAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedUpdatedAt = getFormattedDate(createdAt);
 
   let startDate = new Date(start_date.substring(0, 10));
-  const startDateFormatted = startDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const startDateFormatted = getFormattedDate(startDate);
 
   let endDate = new Date(startDate);
 
@@ -391,7 +374,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   endDate = endDate.toISOString().substring(0, 10);
 
   endDate = new Date(endDate);
-  const endDateFormatted = endDate.toISOString().slice(0, 19).replace("T", " ");
+  const endDateFormatted = getFormattedDate(endDate);
 
   let sellerAccount = "";
   //get the seller connected stripe account
@@ -407,10 +390,10 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   let subscription = "";
   try {
-    if (data.ad_duration_type != "0") {
-      startDate.setDate(startDate.getDate() + 6);
-      endDate.setDate(endDate.getDate() + 6);
-    }
+    // if (data.ad_duration_type != "0") {
+    //   startDate.setDate(startDate.getDate() + 6);
+    //   endDate.setDate(endDate.getDate() + 6);
+    // }
     let timeStampFirstBill = Math.floor(startDate.getTime() / 1000);
     let timeStampEndDate = Math.floor(endDate.getTime() / 1000);
 
@@ -560,16 +543,10 @@ const RequestReserve = asyncHandler(async (req, res) => {
     startDate = new Date(start_date.substring(0, 10));
   }
 
-  const startDateFormatted = startDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const startDateFormatted = getFormattedDate(startDate);
 
   const currentDate = new Date();
-  const createdAtFormatted = currentDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const createdAtFormatted = getFormattedDate(currentDate);
 
   let endDate = new Date(startDate);
 
@@ -583,7 +560,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
   endDate = endDate.toISOString().substring(0, 10);
 
   endDate = new Date(endDate);
-  const endDateFormatted = endDate.toISOString().slice(0, 19).replace("T", " ");
+  const endDateFormatted = getFormattedDate(endDate);
 
   if (token) {
     try {
@@ -671,10 +648,7 @@ const DeclineRequest = asyncHandler(async (req, res) => {
   const { id, requestedBy } = req.body;
 
   const currentDate = new Date();
-  const createdAtFormatted = currentDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const createdAtFormatted = getFormattedDate(currentDate);
   //get user id
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -731,10 +705,6 @@ const CancelBooking = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const currentDate = new Date();
-  // const createdAtFormatted = currentDate
-  //   .toISOString()
-  //   .slice(0, 19)
-  //   .replace("T", " ");
 
   if (token) {
     try {
@@ -767,7 +737,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
           title: "ADEX Booking",
           subTitle: "Booking Canceled",
           message: `${buyerName} has cancelled this booking!`,
-          icon: "cancel-booking",
+          icon: "sem-image",
           advertisement: {
             title: data.title,
             address: data.address,
@@ -866,10 +836,7 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
 
   if (event.type === "subscription_schedule.canceled") {
     const updatedAt = new Date();
-    const formattedUpdateddAt = updatedAt
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const formattedUpdateddAt = getFormattedDate(updatedAt);
 
     const contractId = event.data.object.id;
     updateContract(contractId, "3", "Contract is ended");
@@ -1141,10 +1108,7 @@ const deleteBankAccount = asyncHandler(async (req, res) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const deletedAt = new Date();
-  const formattedDeletedAt = deletedAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedDeletedAt = getFormattedDate(deletedAt);
   if (token) {
     try {
       const userId = decoded.userId;
@@ -1191,10 +1155,7 @@ const deleteCard = asyncHandler(async (req, res) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const deletedAt = new Date();
-  const formattedDeletedAt = deletedAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedDeletedAt = getFormattedDate(deletedAt);
   if (token) {
     try {
       const userId = decoded.userId;

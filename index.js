@@ -9,6 +9,7 @@ import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import { Server } from "socket.io";
 import { insertUserNotifications, insertMessages } from "./queries/Users.js";
+import getFormattedDate from "./utils/getFormattedDate.js";
 
 
 dotenv.config();
@@ -23,10 +24,7 @@ const io = new Server({
 io.on("connection", (socket) => {
   socket.on("send-buyer-message", (data) => {
     const createdAt = new Date();
-    const formattedCreatedAt = createdAt
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const formattedCreatedAt = getFormattedDate(createdAt)
 
     insertMessages(data, formattedCreatedAt);
     socket.broadcast.emit("resend-data", data);
@@ -44,10 +42,7 @@ io.on("connection", (socket) => {
 
   socket.on("send-message", (data) => {
     const createdAt = new Date();
-    const formattedCreatedAt = createdAt
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    const formattedCreatedAt = getFormattedDate(createdAt)
 
     insertMessages(data, formattedCreatedAt);
 

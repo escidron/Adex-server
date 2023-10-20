@@ -220,10 +220,7 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
 
   const currentDate = new Date();
-  const formattedCreatedAt = currentDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(currentDate);
 
   const result = await getUsersById(userId);
 
@@ -445,10 +442,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
 
   const currentDate = new Date();
-  const formattedCreatedAt = currentDate
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(currentDate);
 
   const result = await getUsersById(userId);
 
@@ -640,6 +634,24 @@ const testRoute = asyncHandler(async (req, res) => {
 
   const currentDate = new Date();
 
+  const emailData = {
+    title: "Welcome to ADEX!",
+    subTitle: "",
+    message:
+      "Welcome to ADEX, the place where you are the Asset! Browse or create listings to get started today. We hope you have a wonderful experience on our platform.",
+    icon: "user-registered",
+  };
+  const emailContent = renderEmail(emailData);
+  sendEmail('eduardosanchezcidron@gmail.com', "User registered", emailContent);
+
+
+  // const accountUpdate = await stripe.accounts.update('acct_1O0okDPxf7ppCHyx', {
+  //   company: {
+  //     tax_id:'123456789',
+  //   }
+
+  // });
+
   // const account = await stripe.accounts.create({
   //   type: "custom",
   //   business_type: "company",
@@ -734,7 +746,7 @@ const testRoute = asyncHandler(async (req, res) => {
   //   }
   // );
 
-  res.status(200).json({ message: 1 });
+  res.status(200).json({ message: accountUpdate });
 });
 
 const getExternalAccount = asyncHandler(async (req, res) => {
@@ -1011,10 +1023,7 @@ const sendResetPasswordEmail = asyncHandler(async (req, res) => {
 const contactUs = asyncHandler(async (req, res) => {
   const { name, email, number, message } = req.body;
   const createdAt = new Date();
-  const formattedCreatedAt = createdAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(createdAt);
 
   insertContactUs(name, email, number, message, formattedCreatedAt);
 
@@ -1034,10 +1043,7 @@ const addCompany = asyncHandler(async (req, res) => {
   const { name, image, address, hasPhysicalSpace, industry } = req.body;
 
   const createdAt = new Date();
-  const formattedCreatedAt = createdAt
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
+  const formattedCreatedAt = getFormattedDate(createdAt);
 
   if (token) {
     try {
