@@ -1,8 +1,7 @@
 import Handlebars from "handlebars";
 
 export default function renderEmail(data) {
-  
-    const emailTemplate = `
+  const emailTemplate = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -24,23 +23,25 @@ export default function renderEmail(data) {
           <p class="email-text" style="font-size:16px;margin: 0;margin-top: 40px;font-family: Optimistic Text, Helvetica, sans-serif;font-size: 16px;letter-spacing: none;line-height: 1.4;color: #313131;">Sincerely,</p>
           <p style="font-size:16px;margin: 0;font-family: Optimistic Text, Helvetica, sans-serif;font-size: 16px;letter-spacing: none;line-height: 1.4;color: #313131;">ADEX Team</p>
           
-          ${data.advertisement ? `
+          ${
+            data.advertisement
+              ? `
           <div style="background-color: whitesmoke;
-                    display: flex;
-                    align-items: center;
-                    padding: 20px;
-                    border-radius: 10px;
-                    margin-top: 20px;
-                    width: 80%;
-                    margin-left: auto;
-                    margin-right: auto;
-                    height: 180px;
-                    box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
-                    ">
+                      align-items: center;
+                      padding: 20px;
+                      border-radius: 10px;
+                      margin-top: 20px;
+                      margin-left: auto;
+                      margin-right: auto;
+                      width: auto;
+                      max-width: 400px;
+                      height: auto;
+                      box-shadow: rgba(99, 99, 99, 0.2) 0px 2px 8px 0px;
+          ">
                 <img
-                style="width: 150px;height: 150px;border-radius: 10px;"
-                src="http://test.adexconnect.com/images/{{ advertisement.image }}"
-                alt={{ advertisement.image }}
+                  style="width: 100%;height: 150px;border-radius: 10px;object-fit: cover;"
+                  src="http://test.adexconnect.com/email/{{ advertisement.image }}"
+                  alt={{ advertisement.image }}
                 />
                 <div style="margin-left: 20px;height: 100%;">
                 <h1 style="margin: 0;font-size: 22px;">{{ advertisement.title }}</h1>
@@ -56,11 +57,11 @@ export default function renderEmail(data) {
                 </div>
             </div>
           `
-          :''
+              : ""
           }
           
           
-          <a href="https://adexconnect.com/login" target="_blank" id="login-button" class="login-button"
+          <a href="http://localhost:5000/login" target="_blank" id="login-button" class="login-button"
             style="color: black;
                     margin-top: 20px;
                     text-decoration: none;
@@ -117,12 +118,9 @@ export default function renderEmail(data) {
         </div>
       </body>
     </html>
-    `;  
-
+    `;
 
   const compiledTemplate = Handlebars.compile(emailTemplate);
   const renderedEmail = compiledTemplate(data);
-  console.log('renderedEmail',renderedEmail)
-
   return renderedEmail;
 }
