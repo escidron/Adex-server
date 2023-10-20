@@ -23,6 +23,8 @@ import {
   insertUser,
   updateNotificationStatus,
   updateSellerVerificationStatus,
+  insertUserNotifications,
+  insertMessages,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -31,6 +33,7 @@ import {
 } from "../queries/Companies.js";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import { verifyIdentity } from "../utils/VerifyIdentity.js";
+import getFormattedDate from "../utils/getFormattedDate.js";
 
 dotenv.config();
 
@@ -313,9 +316,9 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             date: currentDate,
             ip: address(),
           },
-          company:{
-            tax_id:idNumber,
-            name:user.name
+          company: {
+            tax_id: idNumber,
+            name: user.name,
           },
           individual: {
             email: user.email,
@@ -347,7 +350,7 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
         });
 
         if (account.id) {
-          console.log('account',account)
+          console.log("account", account);
           let verifiedAccount = "";
           const { status, error } = await verifyIdentity(account.id);
           if (status) {
@@ -642,8 +645,7 @@ const testRoute = asyncHandler(async (req, res) => {
     icon: "user-registered",
   };
   const emailContent = renderEmail(emailData);
-  sendEmail('eduardosanchezcidron@gmail.com', "User registered", emailContent);
-
+  sendEmail("eduardosanchezcidron@gmail.com", "User registered", emailContent);
 
   // const accountUpdate = await stripe.accounts.update('acct_1O0okDPxf7ppCHyx', {
   //   company: {
@@ -1285,6 +1287,40 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
     });
   }
 });
+
+const sendMessage = asyncHandler(async (req, res) => {
+  console.log('sending')
+  const token = req.cookies.jwt;
+  const { sended_by, seller_id, buyer_id, advertisement_id, message } =
+    req.body;
+
+  if (token) {
+    try {
+      const createdAt = new Date();
+      const formattedCreatedAt = getFormattedDate(createdAt);
+
+      insertMessages( sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt);
+      insertUserNotifications(
+        seller_id,
+        "You have a new message",
+        message,
+        formattedCreatedAt,
+        `/messages?key=${advertisement_id}${seller_id}${buyer_id}`,
+        `${advertisement_id}${seller_id}${buyer_id}`
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -1309,4 +1345,5 @@ export {
   getImageGallery,
   clearUserNotifications,
   testRoute,
+  sendMessage,
 };

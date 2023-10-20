@@ -356,7 +356,7 @@ export async function getAllMessages() {
   });
 }
 
-export async function insertMessages(data, formattedCreatedAt) {
+export async function insertMessages( sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt) {
   const insertMessageQuery = `
   INSERT INTO messages (
     sended_by,
@@ -366,11 +366,11 @@ export async function insertMessages(data, formattedCreatedAt) {
     message,
     created_at
   ) VALUES (
-    '${data.sended_by}',
-    '${data.seller_id}',
-    '${data.buyer_id}',
-    '${data.advertisement_id}',
-    '${data.message}',
+    '${sended_by}',
+    '${seller_id}',
+    '${buyer_id}',
+    '${advertisement_id}',
+    '${message}',
     '${formattedCreatedAt}'
   )
 `;

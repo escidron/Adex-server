@@ -22,7 +22,8 @@ import {
   imageGallery,
   getImageGallery,
   clearUserNotifications,
-  testRoute
+  testRoute,
+  sendMessage
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -50,6 +51,7 @@ router.post('/my-company', getCompany);
 router.post('/image-gallery', imageGallery);
 router.post('/get-image-gallery', getImageGallery);
 router.post('/clear-notifications', clearUserNotifications);
+router.post('/send-message', sendMessage);
 router
   .route('/seller-profile')
   .get(protect, getSellerProfile)
