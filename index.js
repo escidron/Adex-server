@@ -15,56 +15,56 @@ import getFormattedDate from "./utils/getFormattedDate.js";
 dotenv.config();
 const port = process.env.PORT || 5001;
 
-const io = new Server({
-  cors: {
-    origin: process.env.CLIENT_IP,
-  },
-});
+// const io = new Server({
+//   cors: {
+//     origin: process.env.CLIENT_IP,
+//   },
+// });
 
-io.on("connection", (socket) => {
-  socket.on("send-buyer-message", (data) => {
-    const createdAt = new Date();
-    const formattedCreatedAt = getFormattedDate(createdAt)
+// io.on("connection", (socket) => {
+//   socket.on("send-buyer-message", (data) => {
+//     const createdAt = new Date();
+//     const formattedCreatedAt = getFormattedDate(createdAt)
 
-    insertMessages(data, formattedCreatedAt);
-    socket.broadcast.emit("resend-data", data);
+//     insertMessages(data, formattedCreatedAt);
+//     socket.broadcast.emit("resend-data", data);
 
-    insertUserNotifications(
-      data.seller_id,
-      "You have a new message",
-      data.message,
-      formattedCreatedAt,
-      `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
-      `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
-    );
-    socket.broadcast.emit("resend-data", data);
-  });
+//     insertUserNotifications(
+//       data.seller_id,
+//       "You have a new message",
+//       data.message,
+//       formattedCreatedAt,
+//       `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
+//       `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
+//     );
+//     socket.broadcast.emit("resend-data", data);
+//   });
 
-  socket.on("send-message", (data) => {
-    const createdAt = new Date();
-    const formattedCreatedAt = getFormattedDate(createdAt)
+//   socket.on("send-message", (data) => {
+//     const createdAt = new Date();
+//     const formattedCreatedAt = getFormattedDate(createdAt)
 
-    insertMessages(data, formattedCreatedAt);
+//     insertMessages(data, formattedCreatedAt);
 
-    socket.broadcast.emit("resend-data", data);
+//     socket.broadcast.emit("resend-data", data);
 
-    insertUserNotifications(
-      data.seller_id,
-      "You have a new message",
-      data.message,
-      formattedCreatedAt,
-      `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
-      `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
-    );
-    socket.broadcast.emit("resend-data", data);
-  });
+//     insertUserNotifications(
+//       data.seller_id,
+//       "You have a new message",
+//       data.message,
+//       formattedCreatedAt,
+//       `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
+//       `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
+//     );
+//     socket.broadcast.emit("resend-data", data);
+//   });
 
-  socket.on("disconnect", () => {
-    console.log("disconnect");
-  });
-});
+//   socket.on("disconnect", () => {
+//     console.log("disconnect");
+//   });
+// });
 
-io.listen(4500);
+//io.listen(4500);
 
 const app = express();
 app.use(express.json({ limit: "100mb" }));
