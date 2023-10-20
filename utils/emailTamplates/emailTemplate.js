@@ -40,7 +40,7 @@ export default function renderEmail(data) {
           ">
                 <img
                   style="width: 100%;height: 150px;border-radius: 10px;object-fit: cover;"
-                  src="http://test.adexconnect.com/email/{{ advertisement.image }}"
+                  src="http://test.adexconnect.com/images/{{ advertisement.image }}"
                   alt={{ advertisement.image }}
                 />
                 <div style="margin-left: 20px;height: 100%;">
