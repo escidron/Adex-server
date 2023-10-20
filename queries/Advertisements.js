@@ -8,6 +8,7 @@ export async function getFilteredAdvertisements(
   type,
   adGroup
 ) {
+
   let types = "";
   if (type == 1) {
     types = "4,5,6,7,8";
@@ -32,7 +33,7 @@ export async function getFilteredAdvertisements(
   });
 }
 
-export async function getAdvertisementByCreater(userId, id) {
+export async function getAdvertisementByCreator(userId, id) {
   const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where created_by = ${userId} ${
     id ? "and id=" + id : ""
   }`;
@@ -45,6 +46,7 @@ export async function getAdvertisementByCreater(userId, id) {
     });
   });
 }
+
 
 export async function getAdvertisementById(id) {
   const advertisementByIdQuery = `SELECT * FROM adex.advertisement where id = ${id}`;
