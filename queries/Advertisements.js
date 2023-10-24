@@ -109,7 +109,6 @@ export async function insertAdvertisement(
       per_unit_price,
       stripe_product_id,
       stripe_price,
-      is_automatic,
       created_by_type,
       company_id
       ${data.start_date ? ',start_date':''}
@@ -127,11 +126,10 @@ export async function insertAdvertisement(
       '${data.has_payout ? "1" : "0"}',
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
-      '${data.units}',
+      '${data.units ? data.units : 0}',
       '${data.per_unit_price}',
       '${product.id}',
       '${price.id}',
-      '${data.is_automatic}',
       '${userType}',
       '${data.company_id}' 
       ${data.start_date ? `,'${startDateFormatted}'`: ''}

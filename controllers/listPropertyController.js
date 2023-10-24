@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import getDatabaseConnection from ".././db.js";
 
 const db = getDatabaseConnection();
+
 const getListPropertyRoutes = asyncHandler(async (req, res) => {
 
     const sql = `SELECT * FROM adex.categories;`;
@@ -12,9 +13,7 @@ const getListPropertyRoutes = asyncHandler(async (req, res) => {
             error:'List properties does not exists'
           })
         }else{
-            res.status(200).json({
-              data: result
-          })  
+            res.status(200).json(result)  
         }
     })
 });
