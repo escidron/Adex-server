@@ -1,12 +1,15 @@
 import mysql from "mysql2";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 function createDatabaseConnection() {
   return mysql.createPool({
-    host: "adex-database.cem6u2n9hutt.us-east-2.rds.amazonaws.com",
-    user: "admin",
-    database: "adex",
-    password: "Eduardo1993*",
-    port: "3306",
+    host: process.env.MySQL_HOST,
+    user: process.env.MySQL_USER,
+    database: process.env.MySQL_DATABASE,
+    password: process.env.MySQL_PASSWORD,
+    port: process.env.MySQL_PORTA,
   });
 }
 
