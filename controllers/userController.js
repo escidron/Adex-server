@@ -807,7 +807,6 @@ const getUserProfile = asyncHandler(async (req, res) => {
         const bio = result[0].bio;
         const sex = result[0].sex;
         const profession = result[0].profession;
-        const user_type = result[0].user_type;
         const handle = result[0].handle;
         const handleIsPublic = result[0].handle_is_public;
         const professionIsPublic = result[0].profession_is_public;
@@ -830,7 +829,6 @@ const getUserProfile = asyncHandler(async (req, res) => {
           bio,
           sex,
           profession,
-          user_type,
           handle,
           handleIsPublic,
           professionIsPublic,
