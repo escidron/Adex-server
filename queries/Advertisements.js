@@ -110,6 +110,7 @@ export async function insertAdvertisement(
       stripe_product_id,
       stripe_price,
       created_by_type,
+      is_draft,
       company_id
       ${data.start_date ? ',start_date':''}
     ) VALUES (
@@ -131,6 +132,7 @@ export async function insertAdvertisement(
       '${product.id}',
       '${price.id}',
       '${userType}',
+      '0',
       '${data.company_id}' 
       ${data.start_date ? `,'${startDateFormatted}'`: ''}
       
@@ -138,6 +140,187 @@ export async function insertAdvertisement(
   `;
   return new Promise((resolve, reject) => {
     db.query(CreateAdvertisementQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+export async function insertDraft(
+  title,
+  description,
+  price,
+  category_id,
+  images,
+  address,
+  lat,
+  long,
+  ad_duration_type,
+  sub_asset_type,
+  per_unit_price,
+  startDateFormatted,
+  company_id,
+  userId,
+  createdAt
+) {
+  const CreateDraftQuery = `
+    INSERT INTO advertisement (
+      title,
+      description,
+      price,
+      category_id,
+      image,
+      address,
+      lat,
+      \`long\`,
+      ad_duration_type,
+      sub_asset_type,
+      per_unit_price,
+      company_id,
+      start_date,
+      created_by,
+      created_at
+    ) VALUES (
+      ${title ? `'${title}'` : null},
+      ${description ? `'${description}'` : null},
+      ${price ? price : null},
+      ${category_id ? `'${category_id}'` : null},
+      ${images ? `'${images}'` : null},
+      ${address ? `'${address}'` : null},
+      ${lat ? lat : null},
+      ${long ? long : null},
+      ${ad_duration_type ? `'${ad_duration_type}'` : null},
+      ${sub_asset_type ? `'${sub_asset_type}'` : null},
+      ${per_unit_price ? per_unit_price : null},
+      ${company_id ? `'${company_id}'`: null},
+      ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      '${userId}',
+      '${createdAt}'
+    )
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(CreateDraftQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getParentCategoryId(id) {
+
+  const ParentCategoryIdQuery = `SELECT parent_id FROM categories where id = ${id}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(ParentCategoryIdQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getDraftByUserId(id) {
+  const draftByUserIdQuery = `SELECT * FROM adex.advertisement where created_by = ${id} and is_draft = '1'`;
+
+  return new Promise((resolve, reject) => {
+    db.query(draftByUserIdQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateDraft(
+  id,
+  title,
+  description,
+  price,
+  category_id,
+  images,
+  address,
+  lat,
+  long,
+  ad_duration_type,
+  sub_asset_type,
+  per_unit_price,
+  startDateFormatted,
+  company_id,
+  createdAt
+) {
+  const updateDraftQuery = `
+    UPDATE advertisement SET
+      title = ${title ? `'${title}'` : null},
+      description =  ${description ? `'${description}'` : null},
+      price = ${price ? price : null},
+      category_id = ${category_id ? `'${category_id}'` : null},
+      image = ${images ? `'${images}'` : null},
+      address = ${address ? `'${address}'` : null},
+      lat = ${lat ? lat : null},
+      \`long\` = ${long ? long : null},
+      ad_duration_type = ${ad_duration_type ? `'${ad_duration_type}'` : null},
+      sub_asset_type = ${sub_asset_type ? `'${sub_asset_type}'` : null},
+      per_unit_price = ${per_unit_price ? per_unit_price : null},
+      company_id = ${company_id ? `'${company_id}'`: null},
+      start_date =  ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      company_id = ${company_id ? `'${company_id}'`: null},
+      updated_at = '${createdAt}'
+    WHERE id = ${id}
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(updateDraftQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function DraftToAdvertisement(
+  id,
+  data,
+  userId,
+  parsedValue,
+  images,
+  formattedCreatedAt,
+  product,
+  price,
+  userType,
+  startDateFormatted
+) {
+  const updateDraftQuery = `
+    UPDATE advertisement SET
+      title = '${data.title}',
+      description =  '${data.description}',
+      price = '${parsedValue}',
+      category_id = ${data.category_id ? `'${data.category_id}'` : null},
+      image = '${images}',
+      address = '${data.address}',
+      lat = '${data.lat}',
+      \`long\` = '${data.long}',
+      ad_duration_type = '${data.ad_duration_type ? data.ad_duration_type : 0}',
+      sub_asset_type = '${data.sub_asset_type}',
+      per_unit_price = '${data.per_unit_price}',
+      company_id = ${data.company_id ? `'${data.company_id}'`: null},
+      start_date =  ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      company_id = '${data.company_id}',
+      created_at = '${formattedCreatedAt}',
+      created_by = '${userId}',
+      status = '${data.has_payout ? "1" : "0"}',
+      stripe_product_id = '${product.id}',
+      stripe_price = '${price.id}',
+      created_by_type = '${userType}',
+      is_draft = '0'
+    WHERE id = ${id}
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(updateDraftQuery, (err, result) => {
       if (err) {
         reject(err);
       }
@@ -203,6 +386,20 @@ export async function getDiscountsByAd(id) {
 
     return new Promise((resolve, reject) => {
       db.query(getDiscountsQuery, (err, result) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(result);
+      });
+    });
+  }
+
+
+  export async function deleteDiscountById(id) {
+    const deleteAdvertisementQuery = `DELETE FROM discounts where id = ${id}`;
+
+    return new Promise((resolve, reject) => {
+      db.query(deleteAdvertisementQuery, (err, result) => {
         if (err) {
           reject(err);
         }
