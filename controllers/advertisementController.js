@@ -293,11 +293,11 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
   const email = decoded.email;
-  let parsedValue = 0
-  if(typeof(data.price) == 'string'){
-     parsedValue = parseFloat(data.price.replace(/,/g, ""));
-  }else{
-    parsedValue = data.price
+  let parsedValue = 0;
+  if (typeof data.price == "string") {
+    parsedValue = parseFloat(data.price.replace(/,/g, ""));
+  } else {
+    parsedValue = data.price;
   }
 
   let images = "";
@@ -365,10 +365,10 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   const userType = results[0].user_type;
   //id
 
-  const userDraft = await getDraftByUserId(userId)
-  let newAdvertisement = null
-  let advertisementId = null
-  if(userDraft.length > 0 ){
+  const userDraft = await getDraftByUserId(userId);
+  let newAdvertisement = null;
+  let advertisementId = null;
+  if (userDraft.length > 0) {
     newAdvertisement = await DraftToAdvertisement(
       userDraft[0].id,
       data,
@@ -381,9 +381,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       userType,
       startDateFormatted
     );
-    advertisementId = userDraft[0].id
-  }else{
-
+    advertisementId = userDraft[0].id;
+  } else {
     newAdvertisement = await insertAdvertisement(
       data,
       userId,
@@ -397,7 +396,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     );
     advertisementId = newAdvertisement.insertId;
   }
-
 
   const imageName = images.split(";");
   const emailData = {
@@ -677,7 +675,7 @@ const createDraft = asyncHandler(async (req, res) => {
     company_id,
     start_date,
     importFromGallery,
-    discounts
+    discounts,
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -740,12 +738,11 @@ const createDraft = asyncHandler(async (req, res) => {
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
-      const userDrafts = await  getDraftByUserId(userId)
-      let advertisementId = ''
-      if(userDrafts.length > 0){
-          
-        advertisementId = userDrafts[0].id
-         const newDraft = await updateDraft(
+      const userDrafts = await getDraftByUserId(userId);
+      let advertisementId = "";
+      if (userDrafts.length > 0) {
+        advertisementId = userDrafts[0].id;
+        const newDraft = await updateDraft(
           userDrafts[0].id,
           title,
           description,
@@ -762,8 +759,8 @@ const createDraft = asyncHandler(async (req, res) => {
           company_id,
           formattedCreatedAt
         );
-      }else{
-         const newDraft = await insertDraft(
+      } else {
+        const newDraft = await insertDraft(
           title,
           description,
           price,
@@ -780,14 +777,23 @@ const createDraft = asyncHandler(async (req, res) => {
           userId,
           formattedCreatedAt
         );
-        advertisementId = newDraft.insertId
+        advertisementId = newDraft.insertId;
       }
 
+      const allDiscounts = await getDiscountsByAd(advertisementId);
       discounts.map((item) => {
         const createdAt = new Date();
         const formattedCreatedAt = getFormattedDate(createdAt);
-    
-        insertDiscounts(advertisementId, item, formattedCreatedAt);
+        if (allDiscounts.length > 0) {
+
+          const ids = allDiscounts.map((discount) => discount.id);
+          const existDiscount = ids.includes(item.id);
+          if(!existDiscount){
+            insertDiscounts(advertisementId, item, formattedCreatedAt);
+          }
+        } else {
+          insertDiscounts(advertisementId, item, formattedCreatedAt);
+        }
       });
 
       res.status(200).json({ messages: "Draft created successfully" });
@@ -817,12 +823,11 @@ const getDraft = asyncHandler(async (req, res) => {
           data: "",
         });
       } else {
-
         const sub_category = result[0].category_id ? result[0].category_id : "";
         const categories = await getParentCategoryId(sub_category);
-        let category = 0
-        if(categories.length > 0){
-           category = categories[0].parent_id
+        let category = 0;
+        if (categories.length > 0) {
+          category = categories[0].parent_id;
         }
 
         //const building_asset = result[0].category_id ? result[0].category_id : ""
@@ -833,19 +838,21 @@ const getDraft = asyncHandler(async (req, res) => {
         const longitude = result[0].longitude ? result[0].longitude : 0;
         const description = result[0].description ? result[0].description : "";
         const price = result[0].price ? result[0].price : "";
-        const selected_company = result[0].company_id ? result[0].company_id : "";
+        const selected_company = result[0].company_id
+          ? result[0].company_id
+          : "";
         //const discounts = result[0].discounts ? result[0].discounts : []
         const date = result[0].start_date ? result[0].start_date : "";
         let images = result[0].image ? result[0].image : [];
 
         if (images.length > 0) {
           const imageArray = images.split(";");
-          images = []
+          images = [];
           imageArray.map((image) => {
             images.push({ data_url: getImageBase64(image) });
           });
         }
-        const advertisementId = result[0].id
+        const advertisementId = result[0].id;
         const discounts = await getDiscountsByAd(advertisementId);
 
         res.status(200).json({
@@ -863,10 +870,10 @@ const getDraft = asyncHandler(async (req, res) => {
             discounts,
             date,
             images,
-            isDraft : true,
+            isDraft: true,
             selected_company,
-            discounts
-          }
+            discounts,
+          },
         });
       }
     } catch (error) {
