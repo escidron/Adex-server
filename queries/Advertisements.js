@@ -1,4 +1,5 @@
 import getDatabaseConnection from ".././db.js";
+import escapeText from "../utils/escapeText.js";
 
 const db = getDatabaseConnection();
 
@@ -91,6 +92,8 @@ export async function insertAdvertisement(
   dateFormatted,
   availableDateFormatted
 ) {
+
+
   const CreateAdvertisementQuery = `
     INSERT INTO advertisement (
       category_id,
@@ -120,11 +123,11 @@ export async function insertAdvertisement(
       ) VALUES (
       '${data.category_id}',
       '${userId}',
-      '${data.title}',
-      '${data.description}',
+      ${escapeText(data.title)},
+      ${escapeText(data.description)},
       '${parsedValue}',
       '${images}',
-      '${data.address}',
+      ${escapeText(data.address)},
       '${data.lat}',
       '${data.long}',
       '${data.ad_duration_type ? data.ad_duration_type : 0}',
@@ -141,7 +144,7 @@ export async function insertAdvertisement(
       ${data.date ? `,'${dateFormatted.from}'`: ''}
       ${data.date ? `,'${dateFormatted.to}'`: ''}
       ${availableDateFormatted ? `,'${availableDateFormatted}'`: ''}
-      ${data.instructions ? `,'${data.instructions}'`: ''}
+      ${data.instructions ? `,${escapeText(data.instructions)}`: ''}
       
     )
   `;
@@ -192,12 +195,12 @@ export async function insertDraft(
       created_by,
       created_at
     ) VALUES (
-      ${title ? `'${title}'` : null},
-      ${description ? `'${description}'` : null},
+      ${title ? `${escapeText(title)}` : null},
+      ${description ? `${escapeText(description)}` : null},
       ${price ? price : null},
       ${category_id ? `'${category_id}'` : null},
       ${images ? `'${images}'` : null},
-      ${address ? `'${address}'` : null},
+      ${address ? `${escapeText(address)}` : null},
       ${lat ? lat : null},
       ${long ? long : null},
       ${ad_duration_type ? `'${ad_duration_type}'` : null},
@@ -207,7 +210,7 @@ export async function insertDraft(
       ${startDateFormatted ? `'${startDateFormatted}'` : null},
       ${startDateFormatted ? `'${startDateFormatted}'` : null},
       ${startDateFormatted ? `'${startDateFormatted}'` : null},
-      ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      ${instructions ? `${escapeText(instructions)}` : null},
       '${userId}',
       '${createdAt}'
     )
