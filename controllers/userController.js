@@ -25,6 +25,7 @@ import {
   updateSellerVerificationStatus,
   insertUserNotifications,
   insertMessages,
+  updateGalleryImage,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -1141,11 +1142,36 @@ const getCompany = asyncHandler(async (req, res) => {
 });
 
 const imageGallery = asyncHandler(async (req, res) => {
-  const token = req.cookies.jwt;
   const { id, images } = req.body;
 
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  const user = await getUsersById(userId);
+  const userImages = user[0].image_gallery;
+  let finalImages = [];
+  if (userImages) {
+    let oldImages = [];
+    const imageArray = userImages.split(";");
+    imageArray.map((image) => {
+      if (image) {
+        const base64Image = getImageBase64(image);
+        oldImages.push(base64Image);
+      }
+    });
+
+    images.map((newImage) => {
+      if (!oldImages.includes(newImage.data_url)) {
+        finalImages.push(newImage);
+      }
+    });
+  } else {
+    finalImages = images;
+  }
+
   let imagesGroup = "";
-  images.map((image, index) => {
+  finalImages.map((image, index) => {
     let imageName = Date.now() + index + ".png";
     let path = "./images/" + imageName;
     let imgdata = image.data_url;
@@ -1287,7 +1313,7 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
 });
 
 const sendMessage = asyncHandler(async (req, res) => {
-  console.log('sending')
+  console.log("sending");
   const token = req.cookies.jwt;
   const { sended_by, seller_id, buyer_id, advertisement_id, message } =
     req.body;
@@ -1297,7 +1323,14 @@ const sendMessage = asyncHandler(async (req, res) => {
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
-      insertMessages( sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt);
+      insertMessages(
+        sended_by,
+        seller_id,
+        buyer_id,
+        advertisement_id,
+        message,
+        formattedCreatedAt
+      );
       insertUserNotifications(
         seller_id,
         "You have a new message",
@@ -1306,6 +1339,59 @@ const sendMessage = asyncHandler(async (req, res) => {
         `/messages?key=${advertisement_id}${seller_id}${buyer_id}`,
         `${advertisement_id}${seller_id}${buyer_id}`
       );
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const removeGalleryImage = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { remove } = req.body;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+
+      const user = await getUsersById(userId);
+      const userImages = user[0].image_gallery;
+      let finalImages = [];
+      if (userImages) {
+        let oldImages = [];
+        const imageArray = userImages.split(";");
+        imageArray.map((image) => {
+          if (image) {
+            const base64Image = getImageBase64(image);
+            oldImages.push(base64Image);
+          }
+        });
+
+        oldImages.map((oldImage, index) => {
+          if (oldImage == remove.data_url) {
+            const newImages = imageArray.filter(
+              (item, index2) => index2 != index
+            );
+            let imageId = "";
+            newImages.map((image) => {
+              if (image) {
+                imageId += image + ";";
+              }
+            });
+            imageId = imageId.slice(0, -1);
+
+            updateGalleryImage(imageId, userId);
+          }
+        });
+      } else {
+        finalImages = images;
+      }
     } catch (error) {
       console.error(error);
       res.status(401).json({
@@ -1344,4 +1430,5 @@ export {
   clearUserNotifications,
   testRoute,
   sendMessage,
+  removeGalleryImage,
 };

@@ -472,3 +472,22 @@ export async function insertBuyer(
     });
   });
 }
+
+
+
+export async function updateGalleryImage(images,userId) {
+  const updategalleryImageQuery = `
+  UPDATE users
+  SET 
+  image_gallery = '${images}'
+  WHERE id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updategalleryImageQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}

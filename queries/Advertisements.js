@@ -124,7 +124,7 @@ export async function insertAdvertisement(
       '${data.lat}',
       '${data.long}',
       '${data.ad_duration_type ? data.ad_duration_type : 0}',
-      '${data.has_payout ? "1" : "0"}',
+      '1',
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
       '${data.units ? data.units : 0}',

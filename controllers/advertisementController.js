@@ -730,7 +730,7 @@ const createDraft = asyncHandler(async (req, res) => {
           );
         }
       }
-
+      let startDateFormatted = ''
       if (start_date) {
         let startDate = new Date(start_date.substring(0, 10));
         startDateFormatted = getFormattedDate(startDate);
