@@ -88,7 +88,8 @@ export async function insertAdvertisement(
   product,
   price,
   userType,
-  startDateFormatted
+  dateFormatted,
+  availableDateFormatted
 ) {
   const CreateAdvertisementQuery = `
     INSERT INTO advertisement (
@@ -112,8 +113,11 @@ export async function insertAdvertisement(
       created_by_type,
       is_draft,
       company_id
-      ${data.start_date ? ',start_date':''}
-    ) VALUES (
+      ${data.date ? ',start_date':''}
+      ${data.date ? ',end_date':''}
+      ${availableDateFormatted ? ',first_available_date':''}
+      ${data.instructions ? ',instructions':''}
+      ) VALUES (
       '${data.category_id}',
       '${userId}',
       '${data.title}',
@@ -134,7 +138,10 @@ export async function insertAdvertisement(
       '${userType}',
       '0',
       '${data.company_id}' 
-      ${data.start_date ? `,'${startDateFormatted}'`: ''}
+      ${data.date ? `,'${dateFormatted.from}'`: ''}
+      ${data.date ? `,'${dateFormatted.to}'`: ''}
+      ${availableDateFormatted ? `,'${availableDateFormatted}'`: ''}
+      ${data.instructions ? `,'${data.instructions}'`: ''}
       
     )
   `;
@@ -179,6 +186,9 @@ export async function insertDraft(
       per_unit_price,
       company_id,
       start_date,
+      end_date,
+      first_available_date,
+      instructions,
       created_by,
       created_at
     ) VALUES (
@@ -194,6 +204,9 @@ export async function insertDraft(
       ${sub_asset_type ? `'${sub_asset_type}'` : null},
       ${per_unit_price ? per_unit_price : null},
       ${company_id ? `'${company_id}'`: null},
+      ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      ${startDateFormatted ? `'${startDateFormatted}'` : null},
       ${startDateFormatted ? `'${startDateFormatted}'` : null},
       '${userId}',
       '${createdAt}'
@@ -292,7 +305,8 @@ export async function DraftToAdvertisement(
   product,
   price,
   userType,
-  startDateFormatted
+  startDateFormatted,
+  availableDateFormatted
 ) {
   const updateDraftQuery = `
     UPDATE advertisement SET
@@ -308,7 +322,9 @@ export async function DraftToAdvertisement(
       sub_asset_type = '${data.sub_asset_type}',
       per_unit_price = '${data.per_unit_price}',
       company_id = ${data.company_id ? `'${data.company_id}'`: null},
-      start_date =  ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      start_date =  ${startDateFormatted ? `'${startDateFormatted.from}'` : null},
+      end_date =  ${startDateFormatted ? `'${startDateFormatted.to}'` : null},
+      first_available_date =  ${availableDateFormatted ? `'${availableDateFormatted}'` : null},
       company_id = '${data.company_id}',
       created_at = '${formattedCreatedAt}',
       created_by = '${userId}',
@@ -316,6 +332,7 @@ export async function DraftToAdvertisement(
       stripe_product_id = '${product.id}',
       stripe_price = '${price.id}',
       created_by_type = '${userType}',
+      instructions = '${data.instructions}',
       is_draft = '0'
     WHERE id = ${id}
   `;

@@ -351,7 +351,6 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
         });
 
         if (account.id) {
-          console.log("account", account);
           let verifiedAccount = "";
           const { status, error } = await verifyIdentity(account.id);
           if (status) {
@@ -1313,7 +1312,6 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
 });
 
 const sendMessage = asyncHandler(async (req, res) => {
-  console.log("sending");
   const token = req.cookies.jwt;
   const { sended_by, seller_id, buyer_id, advertisement_id, message } =
     req.body;

@@ -278,21 +278,33 @@ const getMyBookings = asyncHandler(async (req, res) => {
 const createAdvertisement = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const data = req.body;
-
-  const createdAt = new Date();
-  // Format the createdAt value to match MySQL's datetime format
-  const formattedCreatedAt = getFormattedDate(createdAt);
-
-  let startDateFormatted = "";
-  if (data.start_date) {
-    let startDate = new Date(data.start_date.substring(0, 10));
-    startDateFormatted = getFormattedDate(startDate);
-  }
-
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
   const userId = decoded.userId;
   const email = decoded.email;
+
+  const createdAt = new Date();
+  const formattedCreatedAt = getFormattedDate(createdAt);
+
+  let availableDateFormatted = "";
+  if (data.first_available_date) {
+    let availableDate = new Date(data.first_available_date.substring(0, 10));
+    availableDateFormatted = getFormattedDate(availableDate);
+  }
+
+  let dateFormatted = "";
+  if (data.date) {
+    let dateFrom = new Date(data.date.from.substring(0, 10));
+    const dateFromFormatted = getFormattedDate(dateFrom);
+    let dateTo = new Date(data.date.to.substring(0, 10));
+    const dateToFormatted = getFormattedDate(dateTo);
+    dateFormatted = {
+      from: dateFromFormatted,
+      to: dateToFormatted,
+    };
+  }
+
   let parsedValue = 0;
   if (typeof data.price == "string") {
     parsedValue = parseFloat(data.price.replace(/,/g, ""));
@@ -360,10 +372,9 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     product: product.id,
   });
-  //get user type
+
   const results = await getUsersById(userId);
   const userType = results[0].user_type;
-  //id
 
   const userDraft = await getDraftByUserId(userId);
   let newAdvertisement = null;
@@ -379,7 +390,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       product,
       price,
       userType,
-      startDateFormatted
+      dateFormatted,
+      availableDateFormatted
     );
     advertisementId = userDraft[0].id;
   } else {
@@ -392,7 +404,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       product,
       price,
       userType,
-      startDateFormatted
+      dateFormatted,
+      availableDateFormatted
     );
     advertisementId = newAdvertisement.insertId;
   }
@@ -673,7 +686,9 @@ const createDraft = asyncHandler(async (req, res) => {
     sub_asset_type,
     per_unit_price,
     company_id,
-    start_date,
+    date,
+    first_available_date,
+    instructions,
     importFromGallery,
     discounts,
   } = req.body;
@@ -683,6 +698,9 @@ const createDraft = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
+
+      const createdAt = new Date();
+      const formattedCreatedAt = getFormattedDate(createdAt);
 
       let finalImages = "";
       const user = await getUsersById(userId);
@@ -730,13 +748,25 @@ const createDraft = asyncHandler(async (req, res) => {
           );
         }
       }
-      let startDateFormatted = ''
-      if (start_date) {
-        let startDate = new Date(start_date.substring(0, 10));
-        startDateFormatted = getFormattedDate(startDate);
+
+      let availableDateFormatted = "";
+      if (data.first_available_date) {
+        let availableDate = new Date(data.first_available_date.substring(0, 10));
+        availableDateFormatted = getFormattedDate(availableDate);
       }
-      const createdAt = new Date();
-      const formattedCreatedAt = getFormattedDate(createdAt);
+    
+      let dateFormatted = "";
+      if (data.date) {
+        let dateFrom = new Date(data.date.from.substring(0, 10));
+        const dateFromFormatted = getFormattedDate(dateFrom);
+        let dateTo = new Date(data.date.to.substring(0, 10));
+        const dateToFormatted = getFormattedDate(dateTo);
+        dateFormatted = {
+          from: dateFromFormatted,
+          to: dateToFormatted,
+        };
+      }
+
 
       const userDrafts = await getDraftByUserId(userId);
       let advertisementId = "";
@@ -755,7 +785,9 @@ const createDraft = asyncHandler(async (req, res) => {
           ad_duration_type,
           sub_asset_type,
           per_unit_price,
-          start_date ? startDateFormatted : start_date,
+          dateFormatted,
+          availableDateFormatted,
+          instructions,
           company_id,
           formattedCreatedAt
         );
@@ -772,7 +804,9 @@ const createDraft = asyncHandler(async (req, res) => {
           ad_duration_type,
           sub_asset_type,
           per_unit_price,
-          start_date ? startDateFormatted : start_date,
+          dateFormatted,
+          availableDateFormatted,
+          instructions,
           company_id,
           userId,
           formattedCreatedAt
@@ -785,10 +819,9 @@ const createDraft = asyncHandler(async (req, res) => {
         const createdAt = new Date();
         const formattedCreatedAt = getFormattedDate(createdAt);
         if (allDiscounts.length > 0) {
-
           const ids = allDiscounts.map((discount) => discount.id);
           const existDiscount = ids.includes(item.id);
-          if(!existDiscount){
+          if (!existDiscount) {
             insertDiscounts(advertisementId, item, formattedCreatedAt);
           }
         } else {
