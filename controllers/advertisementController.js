@@ -313,44 +313,44 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   }
 
   let images = "";
+  let imagesGroup = "";
   const result = await getCompanyQuery(data.company_id);
   const user = await getUsersById(userId);
   const userImages = user[0].image_gallery;
-  if (data.importFromGallery) {
-    const imageArray = userImages.split(";");
-    imageArray.map((image) => {
-      if (image) {
-        const base64Image = getImageBase64(image);
-        data.images.map((item) => {
-          if (item.data_url == base64Image) {
-            images += image + ";";
-          }
-        });
-      }
-    });
-    images = images.slice(0, -1);
-  } else {
-    data.images.map((image, index) => {
+
+  data.images.map((image, index) => {
+    //images from user device
+    if (image.file) {
       let imageName = Date.now() + index + ".png";
       let path = "./images/" + imageName;
       let imgdata = image.data_url;
       images += imageName + ";";
+      imagesGroup += imageName + ";";
 
       // to convert base64 format into random filename
       let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
 
       fs.writeFileSync(path, base64Data, { encoding: "base64" });
-    });
-    images = images.slice(0, -1);
-
-    const imagesGroup = images;
-
-    addGalleryImages("", userId, userImages, imagesGroup);
-
-    if (data.company_id) {
-      const id = data.company_id;
-      addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
+      //images from gallery
+    } else {
+      const imageArray = userImages.split(";");
+      imageArray.map((galleryImage) => {
+        if (galleryImage) {
+          const base64Image = getImageBase64(galleryImage);
+          if (image.data_url == base64Image) {
+            images += galleryImage + ";";
+          }
+        }
+      });
     }
+  });
+  images = images.slice(0, -1);
+  imagesGroup = imagesGroup.slice(0, -1);
+  addGalleryImages("", userId, userImages, imagesGroup);
+
+  if (data.company_id) {
+    const id = data.company_id;
+    addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
   }
 
   const product = await stripe.products.create({
@@ -702,71 +702,64 @@ const createDraft = asyncHandler(async (req, res) => {
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
-      let finalImages = "";
+      let draftImages = "";
+      let imagesGroup = "";
+      const result = await getCompanyQuery(company_id);
       const user = await getUsersById(userId);
       const userImages = user[0].image_gallery;
-      if (importFromGallery) {
-        const imageArray = userImages.split(";");
-        imageArray.map((image) => {
-          if (image) {
-            const base64Image = getImageBase64(image);
-            images.map((item) => {
-              if (item.data_url == base64Image) {
-                finalImages += image + ";";
-              }
-            });
-          }
-        });
-        finalImages = finalImages.slice(0, -1);
-      } else {
-        images.map((image, index) => {
+
+      images.map((image, index) => {
+        //images from user device
+        if (image.file) {
           let imageName = Date.now() + index + ".png";
           let path = "./images/" + imageName;
           let imgdata = image.data_url;
-          finalImages += imageName + ";";
+          draftImages += imageName + ";";
+          imagesGroup += imageName + ";";
 
           // to convert base64 format into random filename
           let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
 
           fs.writeFileSync(path, base64Data, { encoding: "base64" });
-        });
-        finalImages = finalImages.slice(0, -1);
-
-        const imagesGroup = finalImages;
-
-        if (finalImages) {
-          addGalleryImages("", userId, userImages, imagesGroup);
+          //images from gallery
+        } else {
+          const imageArray = userImages.split(";");
+          imageArray.map((galleryImage) => {
+            if (galleryImage) {
+              const base64Image = getImageBase64(galleryImage);
+              if (image.data_url == base64Image) {
+                draftImages += galleryImage + ";";
+              }
+            }
+          });
         }
+      });
+      draftImages = draftImages.slice(0, -1);
+      imagesGroup = imagesGroup.slice(0, -1);
+      addGalleryImages("", userId, userImages, imagesGroup);
 
-        if (company_id) {
-          const result = await getCompanyQuery(company_id);
-          addGalleryImages(
-            company_id,
-            userId,
-            result[0].company_gallery,
-            imagesGroup
-          );
-        }
+      if (company_id) {
+        const id = company_id;
+        addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
       }
 
       let availableDateFormatted = "";
-      if (data.first_available_date) {
-        let availableDate = new Date(data.first_available_date.substring(0, 10));
+      if (first_available_date) {
+        let availableDate = new Date(first_available_date.substring(0, 10));
         availableDateFormatted = getFormattedDate(availableDate);
       }
-    
+
       let dateFormatted = "";
-      if (data.date) {
-        let dateFrom = new Date(data.date.from.substring(0, 10));
+      if (date) {
+        let dateFrom = new Date(date.from.substring(0, 10));
         const dateFromFormatted = getFormattedDate(dateFrom);
-        let dateTo = new Date(data.date.to.substring(0, 10));
+        let dateTo = new Date(date.to.substring(0, 10));
         const dateToFormatted = getFormattedDate(dateTo);
         dateFormatted = {
           from: dateFromFormatted,
           to: dateToFormatted,
         };
       }
-
 
       const userDrafts = await getDraftByUserId(userId);
       let advertisementId = "";
@@ -778,7 +771,7 @@ const createDraft = asyncHandler(async (req, res) => {
           description,
           price,
           category_id,
-          finalImages,
+          draftImages,
           address,
           lat,
           long,
@@ -797,7 +790,7 @@ const createDraft = asyncHandler(async (req, res) => {
           description,
           price,
           category_id,
-          finalImages,
+          draftImages,
           address,
           lat,
           long,
@@ -857,14 +850,16 @@ const getDraft = asyncHandler(async (req, res) => {
         });
       } else {
         const sub_category = result[0].category_id ? result[0].category_id : "";
-        const categories = await getParentCategoryId(sub_category);
         let category = 0;
-        if (categories.length > 0) {
-          category = categories[0].parent_id;
+        if (sub_category) {
+          const categories = await getParentCategoryId(sub_category);
+          if (categories.length > 0) {
+            category = categories[0].parent_id;
+          }
         }
 
         //const building_asset = result[0].category_id ? result[0].category_id : ""
-        const building_asset = "";
+        const building_asset = result[0].sub_asset_type;
         const title = result[0].title ? result[0].title : "";
         const location = result[0].address ? result[0].address : "";
         const latitude = result[0].latitude ? result[0].latitude : 0;
@@ -874,8 +869,16 @@ const getDraft = asyncHandler(async (req, res) => {
         const selected_company = result[0].company_id
           ? result[0].company_id
           : "";
-        //const discounts = result[0].discounts ? result[0].discounts : []
-        const date = result[0].start_date ? result[0].start_date : "";
+        let date = "";
+        if (result[0].start_date) {
+          date = {
+            from: result[0].start_date,
+            to: result[0].end_date,
+          };
+        }
+        const first_available_date = result[0].first_available_date
+          ? result[0].first_available_date
+          : "";
         let images = result[0].image ? result[0].image : [];
 
         if (images.length > 0) {
@@ -886,6 +889,7 @@ const getDraft = asyncHandler(async (req, res) => {
           });
         }
         const advertisementId = result[0].id;
+        const instructions = result[0].instructions;
         const discounts = await getDiscountsByAd(advertisementId);
 
         res.status(200).json({
@@ -906,6 +910,8 @@ const getDraft = asyncHandler(async (req, res) => {
             isDraft: true,
             selected_company,
             discounts,
+            first_available_date,
+            instructions,
           },
         });
       }

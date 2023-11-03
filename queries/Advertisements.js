@@ -169,7 +169,9 @@ export async function insertDraft(
   ad_duration_type,
   sub_asset_type,
   per_unit_price,
-  startDateFormatted,
+  dateFormatted,
+  availableDateFormatted,
+  instructions,  
   company_id,
   userId,
   createdAt
@@ -207,9 +209,9 @@ export async function insertDraft(
       ${sub_asset_type ? `'${sub_asset_type}'` : null},
       ${per_unit_price ? per_unit_price : null},
       ${company_id ? `'${company_id}'`: null},
-      ${startDateFormatted ? `'${startDateFormatted}'` : null},
-      ${startDateFormatted ? `'${startDateFormatted}'` : null},
-      ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      ${dateFormatted ? `'${dateFormatted.from}'` : null},
+      ${dateFormatted ? `'${dateFormatted.to}'` : null},
+      ${availableDateFormatted ? `'${availableDateFormatted}'` : null},
       ${instructions ? `${escapeText(instructions)}` : null},
       '${userId}',
       '${createdAt}'
@@ -265,25 +267,30 @@ export async function updateDraft(
   ad_duration_type,
   sub_asset_type,
   per_unit_price,
-  startDateFormatted,
+  dateFormatted,
+  availableDateFormatted,
+  instructions, 
   company_id,
   createdAt
 ) {
   const updateDraftQuery = `
     UPDATE advertisement SET
-      title = ${title ? `'${title}'` : null},
-      description =  ${description ? `'${description}'` : null},
+      title = ${title ? `${escapeText(title)}` : null},
+      description =  ${description ? `${escapeText(description)}` : null},
       price = ${price ? price : null},
       category_id = ${category_id ? `'${category_id}'` : null},
       image = ${images ? `'${images}'` : null},
-      address = ${address ? `'${address}'` : null},
+      address = ${address ? `${escapeText(address)}` : null},
       lat = ${lat ? lat : null},
       \`long\` = ${long ? long : null},
       ad_duration_type = ${ad_duration_type ? `'${ad_duration_type}'` : null},
       sub_asset_type = ${sub_asset_type ? `'${sub_asset_type}'` : null},
       per_unit_price = ${per_unit_price ? per_unit_price : null},
       company_id = ${company_id ? `'${company_id}'`: null},
-      start_date =  ${startDateFormatted ? `'${startDateFormatted}'` : null},
+      start_date =  ${dateFormatted ? `'${dateFormatted.from}'` : null},
+      end_date =  ${dateFormatted ? `'${dateFormatted.to}'` : null},
+      first_available_date =  ${availableDateFormatted ? `'${availableDateFormatted}'` : null},
+      instructions =  ${instructions ? `${escapeText(instructions)}` : null},
       company_id = ${company_id ? `'${company_id}'`: null},
       updated_at = '${createdAt}'
     WHERE id = ${id}
@@ -313,12 +320,12 @@ export async function DraftToAdvertisement(
 ) {
   const updateDraftQuery = `
     UPDATE advertisement SET
-      title = '${data.title}',
-      description =  '${data.description}',
+      title = ${escapeText(data.title)},
+      description =  ${escapeText(data.description)},
       price = '${parsedValue}',
       category_id = ${data.category_id ? `'${data.category_id}'` : null},
       image = '${images}',
-      address = '${data.address}',
+      address = ${escapeText(data.address)},
       lat = '${data.lat}',
       \`long\` = '${data.long}',
       ad_duration_type = '${data.ad_duration_type ? data.ad_duration_type : 0}',
@@ -331,11 +338,11 @@ export async function DraftToAdvertisement(
       company_id = '${data.company_id}',
       created_at = '${formattedCreatedAt}',
       created_by = '${userId}',
-      status = '${data.has_payout ? "1" : "0"}',
+      status = '1',
       stripe_product_id = '${product.id}',
       stripe_price = '${price.id}',
       created_by_type = '${userType}',
-      instructions = '${data.instructions}',
+      instructions = ${escapeText(data.instructions)},
       is_draft = '0'
     WHERE id = ${id}
   `;
