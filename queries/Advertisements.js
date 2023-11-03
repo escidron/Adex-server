@@ -35,7 +35,7 @@ export async function getFilteredAdvertisements(
 }
 
 export async function getAdvertisementByCreator(userId, id) {
-  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where created_by = ${userId} ${
+  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and created_by = ${userId} ${
     id ? "and id=" + id : ""
   }`;
   return new Promise((resolve, reject) => {
