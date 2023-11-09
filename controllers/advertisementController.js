@@ -31,6 +31,7 @@ import {
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import sendEmail from "../utils/sendEmail.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
+import escapeText from "../utils/escapeText.js";
 
 dotenv.config();
 
@@ -439,59 +440,102 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 });
 
 const updateAdvertisement = asyncHandler(async (req, res) => {
-  const data = req.body;
+  const {
+    id,
+    title,
+    description,
+    price,
+    category_id,
+    images,
+    address,
+    lat,
+    long,
+    ad_duration_type,
+    sub_asset_type,
+    per_unit_price,
+    company_id,
+    date,
+    first_available_date,
+    instructions,
+    discounts,
+  } = req.body;
 
-  const newStartDate = new Date(data.start_date);
-  const formattedNewStartDate = getFormattedDate(newStartDate);
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
 
   const updatedAt = new Date();
   const formattedUpdatedAt = getFormattedDate(updatedAt);
 
-  let images = "";
-  data.images.map((image, index) => {
+  let updateImages = "";
+  images.map((image, index) => {
     let imageName = Date.now() + index + ".png";
     let path = "./images/" + imageName;
     let imgdata = image.data_url;
-    images += imageName + ";";
+    updateImages += imageName + ";";
 
     // to convert base64 format into random filename
     let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
 
     fs.writeFileSync(path, base64Data, { encoding: "base64" });
   });
-  images = images.slice(0, -1);
+  updateImages = updateImages.slice(0, -1);
+
+  let availableDateFormatted = "";
+  if (first_available_date) {
+    let availableDate = new Date(first_available_date.substring(0, 10));
+    availableDateFormatted = getFormattedDate(availableDate);
+  }
+
+  let dateFormatted = "";
+  if (date) {
+    let dateFrom = new Date(date.from);
+    const dateFromFormatted = getFormattedDate(dateFrom);
+    let dateTo = new Date(date.to);
+    const dateToFormatted = getFormattedDate(dateTo);
+    dateFormatted = {
+      from: dateFromFormatted.substring(0, 10),
+      to: dateToFormatted.substring(0, 10),
+    };
+  }
 
   const query = `
     UPDATE advertisement SET
-      title = '${data.title}',
-      description = '${data.description}',
-      start_date = '${formattedNewStartDate}',
-      price = '${data.price}',
-      image = '${images}',
-      address = '${data.address}',
-      lat = '${data.lat}',
-      \`long\` = '${data.long}',
-      ad_duration_type = '${data.ad_duration_type ? data.ad_duration_type : 0}',
+      title = ${escapeText(title)},
+      description = ${escapeText(description)},
+      ${dateFormatted && `start_date = '${dateFormatted.from}',`} 
+      ${dateFormatted && `end_date = '${dateFormatted.to}',`} 
+      ${availableDateFormatted && `first_available_date = '${availableDateFormatted}',`} 
+      price = ${price},
+      image = '${updateImages}',
+      address = ${escapeText(address)},
+      lat = '${lat}',
+      \`long\` = '${long}',
+      ad_duration_type = '${ad_duration_type ? ad_duration_type : 0}',
       updated_at = '${formattedUpdatedAt}',
-      is_automatic = '${data.is_automatic}'
-    WHERE id = ${data.id}
+      instructions = ${escapeText(instructions)},
+      sub_asset_type = '${sub_asset_type}',
+      company_id = '${company_id}',
+      per_unit_price = '${per_unit_price}',
+      category_id = '${category_id}'
+    WHERE id = ${id}
   `;
   updateAdvertismentById(query);
 
-  const user = await getUsersById(data.created_by);
+  const user = await getUsersById(userId);
   const email = user[0].email;
-  const imageName = images.split(";");
+  const imageName = updateImages.split(";");
   const emailData = {
     title: "ADEX Listing",
     subTitle: "Listing  created",
     message: "Your Listing has been successfully updated ",
     icon: "listing-created",
     advertisement: {
-      title: data.title,
-      address: data.address,
-      description: data.description,
+      title: title,
+      address: address,
+      description: description,
       image: imageName[0],
-      price: data.price,
+      price: price,
     },
   };
   const emailContent = renderEmail(emailData);
@@ -689,7 +733,6 @@ const createDraft = asyncHandler(async (req, res) => {
     date,
     first_available_date,
     instructions,
-    importFromGallery,
     discounts,
   } = req.body;
 
@@ -866,7 +909,7 @@ const getDraft = asyncHandler(async (req, res) => {
         const longitude = result[0].longitude ? result[0].longitude : 0;
         const description = result[0].description ? result[0].description : "";
         const price = result[0].price ? result[0].price : "";
-        const selected_company = result[0].company_id
+        const select_business = result[0].company_id
           ? result[0].company_id
           : "";
         let date = "";
@@ -908,7 +951,7 @@ const getDraft = asyncHandler(async (req, res) => {
             date,
             images,
             isDraft: true,
-            selected_company,
+            select_business,
             discounts,
             first_available_date,
             instructions,
