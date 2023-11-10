@@ -79,11 +79,12 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
-      console.log('tokenn',token)
-
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('getMyAdvertisement',token)
+      console.log('decoded',decoded)
       const userId = decoded.userId;
       const result = await getAdvertisementByCreator(userId, id);
+      console.log('result',result)
 
       if (result.length == 0) {
         res.status(401).json({
@@ -668,7 +669,6 @@ const getChatInfo = asyncHandler(async (req, res) => {
 const getDiscounts = asyncHandler(async (req, res) => {
   const { id } = req.body;
   const token = req.cookies.jwt;
-  console.log('tokenn discounts',token)
 
   if (token) {
     try {
