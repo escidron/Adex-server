@@ -669,9 +669,7 @@ const getDiscounts = asyncHandler(async (req, res) => {
   if (token) {
     try {
       const result = await getDiscountsByAd(id);
-      res.status(200).json({
-        discounts: result,
-      });
+      res.status(200).json(result);
     } catch (error) {
       res.status(401).json({
         error: "Not authorized, token failed",
