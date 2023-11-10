@@ -792,7 +792,6 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const { id } = req.body;
   if (token) {
     try {
-      console.log('tokenn',token)
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getUsersById(id ? id : userId);

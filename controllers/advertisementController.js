@@ -79,6 +79,8 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
     try {
+      console.log('tokenn',token)
+
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getAdvertisementByCreator(userId, id);
