@@ -76,7 +76,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 
 const getMyAdvertisement = asyncHandler(async (req, res) => {
   const { id, notificationId } = req.body;
-  const token = req.headers.authorization;
+  const token = req.cookies.jwt;
   if (token) {
     try {
       console.log('tokenn',token)
