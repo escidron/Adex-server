@@ -668,6 +668,8 @@ const getChatInfo = asyncHandler(async (req, res) => {
 const getDiscounts = asyncHandler(async (req, res) => {
   const { id } = req.body;
   const token = req.cookies.jwt;
+  console.log('tokenn discounts',token)
+
   if (token) {
     try {
       const result = await getDiscountsByAd(id);
