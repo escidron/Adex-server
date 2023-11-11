@@ -239,8 +239,8 @@ const getMyBookings = asyncHandler(async (req, res) => {
         result = await getAdvertisementAndBuyers(userId);
       }
       if (result.length == 0) {
-        res.status(401).json({
-          error: "Advertisement does not exists",
+        res.status(200).json({
+          data: "",
         });
       } else {
         // Add base64 image to each advertisement object
