@@ -486,7 +486,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
   let availableDateFormatted = "";
   if (first_available_date) {
-    let availableDate = new Date(first_available_date.substring(0, 10));
+    let availableDate = new Date(first_available_date);
     availableDateFormatted = getFormattedDate(availableDate);
   }
 
@@ -524,6 +524,22 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     WHERE id = ${id}
   `;
   updateAdvertismentById(query);
+
+
+  const allDiscounts = await getDiscountsByAd(id);
+  discounts.map((item) => {
+    const createdAt = new Date();
+    const formattedCreatedAt = getFormattedDate(createdAt);
+    if (allDiscounts.length > 0) {
+      const ids = allDiscounts.map((discount) => discount.id);
+      const existDiscount = ids.includes(item.id);
+      if (!existDiscount) {
+        insertDiscounts(id, item, formattedCreatedAt);
+      }
+    } else {
+      insertDiscounts(id, item, formattedCreatedAt);
+    }
+  });
 
   const user = await getUsersById(userId);
   const email = user[0].email;
