@@ -494,7 +494,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   }
 
   let dateFormatted = "";
-  if (date) {
+  if (date.from && date.to) {
     let dateFrom = new Date(date.from);
     const dateFromFormatted = getFormattedDate(dateFrom);
     let dateTo = new Date(date.to);
