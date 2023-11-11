@@ -486,8 +486,11 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
   let availableDateFormatted = "";
   if (first_available_date) {
+    console.log('date before',first_available_date)
     let availableDate = new Date(first_available_date);
+    console.log('availableDate',availableDate)
     availableDateFormatted = getFormattedDate(availableDate);
+    console.log('availableDateFormatted',availableDateFormatted)
   }
 
   let dateFormatted = "";
