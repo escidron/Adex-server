@@ -486,11 +486,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
   let availableDateFormatted = "";
   if (first_available_date) {
-    console.log('date before',first_available_date)
     let availableDate = new Date(first_available_date);
-    console.log('availableDate',availableDate)
     availableDateFormatted = getFormattedDate(availableDate);
-    console.log('availableDateFormatted',availableDateFormatted)
   }
 
   let dateFormatted = "";
@@ -505,13 +502,19 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     };
   }
 
+  if(ad_duration_type == 1){
+    availableDateFormatted = ''
+  }else{
+    dateFormatted.from = ''
+    dateFormatted.to = ''
+  }
   const query = `
     UPDATE advertisement SET
       title = ${escapeText(title)},
       description = ${escapeText(description)},
-      ${dateFormatted && `start_date = '${dateFormatted.from}',`} 
-      ${dateFormatted && `end_date = '${dateFormatted.to}',`} 
-      ${availableDateFormatted && `first_available_date = '${availableDateFormatted}',`} 
+      start_date = ${dateFormatted.from ? `'${dateFormatted.from}'` : null}, 
+      end_date = ${dateFormatted.to ? `'${dateFormatted.to}'` : null}, 
+      first_available_date = ${availableDateFormatted ? `'${availableDateFormatted}'` : null}, 
       price = ${price},
       image = '${updateImages}',
       address = ${escapeText(address)},
