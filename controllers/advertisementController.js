@@ -690,9 +690,7 @@ const getChatInfo = asyncHandler(async (req, res) => {
 
 const getDiscounts = asyncHandler(async (req, res) => {
   const { id } = req.body;
-  const token = req.cookies.jwt;
 
-  if (token) {
     try {
       const result = await getDiscountsByAd(id);
       res.status(200).json(result);
@@ -701,11 +699,7 @@ const getDiscounts = asyncHandler(async (req, res) => {
         error: "Not authorized, token failed",
       });
     }
-  } else {
-    res.status(401).json({
-      error: "Not authorized, no token",
-    });
-  }
+   
 });
 
 const DeleteAdvertisment = asyncHandler(async (req, res) => {
