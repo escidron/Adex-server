@@ -505,15 +505,14 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   if(ad_duration_type == 1){
     availableDateFormatted = ''
   }else{
-    dateFormatted.from = ''
-    dateFormatted.to = ''
+    dateFormatted = ''
   }
   const query = `
     UPDATE advertisement SET
       title = ${escapeText(title)},
       description = ${escapeText(description)},
-      start_date = ${dateFormatted.from ? `'${dateFormatted.from}'` : null}, 
-      end_date = ${dateFormatted.to ? `'${dateFormatted.to}'` : null}, 
+      start_date = ${dateFormatted? `'${dateFormatted.from}'` : null}, 
+      end_date = ${dateFormatted ? `'${dateFormatted.to}'` : null}, 
       first_available_date = ${availableDateFormatted ? `'${availableDateFormatted}'` : null}, 
       price = ${price},
       image = '${updateImages}',
