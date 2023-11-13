@@ -77,14 +77,14 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 const getMyAdvertisement = asyncHandler(async (req, res) => {
   const { id, notificationId } = req.body;
   const token = req.cookies.jwt;
-  console.log('getMyAdvertisement',token)
+  console.log("getMyAdvertisement", token);
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('decoded',decoded)
+      console.log("decoded", decoded);
       const userId = decoded.userId;
       const result = await getAdvertisementByCreator(userId, id);
-      console.log('result',result)
+      console.log("result", result);
 
       if (result.length == 0) {
         res.status(401).json({
@@ -193,7 +193,17 @@ const getSharedListing = asyncHandler(async (req, res) => {
 const getSellerListings = asyncHandler(async (req, res) => {
   const { id } = req.body;
   try {
+    
+    const sellers = await getUsersById(id);
+    let sellerInfo = sellers[0];
+    let image = "";
+    if (sellerInfo.profile_image) {
+      image = getImageBase64(sellerInfo.profile_image);
+    }
+    sellerInfo = {...sellerInfo,image:image}
+
     const result = await getAdvertisementByCreator(id);
+    
     if (result.length == 0) {
       res.status(401).json({
         error: "Advertisement does not exists",
@@ -208,13 +218,18 @@ const getSellerListings = asyncHandler(async (req, res) => {
         imageArray.map((image) => {
           images.push({ data_url: getImageBase64(image) });
         });
+
         return {
           ...advertisement,
           image: images,
           shared_image: imageArray[0],
         };
       });
-      res.status(200).json(advertisementsWithImages);
+      res
+        .status(200).json({
+          listings: advertisementsWithImages,
+          profile_info: sellerInfo
+        });
     }
   } catch (error) {
     console.error(error);
@@ -502,18 +517,20 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     };
   }
 
-  if(ad_duration_type == 1){
-    availableDateFormatted = ''
-  }else{
-    dateFormatted = ''
+  if (ad_duration_type == 1) {
+    availableDateFormatted = "";
+  } else {
+    dateFormatted = "";
   }
   const query = `
     UPDATE advertisement SET
       title = ${escapeText(title)},
       description = ${escapeText(description)},
-      start_date = ${dateFormatted? `'${dateFormatted.from}'` : null}, 
+      start_date = ${dateFormatted ? `'${dateFormatted.from}'` : null}, 
       end_date = ${dateFormatted ? `'${dateFormatted.to}'` : null}, 
-      first_available_date = ${availableDateFormatted ? `'${availableDateFormatted}'` : null}, 
+      first_available_date = ${
+        availableDateFormatted ? `'${availableDateFormatted}'` : null
+      }, 
       price = ${price},
       image = '${updateImages}',
       address = ${escapeText(address)},
@@ -529,7 +546,6 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     WHERE id = ${id}
   `;
   updateAdvertismentById(query);
-
 
   const allDiscounts = await getDiscountsByAd(id);
   discounts.map((item) => {
@@ -690,15 +706,14 @@ const getChatInfo = asyncHandler(async (req, res) => {
 const getDiscounts = asyncHandler(async (req, res) => {
   const { id } = req.body;
 
-    try {
-      const result = await getDiscountsByAd(id);
-      res.status(200).json(result);
-    } catch (error) {
-      res.status(401).json({
-        error: "Not authorized, token failed",
-      });
-    }
-   
+  try {
+    const result = await getDiscountsByAd(id);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
 });
 
 const DeleteAdvertisment = asyncHandler(async (req, res) => {
