@@ -191,9 +191,9 @@ const getSharedListing = asyncHandler(async (req, res) => {
   }
 });
 const getSellerListings = asyncHandler(async (req, res) => {
-  const { sellerId } = req.body;
+  const { id } = req.body;
   try {
-    const result = await getAdvertisementByCreator(sellerId);
+    const result = await getAdvertisementByCreator(id);
     if (result.length == 0) {
       res.status(401).json({
         error: "Advertisement does not exists",
