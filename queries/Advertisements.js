@@ -22,8 +22,9 @@ export async function getFilteredAdvertisements(
   const FilteredAdvertisementsQuery = `SELECT * FROM adex.advertisement where status <> '0' and price BETWEEN ${
     priceMin != "" ? priceMin : 0
   } AND ${priceMax != "" ? priceMax : 0} ${
-    type != "" ? "and category_id IN (" + types + ")" : ""
-  } ${adGroup != "" ? "and created_by_type=" + adGroup : ""}`;
+    type  ? "and category_id IN (" + types + ")" : ""
+  } ${adGroup  ? "and created_by_type=" + adGroup : ""}`;
+ 
   return new Promise((resolve, reject) => {
     db.query(FilteredAdvertisementsQuery, (err, result) => {
       if (err) {

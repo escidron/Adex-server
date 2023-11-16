@@ -32,11 +32,12 @@ import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import sendEmail from "../utils/sendEmail.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 import escapeText from "../utils/escapeText.js";
+import { findKeyWords } from "../utils/findKeyWords.js";
 
 dotenv.config();
 
 const getAdvertisement = asyncHandler(async (req, res) => {
-  const { type, adGroup, priceMin, priceMax } = req.body;
+  const { radius, type, adGroup, priceMin, priceMax, key } = req.body;
 
   try {
     const result = await getFilteredAdvertisements(
@@ -50,18 +51,33 @@ const getAdvertisement = asyncHandler(async (req, res) => {
         data: [],
       });
     } else {
-      const advertisementsWithImages = result.map((advertisement) => {
-        const images = [];
+      const advertisementsFiltered = [];
+      result.map((advertisement) => {
 
-        const imageArray = advertisement.image.split(";");
-        imageArray.map((image) => {
-          images.push({ data_url: getImageBase64(image) });
-        });
-        return {
-          ...advertisement,
-          image: images,
-        };
+        if ( findKeyWords(advertisement,key) ) {
+          advertisementsFiltered.push(advertisement);
+        }
       });
+
+      let advertisementsWithImages;
+      if (advertisementsFiltered.length > 0) {
+        advertisementsWithImages = advertisementsFiltered.map(
+          (advertisement) => {
+            const images = [];
+
+            const imageArray = advertisement.image.split(";");
+            imageArray.map((image) => {
+              images.push({ data_url: getImageBase64(image) });
+            });
+            return {
+              ...advertisement,
+              image: images,
+            };
+          }
+        );
+      } else {
+        advertisementsWithImages = [];
+      }
       res.status(200).json({
         data: advertisementsWithImages,
       });
@@ -193,17 +209,16 @@ const getSharedListing = asyncHandler(async (req, res) => {
 const getSellerListings = asyncHandler(async (req, res) => {
   const { id } = req.body;
   try {
-    
     const sellers = await getUsersById(id);
     let sellerInfo = sellers[0];
     let image = "";
     if (sellerInfo.profile_image) {
       image = getImageBase64(sellerInfo.profile_image);
     }
-    sellerInfo = {...sellerInfo,image:image}
+    sellerInfo = { ...sellerInfo, image: image };
 
     const result = await getAdvertisementByCreator(id);
-    
+
     if (result.length == 0) {
       res.status(401).json({
         error: "Advertisement does not exists",
@@ -225,11 +240,10 @@ const getSellerListings = asyncHandler(async (req, res) => {
           shared_image: imageArray[0],
         };
       });
-      res
-        .status(200).json({
-          listings: advertisementsWithImages,
-          profile_info: sellerInfo
-        });
+      res.status(200).json({
+        listings: advertisementsWithImages,
+        profile_info: sellerInfo,
+      });
     }
   } catch (error) {
     console.error(error);
