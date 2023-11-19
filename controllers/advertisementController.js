@@ -21,6 +21,7 @@ import {
   updateDraft,
   DraftToAdvertisement,
   deleteDiscountById,
+  getAllAdvertisements,
 } from "../queries/Advertisements.js";
 import {
   updateNotificationStatus,
@@ -40,12 +41,13 @@ const getAdvertisement = asyncHandler(async (req, res) => {
   const { radius, type, adGroup, priceMin, priceMax, key } = req.body;
 
   try {
-    const result = await getFilteredAdvertisements(
-      priceMin,
-      priceMax,
-      type,
-      adGroup
-    );
+    // const result = await getFilteredAdvertisements(
+    //   priceMin,
+    //   priceMax,
+    //   type,
+    //   adGroup
+    // );
+    const result = await getAllAdvertisements()
     if (result.length == 0) {
       res.status(200).json({
         data: [],

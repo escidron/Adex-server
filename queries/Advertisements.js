@@ -34,6 +34,21 @@ export async function getFilteredAdvertisements(
     });
   });
 }
+//add the id of the user is filtering so does not return his listings
+export async function getAllAdvertisements() {
+
+  const allAdvertisementsQuery = `SELECT * FROM adex.advertisement where status <> '0'`;
+ 
+  return new Promise((resolve, reject) => {
+    db.query(allAdvertisementsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 
 export async function getAdvertisementByCreator(userId, id) {
   const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and created_by = ${userId} ${
