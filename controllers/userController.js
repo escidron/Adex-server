@@ -8,7 +8,7 @@ import * as fs from "fs";
 import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
-import { getCompaniesQuery } from "../queries/Companies.js";
+import { getCompaniesQuery, removeCompanyById } from "../queries/Companies.js";
 import dotenv from "dotenv";
 import {
   getUsersByEmail,
@@ -1110,6 +1110,22 @@ const getCompanies = asyncHandler(async (req, res) => {
   }
 });
 
+const removeCompany = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+
+  try {
+    removeCompanyById(id);
+    res.status(200).json({
+      message: "company removed successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
 const getCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
@@ -1429,4 +1445,5 @@ export {
   testRoute,
   sendMessage,
   removeGalleryImage,
+  removeCompany
 };

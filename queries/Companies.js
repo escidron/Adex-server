@@ -72,6 +72,19 @@ export async function getCompanyQuery(id) {
   });
 }
 
+export async function removeCompanyById(id) {
+  const removeComanyQuery = `DELETE FROM companies where id = ${id}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(removeComanyQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 export async function addGalleryImages(id,userId,images,imagesGroup) {
   
   const createdAt = new Date();
