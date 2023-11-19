@@ -33,37 +33,23 @@ import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import sendEmail from "../utils/sendEmail.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 import escapeText from "../utils/escapeText.js";
-import { findKeyWords } from "../utils/findKeyWords.js";
 
 dotenv.config();
 
 const getAdvertisement = asyncHandler(async (req, res) => {
-  const { radius, type, adGroup, priceMin, priceMax, key } = req.body;
 
   try {
-    // const result = await getFilteredAdvertisements(
-    //   priceMin,
-    //   priceMax,
-    //   type,
-    //   adGroup
-    // );
+
     const result = await getAllAdvertisements()
     if (result.length == 0) {
       res.status(200).json({
         data: [],
       });
     } else {
-      const advertisementsFiltered = [];
-      result.map((advertisement) => {
-
-        if ( findKeyWords(advertisement,key) ) {
-          advertisementsFiltered.push(advertisement);
-        }
-      });
 
       let advertisementsWithImages;
-      if (advertisementsFiltered.length > 0) {
-        advertisementsWithImages = advertisementsFiltered.map(
+      if (result.length > 0) {
+        advertisementsWithImages = result.map(
           (advertisement) => {
             const images = [];
 
