@@ -37,7 +37,7 @@ import escapeText from "../utils/escapeText.js";
 dotenv.config();
 
 const getAdvertisement = asyncHandler(async (req, res) => {
-
+console.log('requesting data')
   try {
 
     const result = await getAllAdvertisements()
@@ -46,6 +46,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
         data: [],
       });
     } else {
+      console.log('data returned and start processing')
 
       let advertisementsWithImages;
       if (result.length > 0) {
@@ -66,6 +67,8 @@ const getAdvertisement = asyncHandler(async (req, res) => {
       } else {
         advertisementsWithImages = [];
       }
+      console.log('data processed')
+
       res.status(200).json({
         data: advertisementsWithImages,
       });
@@ -81,14 +84,11 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 const getMyAdvertisement = asyncHandler(async (req, res) => {
   const { id, notificationId } = req.body;
   const token = req.cookies.jwt;
-  console.log("getMyAdvertisement", token);
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("decoded", decoded);
       const userId = decoded.userId;
       const result = await getAdvertisementByCreator(userId, id);
-      console.log("result", result);
 
       if (result.length == 0) {
         res.status(401).json({
