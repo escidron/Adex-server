@@ -219,6 +219,10 @@ const GetCards = asyncHandler(async (req, res) => {
         res.status(200).json({
           data: cards,
         });
+      }else{
+        res.status(200).json({
+          data: [],
+        });
       }
     } catch (error) {
       console.error(error);
