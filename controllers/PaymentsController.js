@@ -360,22 +360,17 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   const createdAt = new Date();
   const formattedUpdatedAt = getFormattedDate(createdAt);
 
-  let startDate = new Date(start_date.substring(0, 10));
+  const startDate = new Date( start_date );
   const startDateFormatted = getFormattedDate(startDate);
 
-  let endDate = new Date(startDate);
+  let endDate = new Date(start_date);
 
-  if (data.ad_duration_type == "1") {
+  if (data.ad_duration_type == "0") {
     endDate.setMonth(startDate.getMonth() + duration);
-  } else if (data.ad_duration_type == "2") {
-    endDate.setMonth(startDate.getMonth() + duration * 3);
-  } else if (data.ad_duration_type == "3") {
-    endDate.setFullYear(startDate.getFullYear() + duration);
-  } else if (data.ad_duration_type == "0") {
+  } else {
     endDate.setMonth(startDate.getMonth() + 1);
-  }
 
-  endDate = endDate.toISOString().substring(0, 10);
+  }
 
   endDate = new Date(endDate);
   const endDateFormatted = getFormattedDate(endDate);
@@ -539,29 +534,28 @@ const RequestReserve = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
-
-  let startDate = "";
-  if (data.category_id == 17) {
-    startDate = new Date();
-  } else {
-    startDate = new Date(start_date.substring(0, 10));
-  }
-
-  const startDateFormatted = getFormattedDate(startDate);
-
   const currentDate = new Date();
   const createdAtFormatted = getFormattedDate(currentDate);
 
-  let endDate = new Date(startDate);
+  // let startDate = "";
+  // if (data.category_id == 17) {
+  //   startDate = new Date();
+  // } else {
+  //   startDate = new Date(start_date.substring(0, 10));
+  // }
 
-  if (data.ad_duration_type == "1") {
+  const startDate = new Date( start_date );
+  const startDateFormatted = getFormattedDate(startDate);
+
+  let endDate = new Date(start_date);
+
+  if (data.ad_duration_type == "0") {
     endDate.setMonth(startDate.getMonth() + duration);
-  } else if (data.ad_duration_type == "2") {
-    endDate.setMonth(startDate.getMonth() + duration * 3);
-  } else if (data.ad_duration_type == "3") {
-    endDate.setFullYear(startDate.getFullYear() + duration);
+  } else {
+    endDate.setMonth(startDate.getMonth() + 1);
+
   }
-  endDate = endDate.toISOString().substring(0, 10);
+  //endDate = endDate.toISOString().substring(0, 10);
 
   endDate = new Date(endDate);
   const endDateFormatted = getFormattedDate(endDate);
@@ -574,20 +568,20 @@ const RequestReserve = asyncHandler(async (req, res) => {
         status = 4,
         start_date = '${startDateFormatted}',
         end_date = '${endDateFormatted}',
-        duration = ${duration},
+        ${data.ad_duration_type == '0' ? `duration = ${duration},` : data.ad_duration_type == '2' ? `units = ${duration},` : ''}
         requested_by = ${userId}
         WHERE id = ${data.id}
     `;
       const result = await updateAdvertismentById(queryUpDateAdStatus);
       insertUserNotifications(
-        data.created_by,
+        data.seller_id,
         "Booking Request",
         "You have a booking request",
         createdAtFormatted,
         `/my-listing?id=${data.id}`
       );
 
-      const createdByUser = await getUsersById(data.created_by);
+      const createdByUser = await getUsersById(data.seller_id);
       const sellerName = createdByUser[0].name;
 
       const requestedByUser = await getUsersById(userId);

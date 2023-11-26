@@ -151,7 +151,7 @@ export async function insertAdvertisement(
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
       '${data.units ? data.units : 0}',
-      '${data.per_unit_price}',
+      ${data.per_unit_price},
       '${product.id}',
       '${price.id}',
       '${userType}',
