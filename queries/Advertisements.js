@@ -77,6 +77,18 @@ export async function getAdvertisementById(id) {
     });
   });
 }
+export async function getPendingBookings(userId) {
+  const PendingBookingsQuery = `SELECT * FROM adex.advertisement where status = '4' and requested_by = ${userId}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(PendingBookingsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
 
 export async function getAdvertisementAndBuyers(userId) {
   const advertisementAndBuyersQuery = `

@@ -22,6 +22,7 @@ import {
   DraftToAdvertisement,
   deleteDiscountById,
   getAllAdvertisements,
+  getPendingBookings,
 } from "../queries/Advertisements.js";
 import {
   updateNotificationStatus,
@@ -279,6 +280,50 @@ const getMyBookings = asyncHandler(async (req, res) => {
             data: advertisementsWithImages,
           });
         }
+        res.status(200).json({
+          data: advertisementsWithImages,
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const getPendingListings = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+      const result = await getPendingBookings(userId);
+      
+      if (result.length == 0) {
+        res.status(200).json({
+          data: "",
+        });
+      } else {
+        // Add base64 image to each advertisement object
+        const advertisementsWithImages = result.map((advertisement) => {
+          const images = [];
+
+          const imageArray = advertisement.image.split(";");
+          imageArray.map((image) => {
+            images.push({ data_url: getImageBase64(image) });
+          });
+          return {
+            ...advertisement,
+            image: images,
+          };
+        });
         res.status(200).json({
           data: advertisementsWithImages,
         });
@@ -1021,4 +1066,5 @@ export {
   createDraft,
   getDraft,
   deleteDiscount,
+  getPendingListings
 };

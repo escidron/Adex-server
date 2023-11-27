@@ -14,7 +14,8 @@ getSharedListing,
 getSellerListings,
 createDraft,
 getDraft,
-deleteDiscount
+deleteDiscount,
+getPendingListings
 } from '../controllers/advertisementController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -34,5 +35,6 @@ router.post('/delete-discount', deleteDiscount);
 router.post('/shared-listing', getSharedListing);
 router.post('/seller-listings', getSellerListings);
 router.get('/get-draft', getDraft);
+router.get('/get-pending-bookings', getPendingListings);
 
 export default router;
