@@ -461,7 +461,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         SET status = 2,
         start_date = '${startDateFormatted}',
         end_date = '${endDateFormatted}',
-        duration = '${duration}'
+        duration = '${duration ? duration : 1}'
         WHERE id = ${data.id}
     `;
     updateAdvertismentById(queryUpDateAdStatus);
