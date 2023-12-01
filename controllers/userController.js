@@ -1353,6 +1353,9 @@ const sendMessage = asyncHandler(async (req, res) => {
         `/messages?key=${advertisement_id}${seller_id}${buyer_id}`,
         `${advertisement_id}${seller_id}${buyer_id}`
       );
+      res.status(200).json({
+        message: "MESSAGE SENDED",
+      });
     } catch (error) {
       console.error(error);
       res.status(401).json({

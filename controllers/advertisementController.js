@@ -38,37 +38,34 @@ import escapeText from "../utils/escapeText.js";
 dotenv.config();
 
 const getAdvertisement = asyncHandler(async (req, res) => {
-console.log('requesting data')
+  console.log("requesting data");
   try {
-
-    const result = await getAllAdvertisements()
+    const result = await getAllAdvertisements();
     if (result.length == 0) {
       res.status(200).json({
         data: [],
       });
     } else {
-      console.log('data returned and start processing')
+      console.log("data returned and start processing");
 
       let advertisementsWithImages;
       if (result.length > 0) {
-        advertisementsWithImages = result.map(
-          (advertisement) => {
-            const images = [];
+        advertisementsWithImages = result.map((advertisement) => {
+          const images = [];
 
-            const imageArray = advertisement.image.split(";");
-            imageArray.map((image) => {
-              images.push({ data_url: getImageBase64(image) });
-            });
-            return {
-              ...advertisement,
-              image: images,
-            };
-          }
-        );
+          const imageArray = advertisement.image.split(";");
+          imageArray.map((image) => {
+            images.push({ data_url: getImageBase64(image) });
+          });
+          return {
+            ...advertisement,
+            image: images,
+          };
+        });
       } else {
         advertisementsWithImages = [];
       }
-      console.log('data processed')
+      console.log("data processed");
 
       res.status(200).json({
         data: advertisementsWithImages,
@@ -93,7 +90,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
 
       if (result.length == 0) {
         res.status(200).json({
-          data: []
+          data: [],
         });
       } else {
         // Add base64 image to each advertisement object
@@ -112,13 +109,17 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
         });
         const status = {
           all: 0,
+          draft: 0,
           available: 0,
           running: 0,
           finished: 0,
           pending: 0,
         };
         advertisementsWithImages.map((item) => {
-          if (item.status == "1") {
+          if (item.status == "0") {
+            status.draft++;
+            status.all++;
+          } else if (item.status == "1") {
             status.available++;
             status.all++;
           } else if (item.status == "2") {
@@ -305,7 +306,7 @@ const getPendingListings = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getPendingBookings(userId);
-      
+
       if (result.length == 0) {
         res.status(200).json({
           data: "",
@@ -1066,5 +1067,5 @@ export {
   createDraft,
   getDraft,
   deleteDiscount,
-  getPendingListings
+  getPendingListings,
 };

@@ -159,7 +159,7 @@ export async function insertAdvertisement(
       '${data.lat}',
       '${data.long}',
       '${data.ad_duration_type ? data.ad_duration_type : 0}',
-      '1',
+      '${data.has_payout_method ? '1' : '0'}',
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
       '${data.units ? data.units : 0}',
