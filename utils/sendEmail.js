@@ -5,7 +5,7 @@ export default function sendEmail (sendTo,subject,template){
         service: 'gmail',
         auth: {
           user: 'eduardosanchezcidron@gmail.com',
-          pass: 'tdtetpgbvfzelfey'
+          pass: 'drtmmfzofbofyhpu'
         }
       });
 
