@@ -578,7 +578,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
         "Booking Request",
         "You have a booking request",
         createdAtFormatted,
-        `/my-listing?id=${data.id}`
+        `listing/view/${data.id}`
       );
 
       const createdByUser = await getUsersById(data.seller_id);

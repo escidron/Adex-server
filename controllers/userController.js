@@ -311,7 +311,7 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
           },
           business_profile: {
             mcc: 7299,
-            url: "www." + user.first_name,
+            url: "www." + user.first_name.replace(/\s/g, '').toLowerCase(),
           },
           tos_acceptance: {
             date: currentDate,
