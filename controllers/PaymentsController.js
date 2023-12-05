@@ -473,8 +473,8 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         : "One of your listing was booked, see more details",
       formattedUpdatedAt,
       data.created_by == userId
-        ? `/my-booking?id=${data.id}`
-        : `/my-listing?id=${data.id}`
+        ? `/my-booking/${data.id}`
+        : `/listing/view/${data.id}`
     );
 
     ////////////////////////////////////////////////////////////////////////
@@ -670,7 +670,7 @@ const DeclineRequest = asyncHandler(async (req, res) => {
         "Booking Request rejected",
         "Your booking request was rejected, see more details",
         createdAtFormatted,
-        `/my-listing?id=${id}`
+        `/market-place/details?id=${id}`
       );
 
       const results = await getUsersById(requestedBy);

@@ -311,7 +311,7 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
           },
           business_profile: {
             mcc: 7299,
-            url: "www." + user.first_name.replace(/\s/g, '').toLowerCase(),
+            url: "www." + user.first_name.replace(/\s/g, "").toLowerCase(),
           },
           tos_acceptance: {
             date: currentDate,
@@ -1303,13 +1303,17 @@ const getImageGallery = asyncHandler(async (req, res) => {
 
 const clearUserNotifications = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { notifications } = req.body;
+  const { notifications, notificationId } = req.body;
 
   if (token) {
     try {
-      notifications.map((notification) => {
-        updateNotificationStatus(notification.id);
-      });
+      if (notificationId) {
+        updateNotificationStatus(notificationId);
+      } else {
+        notifications.map((notification) => {
+          updateNotificationStatus(notification.id);
+        });
+      }
 
       res.status(200).json({
         message: "Notifications readed",
@@ -1448,5 +1452,5 @@ export {
   testRoute,
   sendMessage,
   removeGalleryImage,
-  removeCompany
+  removeCompany,
 };
