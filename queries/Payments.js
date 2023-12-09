@@ -98,7 +98,8 @@ export async function insertAccount(
   userId,
   bankAccount,
   formattedCreatedAt,
-  isDefault
+  isDefault,
+  companyId
 ) {
   const insertAccountQuery = `
   INSERT INTO external_bank_accounts (
@@ -106,13 +107,15 @@ export async function insertAccount(
     external_account_id,
     is_default,
     is_active,
-    created_at
+    created_at,
+    company_id
   ) VALUES (
     '${userId}',
     '${bankAccount.id}',
     ${isDefault ? '1' : '0'},
     '1',
-    '${formattedCreatedAt}'
+    '${formattedCreatedAt}',
+    ${companyId ? companyId : null}
   )
 `;
   return new Promise((resolve, reject) => {

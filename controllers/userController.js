@@ -181,11 +181,12 @@ const logoutUser = (req, res) => {
 
 const getSellerProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
+  const { companyId } = req.body
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getSeller(userId);
+      const result = await getSeller(userId, companyId);
       const user = await getUsersById(userId);
       const userType = user[0].user_type;
       let seller = {};
@@ -438,6 +439,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
     ownerState,
     ownerZip,
     verificationImage,
+    companyId
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -474,7 +476,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
         },
       });
 
-      const seller = await getSeller(userId);
+      const seller = await getSeller(userId, companyId);
 
       if (seller.length > 0) {
         const sellerStripeAccount = seller[0].stripe_account;
@@ -596,7 +598,8 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
               userId,
               account.id,
               formattedCreatedAt,
-              verifiedAccount
+              verifiedAccount,
+              companyId
             );
             res.status(200).json({ account: account.id });
           } else {
@@ -605,7 +608,8 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
               userId,
               account.id,
               formattedCreatedAt,
-              verifiedAccount
+              verifiedAccount,
+              companyId
             );
             res.status(400).json({
               error: error ? error : "Something went wrong, please try again.",
@@ -753,11 +757,12 @@ const testRoute = asyncHandler(async (req, res) => {
 
 const getExternalAccount = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
+  const { companyId } = req.body
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getSeller(userId);
+      const result = await getSeller(userId,companyId);
       if (result.length == 0) {
         res.status(200).json({
           data: "",

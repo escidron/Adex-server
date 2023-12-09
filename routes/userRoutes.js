@@ -40,7 +40,7 @@ router.post('/create-company-connect-account',createCompanyConnectAccount);
 router.post('/update-user-profile',updateUserProfile);
 router.post('/notifications',getMyNotifications);
 router.get('/autologin', autoLogin);
-router.get('/external-account', getExternalAccount);
+router.post('/external-account', getExternalAccount);
 router.get('/user-profile', getUserProfile);
 router.post('/user-profile', getUserProfile);
 router.post('/reset-password', resetPassword);
@@ -56,9 +56,8 @@ router.post('/get-image-gallery', getImageGallery);
 router.post('/clear-notifications', clearUserNotifications);
 router.post('/send-message', sendMessage);
 router.post('/remove-gallery-image', removeGalleryImage);
-router
-  .route('/seller-profile')
-  .get(protect, getSellerProfile)
+router.post('/seller-profile', getSellerProfile);
+//router.route('/seller-profile').get(protect, getSellerProfile)
 //   .put(protect, updateUserAddress);
 
 router.post('/test', testRoute);

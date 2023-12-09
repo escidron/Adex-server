@@ -167,8 +167,8 @@ export async function resetUserPassword(hashedPass, email) {
 }
 
 //seller queries
-export async function getSeller(id) {
-  const sellerQuery = `SELECT * FROM sellers WHERE user_id = '${id}'`;
+export async function getSeller(id,companyId) {
+  const sellerQuery = `SELECT * FROM sellers WHERE user_id = '${id}' ${companyId ? `and company_id = ${companyId}` : ''}`;
   return new Promise((resolve, reject) => {
     db.query(sellerQuery, (err, result) => {
       if (err) {
@@ -179,18 +179,20 @@ export async function getSeller(id) {
   });
 }
 
-export async function insertSeller(id, stripeAccount, formattedCreatedAt,verifiedAccount) {
+export async function insertSeller(id, stripeAccount, formattedCreatedAt,verifiedAccount,companyId) {
   const insertSellerQuery = `
     INSERT INTO sellers (
       user_id,
       stripe_account,
       verified_identity,
-      created_at
+      created_at,
+      company_id
     ) VALUES (
       '${id}',
       '${stripeAccount}',
       '${verifiedAccount }',
-      '${formattedCreatedAt}'
+      '${formattedCreatedAt}',
+      ${companyId ? companyId : null}
     )
   `;
   return new Promise((resolve, reject) => {
@@ -203,13 +205,13 @@ export async function insertSeller(id, stripeAccount, formattedCreatedAt,verifie
   });
 }
 
-export async function updateSeller(userId, bankAccount, formattedCreatedAt) {
+export async function updateSeller(userId, bankAccount, formattedCreatedAt, companyId) {
   const updateSellerQuery = `
   UPDATE sellers
   SET 
   updated_at = '${formattedCreatedAt}',
   external_account_id = '${bankAccount.id}'
-  WHERE user_id = ${userId}
+  WHERE user_id = ${userId} ${companyId ? `and company_id = ${companyId}` : ''}
 `;
   return new Promise((resolve, reject) => {
     db.query(updateSellerQuery, (err, result) => {

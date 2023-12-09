@@ -124,7 +124,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
   //get userID
-  const { routingNumber, accountNumber, stripeAccount, bankAccountName } =
+  const { routingNumber, accountNumber, stripeAccount, companyId } =
     req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -159,9 +159,10 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
       userId,
       bankAccount,
       formattedCreatedAt,
-      isDefault
+      isDefault,
+      companyId
     );
-    updateSeller(userId, bankAccount, formattedCreatedAt);
+    updateSeller(userId, bankAccount, formattedCreatedAt, companyId);
 
     const query = `
       UPDATE advertisement SET
