@@ -242,12 +242,12 @@ const GetCards = asyncHandler(async (req, res) => {
 const GetBankAccounts = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-
+  const { companyId } = req.body
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const seller = await getSeller(userId)
+      const seller = await getSeller(userId, companyId)
       if(seller.length > 0){
         const accountId = seller[0].stripe_account
         const bankAccounts = await stripe.accounts.listExternalAccounts(
