@@ -407,8 +407,8 @@ export async function getAllChatMessages(userId) {
 }
 
 //Buyers queries
-export async function getBuyer(userId) {
-  const getBuyerQuery = `SELECT * FROM adex.buyers where user_id = ${userId}`;
+export async function getBuyer(userId, companyId) {
+  const getBuyerQuery = `SELECT * FROM adex.buyers where user_id = ${userId} ${companyId ? `and company_id = ${companyId}` : ''}`;
 
   return new Promise((resolve, reject) => {
     db.query(getBuyerQuery, (err, result) => {
@@ -420,14 +420,14 @@ export async function getBuyer(userId) {
   });
 }
 
-export async function updateBuyer(userId, cardId) {
+export async function updateBuyer(userId, cardId, companyId) {
   const updatedAt = new Date();
   const formattedUpdatedAt = getFormattedDate(updatedAt);
 
   const updateBuyerQuery = `
         UPDATE adex.buyers
         SET default_card = '${cardId}',updated_at= '${formattedUpdatedAt}'
-        WHERE user_id = ${userId}
+        WHERE user_id = ${userId} ${companyId ? `and company_id = ${companyId}` : ''}
       `;
   return new Promise((resolve, reject) => {
     db.query(updateBuyerQuery, (err, result) => {
@@ -445,7 +445,8 @@ export async function insertBuyer(
   fullName,
   email,
   cardId,
-  formattedCreatedAt
+  formattedCreatedAt,
+  companyId
 ) {
   const insertbuyerQuery = `
   INSERT INTO buyers (
@@ -454,14 +455,16 @@ export async function insertBuyer(
     name,
     email,
     created_at,
-    default_card
+    default_card,
+    company_id
   ) VALUES (
     '${userId}',
     '${customer.id}',
     '${fullName}',
     '${email}',
     '${formattedCreatedAt}',
-    '${cardId}'
+    '${cardId}',
+    ${companyId ? companyId : null}
 
   )
 `;

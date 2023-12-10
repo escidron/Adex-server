@@ -44,7 +44,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const CreateCustomer = asyncHandler(async (req, res) => {
   //get userID
-  const { cardId, nameOnCard } = req.body;
+  const { cardId, nameOnCard, companyId } = req.body;
 
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -75,10 +75,11 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     cardId,
     nameOnCard,
     formattedCreatedAt,
-    isDefault
+    isDefault,
+    companyId
   );
 
-  const results = await getBuyer(userId);
+  const results = await getBuyer(userId, companyId);
 
   if (results.length > 0) {
     customerId = results[0].customer_id;
@@ -95,7 +96,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       },
     });
 
-    updateBuyer(userId, cardId);
+    updateBuyer(userId, cardId, companyId);
   } else {
     const customer = await stripe.customers.create({
       description: fullName,
@@ -114,7 +115,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       },
     });
 
-    insertBuyer(userId, customer, fullName, email, cardId, formattedCreatedAt);
+    insertBuyer(userId, customer, fullName, email, cardId, formattedCreatedAt, companyId);
   }
 
   res.status(200).json({
@@ -184,14 +185,14 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 const GetCards = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-
+  const { companyId } = req.body
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const storagedCards = await getCard(userId);
       
-      const buyer = await getBuyer(userId)
+      const buyer = await getBuyer(userId, companyId)
       if(buyer.length > 0){
 
         const customertId = buyer[0].customer_id
@@ -353,7 +354,7 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 });
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
-  const { data, start_date, duration, current_discount } = req.body;
+  const { data, start_date, duration, current_discount, companyId } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
@@ -378,7 +379,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 
   let sellerAccount = "";
   //get the seller connected stripe account
-  const result = await getSeller(data.created_by);
+  const result = await getSeller(data.created_by,data.company_id);
   sellerAccount = result[0].stripe_account;
 
   //get the buyer info
@@ -529,7 +530,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 });
 
 const RequestReserve = asyncHandler(async (req, res) => {
-  const { data, start_date, duration } = req.body;
+  const { data, start_date, duration,companyId } = req.body;
 
   //get user id
   const token = req.cookies.jwt;
@@ -537,13 +538,6 @@ const RequestReserve = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
   const currentDate = new Date();
   const createdAtFormatted = getFormattedDate(currentDate);
-
-  // let startDate = "";
-  // if (data.category_id == 17) {
-  //   startDate = new Date();
-  // } else {
-  //   startDate = new Date(start_date.substring(0, 10));
-  // }
 
   const startDate = new Date( start_date );
   const startDateFormatted = getFormattedDate(startDate);
@@ -556,7 +550,6 @@ const RequestReserve = asyncHandler(async (req, res) => {
     endDate.setMonth(startDate.getMonth() + 1);
 
   }
-  //endDate = endDate.toISOString().substring(0, 10);
 
   endDate = new Date(endDate);
   const endDateFormatted = getFormattedDate(endDate);
@@ -570,7 +563,8 @@ const RequestReserve = asyncHandler(async (req, res) => {
         start_date = '${startDateFormatted}',
         end_date = '${endDateFormatted}',
         ${data.ad_duration_type == '0' ? `duration = ${duration},` : data.ad_duration_type == '2' ? `units = ${duration},` : ''}
-        requested_by = ${userId}
+        requested_by = ${userId},
+        requested_by_company = ${companyId ? companyId : null}
         WHERE id = ${data.id}
     `;
       const result = await updateAdvertismentById(queryUpDateAdStatus);
@@ -662,7 +656,8 @@ const DeclineRequest = asyncHandler(async (req, res) => {
         start_date = ${null},
         end_date = ${null},
         duration = 0,
-        requested_by = ''
+        requested_by = ${null},
+        requested_by_company = ${null}
         WHERE id = ${id}
     `;
       const result = await updateAdvertismentById(queryUpDateAdStatus);

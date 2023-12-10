@@ -309,7 +309,7 @@ const getPendingListings = asyncHandler(async (req, res) => {
 
       if (result.length == 0) {
         res.status(200).json({
-          data: "",
+          data: [],
         });
       } else {
         // Add base64 image to each advertisement object

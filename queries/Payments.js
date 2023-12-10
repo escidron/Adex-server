@@ -20,7 +20,8 @@ export async function insertCard(
   cardId,
   nameOnCard,
   formattedCreatedAt,
-  isDefault
+  isDefault,
+  companyId
 ) {
   const queryInsertCard = `
     INSERT INTO cards (
@@ -29,14 +30,16 @@ export async function insertCard(
       name,
       is_default,
       is_active,
-      created_at
+      created_at,
+      company_id
     ) VALUES (
       '${userId}',
       '${cardId}',
       '${nameOnCard}',
       ${isDefault ? '1' : '0'},
       '1',
-      '${formattedCreatedAt}'
+      '${formattedCreatedAt}',
+      ${companyId ? companyId : null}
 
     )
   `;
