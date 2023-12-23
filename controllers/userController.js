@@ -34,6 +34,8 @@ import {
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import { verifyIdentity } from "../utils/VerifyIdentity.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
+import getImageNameFromLink from "../utils/getImageNameFromLink.js";
+import getImageNameFromBase64 from "../utils/getImageNameFromBase64.js";
 
 dotenv.config();
 
@@ -180,7 +182,7 @@ const logoutUser = (req, res) => {
 
 const getSellerProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { companyId } = req.body
+  const { companyId } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -438,7 +440,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
     ownerState,
     ownerZip,
     verificationImage,
-    companyId
+    companyId,
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -756,12 +758,12 @@ const testRoute = asyncHandler(async (req, res) => {
 
 const getExternalAccount = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { companyId } = req.body
+  const { companyId } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getSeller(userId,companyId);
+      const result = await getSeller(userId, companyId);
       if (result.length == 0) {
         res.status(200).json({
           data: "",
@@ -819,7 +821,15 @@ const getUserProfile = asyncHandler(async (req, res) => {
         const city = result[0].city;
         const cityIsPublic = result[0].city_is_public;
         const userType = result[0].user_type;
-
+        const images = result[0].image_gallery;
+        const imagesWithPath = []
+        const imageArray = images.split(";");
+        imageArray.map((image) => {
+          if (image) {
+            const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+            imagesWithPath.push({data_url:imagePath});
+          }
+        });
         let image = "";
         if (result[0].profile_image) {
           image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
@@ -841,6 +851,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
           city,
           cityIsPublic,
           userType,
+          images:imagesWithPath
         });
       }
     } catch (error) {
@@ -1053,13 +1064,14 @@ const addCompany = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const imageName = Date.now() + ".png";
-      const path = "./images/" + imageName;
-      const imgdata = image;
-      // to convert base64 format into random filename
-      const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+      let imageName = "";
 
-      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+      if (image.startsWith("http://") || image.startsWith("https://")) {
+        imageName = getImageNameFromLink(image);
+      } else if (image.startsWith("data:image/")) {
+        imageName = getImageNameFromBase64(image);
+      }
+
       insertCompany(
         userId,
         name,
@@ -1089,7 +1101,7 @@ const getCompanies = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getCompaniesQuery(userId);
+      const result = await getCompaniesQuery( userId);
 
       if (result.length > 0) {
         result.map((item, index) => {
@@ -1141,7 +1153,7 @@ const getCompany = asyncHandler(async (req, res) => {
         result.map((item, index) => {
           let image = "";
           if (item.company_logo) {
-            image = `${process.env.SERVER_IP}/images/${item.company_logo}` ;
+            image = `${process.env.SERVER_IP}/images/${item.company_logo}`;
             result[index].company_logo = image;
           }
         });
@@ -1267,7 +1279,9 @@ const getImageGallery = asyncHandler(async (req, res) => {
             imageArray = gallery.company_gallery.split(";");
             imageArray.map((image) => {
               if (image) {
-                images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
+                images.push({
+                  data_url: `${process.env.SERVER_IP}/images/${image}`,
+                });
               }
             });
             return {
@@ -1278,7 +1292,9 @@ const getImageGallery = asyncHandler(async (req, res) => {
             imageArray = gallery.image_gallery.split(";");
             imageArray.map((image) => {
               if (image) {
-                images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
+                images.push({
+                  data_url: `${process.env.SERVER_IP}/images/${image}`,
+                });
               }
             });
             return {

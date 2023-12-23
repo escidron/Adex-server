@@ -70,7 +70,8 @@ const port = process.env.PORT || 5001;
 const app = express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
-  origin: [process.env.CLIENT_IP,process.env.CLIENT_IP_MOBILE],
+  origin: [process.env.CLIENT_IP],
+  // origin: [process.env.CLIENT_IP,process.env.CLIENT_IP_MOBILE],
   credentials: true,
   exposedHeaders: ["Authorization"],
   allowedHeaders: [

@@ -346,17 +346,10 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   data.images.map((image, index) => {
     //images from user device
     if (image.file) {
-      let imageName = Date.now() + index + ".png";
-      let path = "./images/" + imageName;
-      let imgdata = image.data_url;
+      const imageName = getImageNameFromBase64(image.data_url);
       images += imageName + ";";
       imagesGroup += imageName + ";";
 
-      // to convert base64 format into random filename
-      let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
-
-      fs.writeFileSync(path, base64Data, { encoding: "base64" });
-      //images from gallery
     } else {
       const imageArray = userImages.split(";");
       imageArray.map((galleryImage) => {
