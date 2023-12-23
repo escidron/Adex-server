@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import * as fs from "fs";
 import Stripe from "stripe";
-import getImageBase64 from "../utils/getImageBase64.js";
 import { getCompanyQuery, addGalleryImages } from "../queries/Companies.js";
 import {
   getFilteredAdvertisements,
@@ -34,6 +33,7 @@ import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import sendEmail from "../utils/sendEmail.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 import escapeText from "../utils/escapeText.js";
+import { addImagesPath } from "../utils/addImagesPath.js";
 
 dotenv.config();
 
@@ -50,18 +50,7 @@ const getAdvertisement = asyncHandler(async (req, res) => {
 
       let advertisementsWithImages;
       if (result.length > 0) {
-        advertisementsWithImages = result.map((advertisement) => {
-          const images = [];
-
-          const imageArray = advertisement.image.split(";");
-          imageArray.map((image) => {
-            images.push({ data_url: getImageBase64(image) });
-          });
-          return {
-            ...advertisement,
-            image: images,
-          };
-        });
+        advertisementsWithImages = addImagesPath(result);
       } else {
         advertisementsWithImages = [];
       }
@@ -95,18 +84,8 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
       } else {
         // Add base64 image to each advertisement object
 
-        const advertisementsWithImages = result.map((advertisement) => {
-          const images = [];
+        const advertisementsWithImages = addImagesPath(result);
 
-          const imageArray = advertisement.image.split(";");
-          imageArray.map((image) => {
-            images.push({ data_url: getImageBase64(image) });
-          });
-          return {
-            ...advertisement,
-            image: images,
-          };
-        });
         const status = {
           all: 0,
           draft: 0,
@@ -177,7 +156,7 @@ const getSharedListing = asyncHandler(async (req, res) => {
 
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
-          images.push({ data_url: getImageBase64(image) });
+          images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
         });
         return {
           ...advertisement,
@@ -203,7 +182,7 @@ const getSellerListings = asyncHandler(async (req, res) => {
     let sellerInfo = sellers[0];
     let image = "";
     if (sellerInfo.profile_image) {
-      image = getImageBase64(sellerInfo.profile_image);
+      image = `${process.env.SERVER_IP}/images/${sellerInfo.profile_image}`;
     }
     sellerInfo = { ...sellerInfo, image: image };
 
@@ -221,7 +200,7 @@ const getSellerListings = asyncHandler(async (req, res) => {
 
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
-          images.push({ data_url: getImageBase64(image) });
+          images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
         });
 
         return {
@@ -263,18 +242,8 @@ const getMyBookings = asyncHandler(async (req, res) => {
         });
       } else {
         // Add base64 image to each advertisement object
-        const advertisementsWithImages = result.map((advertisement) => {
-          const images = [];
+        const advertisementsWithImages = addImagesPath(result);
 
-          const imageArray = advertisement.image.split(";");
-          imageArray.map((image) => {
-            images.push({ data_url: getImageBase64(image) });
-          });
-          return {
-            ...advertisement,
-            image: images,
-          };
-        });
         if (notificationId != undefined) {
           updateNotificationStatus(notificationId);
           res.status(200).json({
@@ -312,19 +281,8 @@ const getPendingListings = asyncHandler(async (req, res) => {
           data: [],
         });
       } else {
-        // Add base64 image to each advertisement object
-        const advertisementsWithImages = result.map((advertisement) => {
-          const images = [];
+        const advertisementsWithImages = addImagesPath(result);
 
-          const imageArray = advertisement.image.split(";");
-          imageArray.map((image) => {
-            images.push({ data_url: getImageBase64(image) });
-          });
-          return {
-            ...advertisement,
-            image: images,
-          };
-        });
         res.status(200).json({
           data: advertisementsWithImages,
         });
@@ -403,8 +361,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       const imageArray = userImages.split(";");
       imageArray.map((galleryImage) => {
         if (galleryImage) {
-          const base64Image = getImageBase64(galleryImage);
-          if (image.data_url == base64Image) {
+          const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+          if (image.data_url == imagePath) {
             images += galleryImage + ";";
           }
         }
@@ -641,27 +599,16 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
     const seller = await getUsersById(sellerId);
     let image = "";
     if (seller[0].profile_image) {
-      image = getImageBase64(seller[0].profile_image);
+      image = `${process.env.SERVER_IP}/images/${seller[0].profile_image}`;
     }
 
-    const advertisementWithImage = result.map((advertisement) => {
-      const images = [];
-
-      const imageArray = advertisement.image.split(";");
-      imageArray.map((image) => {
-        images.push({ data_url: getImageBase64(image) });
-      });
-      return {
-        ...advertisement,
-        image: images,
-      };
-    });
+    const advertisementsWithImages = addImagesPath(result);
 
     if (notificationId) {
       updateNotificationStatus(notificationId);
       res.status(200).json({
         data: {
-          ...advertisementWithImage[0],
+          ...advertisementsWithImages[0],
           seller_image: image,
           seller_name: seller[0].name,
         },
@@ -669,7 +616,7 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
     } else {
       res.status(200).json({
         data: {
-          ...advertisementWithImage[0],
+          ...advertisementsWithImages[0],
           seller_image: image,
           seller_name: seller[0].name,
         },
@@ -722,11 +669,11 @@ const getChatInfo = asyncHandler(async (req, res) => {
         const images = [];
         let profileImage = "";
         if (advertisement.profile_image) {
-          profileImage = getImageBase64(advertisement.profile_image);
+          profileImage = `${process.env.SERVER_IP}/images/${advertisement.profile_image}`;
         }
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
-          images.push({ data_url: getImageBase64(image) });
+          images.push({ data_url: `${process.env.SERVER_IP}/images/${image}`});
         });
         return {
           ...advertisement,
@@ -849,8 +796,8 @@ const createDraft = asyncHandler(async (req, res) => {
           const imageArray = userImages.split(";");
           imageArray.map((galleryImage) => {
             if (galleryImage) {
-              const base64Image = getImageBase64(galleryImage);
-              if (image.data_url == base64Image) {
+              const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+              if (image.data_url == imagePath) {
                 draftImages += galleryImage + ";";
               }
             }
@@ -1008,7 +955,7 @@ const getDraft = asyncHandler(async (req, res) => {
           const imageArray = images.split(";");
           images = [];
           imageArray.map((image) => {
-            images.push({ data_url: getImageBase64(image) });
+            images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
           });
         }
         const advertisementId = result[0].id;

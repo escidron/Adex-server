@@ -5,7 +5,6 @@ import generateToken from "../utils/generateToken.js";
 import jwt from "jsonwebtoken";
 import Stripe from "stripe";
 import * as fs from "fs";
-import getImageBase64 from "../utils/getImageBase64.js";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
 import { getCompaniesQuery, removeCompanyById } from "../queries/Companies.js";
@@ -55,7 +54,7 @@ const authUser = asyncHandler(async (req, res) => {
 
     let image = "";
     if (result[0].profile_image) {
-      image = getImageBase64(result[0].profile_image);
+      image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
     }
     bcrypt.compare(password, hashPass).then(async function (result) {
       if (result) {
@@ -108,7 +107,7 @@ const autoLogin = asyncHandler(async (req, res) => {
 
         let image = "";
         if (result[0].profile_image) {
-          image = getImageBase64(result[0].profile_image);
+          image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
         }
         res.status(200).json({
           name: firstName,
@@ -823,7 +822,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
 
         let image = "";
         if (result[0].profile_image) {
-          image = getImageBase64(result[0].profile_image);
+          image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
         }
         res.status(200).json({
           name,
@@ -1096,7 +1095,7 @@ const getCompanies = asyncHandler(async (req, res) => {
         result.map((item, index) => {
           let image = "";
           if (item.company_logo) {
-            image = getImageBase64(item.company_logo);
+            image = `${process.env.SERVER_IP}/images/${item.company_logo}`;
             result[index].company_logo = image;
           }
         });
@@ -1142,7 +1141,7 @@ const getCompany = asyncHandler(async (req, res) => {
         result.map((item, index) => {
           let image = "";
           if (item.company_logo) {
-            image = getImageBase64(item.company_logo);
+            image = `${process.env.SERVER_IP}/images/${item.company_logo}` ;
             result[index].company_logo = image;
           }
         });
@@ -1176,8 +1175,8 @@ const imageGallery = asyncHandler(async (req, res) => {
     const imageArray = userImages.split(";");
     imageArray.map((image) => {
       if (image) {
-        const base64Image = getImageBase64(image);
-        oldImages.push(base64Image);
+        const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+        oldImages.push(imagePath);
       }
     });
 
@@ -1268,7 +1267,7 @@ const getImageGallery = asyncHandler(async (req, res) => {
             imageArray = gallery.company_gallery.split(";");
             imageArray.map((image) => {
               if (image) {
-                images.push({ data_url: getImageBase64(image) });
+                images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
               }
             });
             return {
@@ -1279,7 +1278,7 @@ const getImageGallery = asyncHandler(async (req, res) => {
             imageArray = gallery.image_gallery.split(";");
             imageArray.map((image) => {
               if (image) {
-                images.push({ data_url: getImageBase64(image) });
+                images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
               }
             });
             return {
@@ -1394,8 +1393,8 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
         const imageArray = userImages.split(";");
         imageArray.map((image) => {
           if (image) {
-            const base64Image = getImageBase64(image);
-            oldImages.push(base64Image);
+            const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+            oldImages.push(imagePath);
           }
         });
 

@@ -10,6 +10,7 @@ import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import { Server } from "socket.io";
 import { insertUserNotifications, insertMessages } from "./queries/Users.js";
 import getFormattedDate from "./utils/getFormattedDate.js";
+import path from 'path';
 
 
 dotenv.config();
@@ -89,6 +90,7 @@ app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
 // app.use("/api/stripe-connect", connectRoutes);
+app.use('/images', express.static('D:/Projetos Front-end/2-Adex-next/adex/server/images'));
 
 app.use(notFound);
 app.use(errorHandler);
