@@ -34,6 +34,7 @@ import sendEmail from "../utils/sendEmail.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 import escapeText from "../utils/escapeText.js";
 import { addImagesPath } from "../utils/addImagesPath.js";
+import getImageNameFromBase64 from "../utils/getImageNameFromBase64.js";
 
 dotenv.config();
 
