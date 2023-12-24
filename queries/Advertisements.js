@@ -358,7 +358,7 @@ export async function DraftToAdvertisement(
       \`long\` = '${data.long}',
       ad_duration_type = '${data.ad_duration_type ? data.ad_duration_type : 0}',
       sub_asset_type = '${data.sub_asset_type}',
-      per_unit_price = '${data.per_unit_price}',
+      per_unit_price = ${data.per_unit_price ? data.per_unit_price : 0},
       company_id = ${data.company_id ? `'${data.company_id}'`: null},
       start_date =  ${startDateFormatted ? `'${startDateFormatted.from}'` : null},
       end_date =  ${startDateFormatted ? `'${startDateFormatted.to}'` : null},
