@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import * as fs from "fs";
 import Stripe from "stripe";
-import { getCompanyQuery, addGalleryImages } from "../queries/Companies.js";
+import { getCompanyQuery, addGalleryImages, getCompaniesById } from "../queries/Companies.js";
 import {
   getFilteredAdvertisements,
   getAdvertisementByCreator,
@@ -22,6 +22,9 @@ import {
   deleteDiscountById,
   getAllAdvertisements,
   getPendingBookings,
+  getReviewsByListingId,
+  getReviewsBySellerId,
+  getReviewsByBuyerId,
 } from "../queries/Advertisements.js";
 import {
   updateNotificationStatus,
@@ -35,11 +38,13 @@ import getFormattedDate from "../utils/getFormattedDate.js";
 import escapeText from "../utils/escapeText.js";
 import { addImagesPath } from "../utils/addImagesPath.js";
 import getImageNameFromBase64 from "../utils/getImageNameFromBase64.js";
+import { getFinishedContract } from "../queries/Payments.js";
+import getImageNameFromLink from "../utils/getImageNameFromLink.js";
+import { addImageToReviews } from "../utils/addImageToReviews.js";
 
 dotenv.config();
 
 const getAdvertisement = asyncHandler(async (req, res) => {
-  console.log("requesting data");
   try {
     const result = await getAllAdvertisements();
     if (result.length == 0) {
@@ -47,15 +52,12 @@ const getAdvertisement = asyncHandler(async (req, res) => {
         data: [],
       });
     } else {
-      console.log("data returned and start processing");
-
       let advertisementsWithImages;
       if (result.length > 0) {
         advertisementsWithImages = addImagesPath(result);
       } else {
         advertisementsWithImages = [];
       }
-      console.log("data processed");
 
       res.status(200).json({
         data: advertisementsWithImages,
@@ -77,7 +79,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const result = await getAdvertisementByCreator(userId, id);
-
+      const finishedListing = await getFinishedContract(userId);
       if (result.length == 0) {
         res.status(200).json({
           data: [],
@@ -86,6 +88,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
         // Add base64 image to each advertisement object
 
         const advertisementsWithImages = addImagesPath(result);
+        const finishedListingWithImages = addImagesPath(finishedListing);
 
         const status = {
           all: 0,
@@ -105,14 +108,19 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           } else if (item.status == "2") {
             status.running++;
             status.all++;
-          } else if (item.status == "3") {
-            status.finished++;
-            status.all++;
           } else if (item.status == "4") {
             status.pending++;
             status.all++;
           }
         });
+
+        status.finished = finishedListing.length;
+        status.all += finishedListing.length;
+
+        const listings = [
+          ...advertisementsWithImages,
+          ...finishedListingWithImages,
+        ];
         if (notificationId != undefined) {
           const results = await updateNotificationStatus(notificationId);
           const notifications = results.affectedRows;
@@ -123,7 +131,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           });
         } else {
           res.status(200).json({
-            data: advertisementsWithImages,
+            data: listings,
             status,
           });
         }
@@ -177,17 +185,28 @@ const getSharedListing = asyncHandler(async (req, res) => {
   }
 });
 const getSellerListings = asyncHandler(async (req, res) => {
-  const { id } = req.body;
+  const { id,companyId } = req.body;
   try {
-    const sellers = await getUsersById(id);
-    let sellerInfo = sellers[0];
+    
+    let sellerInfo = {};
     let image = "";
+
+    if(companyId){
+      const company = await getCompaniesById(companyId)
+      sellerInfo = company[0];
+    }else{
+      const sellers = await getUsersById(id);
+       sellerInfo = sellers[0];
+    }
+
     if (sellerInfo.profile_image) {
       image = `${process.env.SERVER_IP}/images/${sellerInfo.profile_image}`;
+    }else if(sellerInfo.company_logo){
+      image = `${process.env.SERVER_IP}/images/${sellerInfo.company_logo}`;
     }
-    sellerInfo = { ...sellerInfo, image: image };
 
-    const result = await getAdvertisementByCreator(id);
+    sellerInfo = { ...sellerInfo, image: image };
+    const result = await getAdvertisementByCreator(id,null,companyId);
 
     if (result.length == 0) {
       res.status(401).json({
@@ -232,18 +251,20 @@ const getMyBookings = asyncHandler(async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       let result = "";
+      let finishedListing = [];
       if (advertisementId) {
         result = await getAdvertisementById(advertisementId);
       } else {
         result = await getAdvertisementAndBuyers(userId);
+        finishedListing = await getFinishedContract(null, userId);
       }
-      if (result.length == 0) {
+      if (result.length == 0 && finishedListing.length == 0) {
         res.status(200).json({
-          data: "",
+          data: [],
         });
       } else {
-        // Add base64 image to each advertisement object
         const advertisementsWithImages = addImagesPath(result);
+        const finishedListingWithImages = addImagesPath(finishedListing);
 
         if (notificationId != undefined) {
           updateNotificationStatus(notificationId);
@@ -251,8 +272,13 @@ const getMyBookings = asyncHandler(async (req, res) => {
             data: advertisementsWithImages,
           });
         }
+        const bookings = [
+          ...advertisementsWithImages,
+          ...finishedListingWithImages,
+        ];
+
         res.status(200).json({
-          data: advertisementsWithImages,
+          data: bookings,
         });
       }
     } catch (error) {
@@ -350,7 +376,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       const imageName = getImageNameFromBase64(image.data_url);
       images += imageName + ";";
       imagesGroup += imageName + ";";
-
     } else {
       const imageArray = userImages.split(";");
       imageArray.map((galleryImage) => {
@@ -487,15 +512,16 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
   let updateImages = "";
   images.map((image, index) => {
-    let imageName = Date.now() + index + ".png";
-    let path = "./images/" + imageName;
-    let imgdata = image.data_url;
+    let imageName = "";
+    if (
+      image.data_url.startsWith("http://") ||
+      image.data_url.startsWith("https://")
+    ) {
+      imageName = getImageNameFromLink(image.data_url);
+    } else if (image.data_url.startsWith("data:image/")) {
+      imageName = getImageNameFromBase64(image.data_url);
+    }
     updateImages += imageName + ";";
-
-    // to convert base64 format into random filename
-    let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
-
-    fs.writeFileSync(path, base64Data, { encoding: "base64" });
   });
   updateImages = updateImages.slice(0, -1);
 
@@ -605,6 +631,7 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
           ...advertisementsWithImages[0],
           seller_image: image,
           seller_name: seller[0].name,
+          seller_rating:seller[0].rating
         },
       });
     } else {
@@ -613,6 +640,8 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
           ...advertisementsWithImages[0],
           seller_image: image,
           seller_name: seller[0].name,
+          seller_rating:seller[0].rating
+
         },
       });
     }
@@ -667,7 +696,7 @@ const getChatInfo = asyncHandler(async (req, res) => {
         }
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
-          images.push({ data_url: `${process.env.SERVER_IP}/images/${image}`});
+          images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
         });
         return {
           ...advertisement,
@@ -949,7 +978,9 @@ const getDraft = asyncHandler(async (req, res) => {
           const imageArray = images.split(";");
           images = [];
           imageArray.map((image) => {
-            images.push({ data_url: `${process.env.SERVER_IP}/images/${image}` });
+            images.push({
+              data_url: `${process.env.SERVER_IP}/images/${image}`,
+            });
           });
         }
         const advertisementId = result[0].id;
@@ -992,6 +1023,48 @@ const getDraft = asyncHandler(async (req, res) => {
   }
 });
 
+const getListingReviews = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+
+  try {
+    const result = await getReviewsByListingId(id);
+    const reviewsWithImages = addImageToReviews(result)
+    res.status(200).json(reviewsWithImages);
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
+const getSellerReviews = asyncHandler(async (req, res) => {
+  const { id, companyId } = req.body;
+
+  try {
+    const result = await getReviewsBySellerId(id, companyId);
+    const reviewsWithImages = addImageToReviews(result)
+    res.status(200).json(reviewsWithImages);
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
+const getBuyerReviews = asyncHandler(async (req, res) => {
+  const { id, companyId } = req.body;
+
+  try {
+    const result = await getReviewsByBuyerId(id, companyId);
+    const reviewsWithImages = addImageToReviews(result)
+    res.status(200).json(reviewsWithImages);
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
 export {
   getAdvertisement,
   createAdvertisement,
@@ -1009,4 +1082,7 @@ export {
   getDraft,
   deleteDiscount,
   getPendingListings,
+  getListingReviews,
+  getSellerReviews,
+  getBuyerReviews,
 };

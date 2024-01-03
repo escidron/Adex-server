@@ -25,6 +25,14 @@ import {
   insertUserNotifications,
   insertMessages,
   updateGalleryImage,
+  getUserRating,
+  getBuyerRating,
+  insertBuyerRating,
+  updateCompanyRating,
+  updateUserRating,
+  getSellersRating,
+  insertSellerRating,
+  updateListingRate,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -36,6 +44,11 @@ import { verifyIdentity } from "../utils/VerifyIdentity.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 import getImageNameFromLink from "../utils/getImageNameFromLink.js";
 import getImageNameFromBase64 from "../utils/getImageNameFromBase64.js";
+import {
+  getContractById,
+  getContractByStripeId,
+  updateContractRatingStatus,
+} from "../queries/Payments.js";
 
 dotenv.config();
 
@@ -115,6 +128,8 @@ const autoLogin = asyncHandler(async (req, res) => {
           name: firstName,
           image: image,
           userId: result[0].id,
+          rating:result[0].rating,
+          userType:result[0].user_type
         });
       }
     } catch (error) {
@@ -244,7 +259,6 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
 
       fs.unlink(path, (err) => {
         if (err) throw err;
-        console.log("image was deleted");
       });
 
       const file = await stripe.files.create({
@@ -465,7 +479,6 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
 
       fs.unlink(path, (err) => {
         if (err) throw err;
-        console.log("image was deleted");
       });
 
       const file = await stripe.files.create({
@@ -822,14 +835,17 @@ const getUserProfile = asyncHandler(async (req, res) => {
         const cityIsPublic = result[0].city_is_public;
         const userType = result[0].user_type;
         const images = result[0].image_gallery;
-        const imagesWithPath = []
-        const imageArray = images.split(";");
-        imageArray.map((image) => {
-          if (image) {
-            const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-            imagesWithPath.push({data_url:imagePath});
-          }
-        });
+        const imagesWithPath = [];
+        const rating = result[0].rating
+        if (images) {
+          const imageArray = images.split(";");
+          imageArray.map((image) => {
+            if (image) {
+              const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+              imagesWithPath.push({ data_url: imagePath });
+            }
+          });
+        }
         let image = "";
         if (result[0].profile_image) {
           image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
@@ -851,7 +867,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
           city,
           cityIsPublic,
           userType,
-          images:imagesWithPath
+          images: imagesWithPath,
+          rating
         });
       }
     } catch (error) {
@@ -1101,7 +1118,7 @@ const getCompanies = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const result = await getCompaniesQuery( userId);
+      const result = await getCompaniesQuery(userId);
 
       if (result.length > 0) {
         result.map((item, index) => {
@@ -1446,6 +1463,99 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
   }
 });
 
+const rateBuyer = asyncHandler(async (req, res) => {
+  const { buyer_id, company_id, contract_id, rating, comments } = req.body;
+
+  try {
+    let currentRating = 0;
+    let countRatings = 0;
+    let newRating = 0;
+
+    const contract = await getContractById(contract_id);
+    const buyerRatings = await getBuyerRating(buyer_id, company_id);
+    buyerRatings.map((rating) => {
+      countRatings++;
+      currentRating += rating.rating;
+    });
+    if (countRatings > 0) {
+      newRating = (rating + currentRating) / (countRatings + 1);
+    } else {
+      newRating = rating;
+    }
+    insertBuyerRating(buyer_id, company_id, contract[0], comments, rating);
+    if (company_id) {
+      updateCompanyRating(buyer_id, company_id, newRating);
+    } else {
+      updateUserRating(buyer_id, newRating);
+    }
+    updateContractRatingStatus(contract_id, 1, contract[0].is_rated_by_buyer);
+    res.status(200).json({
+      message: "listing rated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
+const rateSeller = asyncHandler(async (req, res) => {
+  const { seller_id, company_id, contract_id, rating, comments } = req.body;
+
+  try {
+    let currentRating = 0;
+    let countRatings = 0;
+    let newRating = 0;
+    let currentListingRating = 0;
+    let countListingRatings = 0;
+    let newListingRating = 0;
+
+    const contract = await getContractById(contract_id);
+    const listingId = contract[0].advertisement_id;
+    const sellerRatings = await getSellersRating(seller_id, company_id);
+
+    sellerRatings.map((rating) => {
+      countRatings++;
+      currentRating += rating.rating;
+      if (rating.advertisement_id == listingId) {
+        countListingRatings++;
+        currentListingRating += rating.rating;
+      }
+    });
+
+    if (countRatings > 0) {
+      newRating = (rating + currentRating) / (countRatings + 1);
+    } else {
+      newRating = rating;
+    }
+
+    if (countListingRatings > 0) {
+      newListingRating =
+        (rating + currentListingRating) / (countListingRatings + 1);
+    } else {
+      newListingRating = rating;
+    }
+
+    insertSellerRating(seller_id, company_id, contract[0], comments, rating);
+    if (company_id) {
+      updateCompanyRating(seller_id, company_id, newRating);
+    } else {
+      updateUserRating(seller_id, newRating);
+    }
+    updateContractRatingStatus(contract_id, contract[0].is_rated_by_seller, 1);
+    updateListingRate(listingId, newListingRating);
+    res.status(200).json({
+      message: "listing rated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -1473,4 +1583,6 @@ export {
   sendMessage,
   removeGalleryImage,
   removeCompany,
+  rateBuyer,
+  rateSeller,
 };

@@ -11,11 +11,12 @@ CREATE TABLE IF NOT EXISTS companies (
     company_info varchar(255),
     company_logo varchar(255),
     company_gallery longtext,
-    industry varchar(1),
+    industry varchar(5),
     has_physical_space varchar(1),
     created_at timestamp,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at timestamp
+    deleted_at timestamp,
+    rating float(10,2)
   );
 `;
 

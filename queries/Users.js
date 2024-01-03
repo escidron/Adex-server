@@ -496,3 +496,185 @@ export async function updateGalleryImage(images,userId) {
     });
   });
 }
+
+
+
+
+
+  //rating queries
+  export async function getUserRating(id) {
+    const getUserRatingQuery = `SELECT rating,user_type FROM users where id = ${id}`;
+  
+    return new Promise((resolve, reject) => {
+      db.query(getUserRatingQuery, (err, result) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(result);
+      });
+    });
+  }
+
+  export async function getCompanyRating(id,companyId) {
+    const getCompanyRatingQuery = `SELECT rating FROM companies where user_id = ${id} and id = ${companyId}`;
+  
+    return new Promise((resolve, reject) => {
+      db.query(getCompanyRatingQuery, (err, result) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(result);
+      });
+    });
+  }
+
+  export async function getBuyerRating(id,companyId) {
+    const getUserRatingQuery = `SELECT rating FROM buyers_ratings where buyer_id = ${id} ${companyId ? `and company_id = ${companyId}` : ''}`;
+  
+    return new Promise((resolve, reject) => {
+      db.query(getUserRatingQuery, (err, result) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(result);
+      });
+    });
+  }
+
+  export async function insertBuyerRating(
+    buyerId,
+    companyId,
+    contract,
+    comments,
+    rating
+  ) {
+    const insertRatingBuyerQuery = `INSERT INTO buyers_ratings (
+          buyer_id,
+          company_id,
+          rated_by_id,
+          rated_by_company_id,
+          comments,
+          rating,
+          contract_id
+        ) VALUES (
+          ${buyerId},
+          ${companyId ? companyId : null},
+          ${contract.seller_id},
+          ${contract.seller_company_id ? contract.seller_company_id : null},
+          '${comments}',
+          ${rating},
+          ${contract.id}
+        )
+      `;
+    return new Promise((resolve, reject) => {
+      db.query(insertRatingBuyerQuery, (err, result) => {
+        if (err) {
+          reject(err);
+        }
+        resolve(result);
+      });
+    });
+  }
+
+
+  export async function updateUserRating(id,rating) {
+  const updateUserRatingQuery = `
+  UPDATE users
+  SET 
+  rating = ${rating}
+  WHERE id = ${id}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateUserRatingQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+  export async function updateCompanyRating(id,companyId,rating) {
+  const updateCompanyRatingQuery = `
+  UPDATE companies
+  SET 
+  rating = ${rating}
+  WHERE user_id = ${id} and id = ${companyId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateCompanyRatingQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+//seller rating queries
+export async function getSellersRating(id,companyId) {
+  const getUserRatingQuery = `SELECT rating,advertisement_id FROM sellers_ratings where seller_id = ${id} ${companyId ? `and company_id = ${companyId}` : ''}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(getUserRatingQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function insertSellerRating(
+  sellerId,
+  companyId,
+  contract,
+  comments,
+  rating
+) {
+  const insertRatingSellerQuery = `INSERT INTO sellers_ratings (
+        seller_id,
+        company_id,
+        rated_by_id,
+        rated_by_company_id,
+        comments,
+        rating,
+        contract_id,
+        advertisement_id
+      ) VALUES (
+        ${sellerId},
+        ${companyId ? companyId : null},
+        ${contract.buyer_id},
+        ${contract.buyer_company_id ? contract.buyer_company_id : null},
+        '${comments}',
+        ${rating},
+        ${contract.id},
+        ${contract.advertisement_id}
+      )
+    `;
+  return new Promise((resolve, reject) => {
+    db.query(insertRatingSellerQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+
+export async function updateListingRate(id,rating) {
+  const rateFinishedListingQuery = `
+  UPDATE advertisement
+  SET 
+  rating = ${rating}
+  WHERE id = ${id}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(rateFinishedListingQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}

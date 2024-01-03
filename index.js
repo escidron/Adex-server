@@ -7,14 +7,14 @@ import userRoutes from "./routes/userRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
-import { Server } from "socket.io";
-import { insertUserNotifications, insertMessages } from "./queries/Users.js";
-import getFormattedDate from "./utils/getFormattedDate.js";
-import path from 'path';
-
+import schedule from 'node-schedule';
+import { updateFinishedListingAndContract } from "./queries/Payments.js";
 
 dotenv.config();
 const port = process.env.PORT || 5001;
+
+
+schedule.scheduleJob('56 * * * *', updateFinishedListingAndContract);
 
 // const io = new Server({
 //   cors: {

@@ -15,7 +15,10 @@ getSellerListings,
 createDraft,
 getDraft,
 deleteDiscount,
-getPendingListings
+getPendingListings,
+getListingReviews,
+getSellerReviews,
+getBuyerReviews
 } from '../controllers/advertisementController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -36,5 +39,8 @@ router.post('/shared-listing', getSharedListing);
 router.post('/seller-listings', getSellerListings);
 router.get('/get-draft', getDraft);
 router.get('/get-pending-bookings', getPendingListings);
+router.post('/get-listing-reviews', getListingReviews);
+router.post('/get-seller-reviews', getSellerReviews);
+router.post('/get-buyer-reviews', getBuyerReviews);
 
 export default router;

@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS users (
     profession_is_public varchar(1),
     sex_is_public varchar(1),
     bio_is_public varchar(1),
-    city_is_public varchar(1)
+    city_is_public varchar(1),
+    rating float(10,2)
   );
 `;
 

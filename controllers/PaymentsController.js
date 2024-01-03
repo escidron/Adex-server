@@ -13,7 +13,7 @@ import {
   insertContract,
   getContract,
   updateContract,
-  getContractById,
+  getContractByStripeId,
   getContractBySub,
   updateContractInvoidePaid,
   updateContractSubscriptionId,
@@ -835,7 +835,7 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     const contractId = event.data.object.id;
     updateContract(contractId, "3", "Contract is ended");
 
-    const result = await getContractById(contractId);
+    const result = await getContractByStripeId(contractId);
     const advertisementId = result[0].advertisement_id;
     const advertisement = await getAdvertisementById(advertisementId);
     const data = advertisement[0];

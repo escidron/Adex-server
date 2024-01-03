@@ -25,7 +25,9 @@ import {
   testRoute,
   sendMessage,
   removeGalleryImage,
-  removeCompany
+  removeCompany,
+  rateBuyer,
+  rateSeller
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -57,6 +59,8 @@ router.post('/clear-notifications', clearUserNotifications);
 router.post('/send-message', sendMessage);
 router.post('/remove-gallery-image', removeGalleryImage);
 router.post('/seller-profile', getSellerProfile);
+router.post('/rate-buyer', rateBuyer);
+router.post('/rate-seller', rateSeller);
 //router.route('/seller-profile').get(protect, getSellerProfile)
 //   .put(protect, updateUserAddress);
 
