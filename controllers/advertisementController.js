@@ -201,11 +201,12 @@ const getSellerListings = asyncHandler(async (req, res) => {
 
     if (sellerInfo.profile_image) {
       image = `${process.env.SERVER_IP}/images/${sellerInfo.profile_image}`;
+      sellerInfo = { ...sellerInfo, image: image };
     }else if(sellerInfo.company_logo){
       image = `${process.env.SERVER_IP}/images/${sellerInfo.company_logo}`;
+      sellerInfo = { ...sellerInfo, company_logo: image };
     }
 
-    sellerInfo = { ...sellerInfo, image: image };
     const result = await getAdvertisementByCreator(id,null,companyId);
 
     if (result.length == 0) {
