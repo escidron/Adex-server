@@ -891,12 +891,16 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const imageName = Date.now() + ".png";
-      const path = "./images/" + imageName;
-      const imgdata = image;
-      // to convert base64 format into random filename
-      const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
-      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+      let imageName = ''
+      if(image){
+
+        imageName = Date.now() + ".png";
+        const path = "./images/" + imageName;
+        const imgdata = image;
+        const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
+        fs.writeFileSync(path, base64Data, { encoding: "base64" });
+        
+      }
       updateProfileImage(imageName, userId);
     } catch (error) {
       console.error(error);
