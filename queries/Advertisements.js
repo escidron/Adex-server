@@ -35,7 +35,9 @@ export async function getFilteredAdvertisements(
 }
 //add the id of the user is filtering so does not return his listings
 export async function getAllAdvertisements() {
-  const allAdvertisementsQuery = `SELECT * FROM adex.advertisement where status <> '0'`;
+  const allAdvertisementsQuery = `SELECT advertisement.*,COUNT(sellers_ratings.id) AS amount_reviews FROM advertisement 
+  LEFT JOIN sellers_ratings ON advertisement.id = sellers_ratings.advertisement_id
+  where status <> '0' group by advertisement.id`;
 
   return new Promise((resolve, reject) => {
     db.query(allAdvertisementsQuery, (err, result) => {
