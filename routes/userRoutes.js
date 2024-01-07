@@ -27,7 +27,8 @@ import {
   removeGalleryImage,
   removeCompany,
   rateBuyer,
-  rateSeller
+  rateSeller,
+  editCompany
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -50,6 +51,7 @@ router.post('/change-password', changePassword);
 router.post('/send-reset-password-email', sendResetPasswordEmail);
 router.post('/contact-us', contactUs);
 router.post('/add-company', addCompany);
+router.post('/edit-company', editCompany);
 router.get('/get-companies', getCompanies);
 router.post('/remove-company', removeCompany);
 router.post('/my-company', getCompany);

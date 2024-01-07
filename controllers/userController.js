@@ -7,7 +7,7 @@ import Stripe from "stripe";
 import * as fs from "fs";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
-import { getCompaniesQuery, removeCompanyById } from "../queries/Companies.js";
+import { editCompanyById, getCompaniesQuery, removeCompanyById } from "../queries/Companies.js";
 import dotenv from "dotenv";
 import {
   getUsersByEmail,
@@ -1112,6 +1112,45 @@ const addCompany = asyncHandler(async (req, res) => {
   }
 });
 
+const editCompany = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { id, name, image, address, hasPhysicalSpace, industry } = req.body;
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+      let imageName = "";
+
+      if (image.startsWith("http://") || image.startsWith("https://")) {
+        imageName = getImageNameFromLink(image);
+      } else if (image.startsWith("data:image/")) {
+        imageName = getImageNameFromBase64(image);
+      }
+
+      editCompanyById(
+        id,
+        userId,
+        name,
+        imageName,
+        address,
+        industry,
+        hasPhysicalSpace,
+      );
+      res.status(200).json({ message: "Company edited succesfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({
+        error: "Not authorized, token failed",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 const getCompanies = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
@@ -1585,4 +1624,5 @@ export {
   removeCompany,
   rateBuyer,
   rateSeller,
+  editCompany
 };
