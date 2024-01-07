@@ -31,7 +31,8 @@
     company_id varchar(45),
     is_draft varchar(1),
     instructions longtext,
-    rating float
+    rating float(10,2),
+    amount_reviews int
   )
 `;
 

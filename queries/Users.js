@@ -666,7 +666,8 @@ export async function updateListingRate(id,rating) {
   const rateFinishedListingQuery = `
   UPDATE advertisement
   SET 
-  rating = ${rating}
+  rating = ${rating},
+  amount_reviews = COALESCE(amount_reviews, 0) + 1
   WHERE id = ${id}
 `;
   return new Promise((resolve, reject) => {
