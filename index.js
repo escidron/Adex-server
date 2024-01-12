@@ -9,11 +9,12 @@ import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import schedule from 'node-schedule';
 import { updateFinishedListingAndContract } from "./queries/Payments.js";
+import sendEmail from "./utils/sendEmail.js";
 
 dotenv.config();
 const port = process.env.PORT || 5001;
 
-
+//sendEmail()
 schedule.scheduleJob('56 * * * *', updateFinishedListingAndContract);
 
 // const io = new Server({

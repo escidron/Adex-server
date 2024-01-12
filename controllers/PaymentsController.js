@@ -38,6 +38,7 @@ import {
 import dotenv from "dotenv";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
+import diferenceBetweenDates from "../utils/diferenceBetweenDates.js";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -56,19 +57,18 @@ const CreateCustomer = asyncHandler(async (req, res) => {
   const formattedCreatedAt = getFormattedDate(createdAt);
   let customerId = "";
 
-  const buyer = await getBuyer(userId)
+  const buyer = await getBuyer(userId);
 
-  let paymentMethods = ''
-  let isDefault = true
-  if(buyer.length > 0){
-    const customertId = buyer[0].customer_id
+  let paymentMethods = "";
+  let isDefault = true;
+  if (buyer.length > 0) {
+    const customertId = buyer[0].customer_id;
     paymentMethods = await stripe.paymentMethods.list({
       customer: customertId,
-      type: 'card',
+      type: "card",
     });
-    isDefault = paymentMethods.data.length == 0
+    isDefault = paymentMethods.data.length == 0;
   }
-  
 
   insertCard(
     userId,
@@ -115,7 +115,15 @@ const CreateCustomer = asyncHandler(async (req, res) => {
       },
     });
 
-    insertBuyer(userId, customer, fullName, email, cardId, formattedCreatedAt, companyId);
+    insertBuyer(
+      userId,
+      customer,
+      fullName,
+      email,
+      cardId,
+      formattedCreatedAt,
+      companyId
+    );
   }
 
   res.status(200).json({
@@ -125,8 +133,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
 
 const CreateExternalBankAccount = asyncHandler(async (req, res) => {
   //get userID
-  const { routingNumber, accountNumber, stripeAccount, companyId } =
-    req.body;
+  const { routingNumber, accountNumber, stripeAccount, companyId } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
@@ -148,14 +155,13 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
       }
     );
 
-    const seller = await getSeller(userId)
-    const accountId = seller[0].stripe_account
-    
-    const bankAccounts = await stripe.accounts.listExternalAccounts(
-      accountId,
-      {object: 'bank_account'}
-    );
-    const isDefault = bankAccounts.data.length == 0
+    const seller = await getSeller(userId);
+    const accountId = seller[0].stripe_account;
+
+    const bankAccounts = await stripe.accounts.listExternalAccounts(accountId, {
+      object: "bank_account",
+    });
+    const isDefault = bankAccounts.data.length == 0;
     insertAccount(
       userId,
       bankAccount,
@@ -169,7 +175,9 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
       UPDATE advertisement SET
         status = '1',
         updated_at = '${formattedCreatedAt}'
-      WHERE created_by = ${userId} and status = '0' ${companyId ? `and company_id = ${companyId}` : ''}
+      WHERE created_by = ${userId} and status = '0' ${
+      companyId ? `and company_id = ${companyId}` : ""
+    }
     `;
     updateAdvertismentById(query);
 
@@ -185,43 +193,44 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 const GetCards = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const { companyId } = req.body
+  const { companyId } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
       const storagedCards = await getCard(userId);
-      
-      const buyer = await getBuyer(userId, companyId)
-      if(buyer.length > 0){
 
-        const customertId = buyer[0].customer_id
-        
+      const buyer = await getBuyer(userId, companyId);
+      if (buyer.length > 0) {
+        const customertId = buyer[0].customer_id;
+
         const paymentMethods = await stripe.paymentMethods.list({
           customer: customertId,
-          type: 'card',
+          type: "card",
         });
-        const stripeCards = paymentMethods.data
+        const stripeCards = paymentMethods.data;
         const cards = stripeCards.map((card) => {
           // Procurando o elemento correspondente em array2 com o mesmo ID
-          const storagedCard = storagedCards.find((item) => item.stripe_payment_method_id === card.id);
-        
+          const storagedCard = storagedCards.find(
+            (item) => item.stripe_payment_method_id === card.id
+          );
+
           // Se encontrarmos um elemento correspondente em array2, adicionamos o parâmetro "age"
           if (storagedCard) {
             return {
               ...card, // Mantém as propriedades originais de card
               is_default: storagedCard.is_default,
-              name_on_card: storagedCard.name// Adiciona o parâmetro "age" de storagedCard
+              name_on_card: storagedCard.name, // Adiciona o parâmetro "age" de storagedCard
             };
           }
-        
+
           // Se não encontrarmos um elemento correspondente em array2, retornamos card sem alterações
           return card;
         });
         res.status(200).json({
           data: cards,
         });
-      }else{
+      } else {
         res.status(200).json({
           data: [],
         });
@@ -242,19 +251,19 @@ const GetCards = asyncHandler(async (req, res) => {
 const GetBankAccounts = asyncHandler(async (req, res) => {
   //get user id
   const token = req.cookies.jwt;
-  const { companyId } = req.body
+  const { companyId } = req.body;
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      const seller = await getSeller(userId, companyId)
-      if(seller.length > 0){
-        const accountId = seller[0].stripe_account
+      const seller = await getSeller(userId, companyId);
+      if (seller.length > 0) {
+        const accountId = seller[0].stripe_account;
         const bankAccounts = await stripe.accounts.listExternalAccounts(
           accountId,
-          {object: 'bank_account'}
+          { object: "bank_account" }
         );
-  
+
         res.status(200).json(bankAccounts);
       }
     } catch (error) {
@@ -362,7 +371,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   const createdAt = new Date();
   const formattedUpdatedAt = getFormattedDate(createdAt);
 
-  const startDate = new Date( start_date );
+  const startDate = new Date(start_date);
   const startDateFormatted = getFormattedDate(startDate);
 
   let endDate = new Date(start_date);
@@ -371,35 +380,50 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
     endDate.setMonth(startDate.getMonth() + duration);
   } else {
     endDate.setMonth(startDate.getMonth() + 1);
-
   }
 
   endDate = new Date(endDate);
   const endDateFormatted = getFormattedDate(endDate);
 
-  let sellerAccount = "";
+  const diferencaInDays = diferenceBetweenDates(start_date);
+  let billingStartDate;
+  let billingEndDate;
+
+  if (diferencaInDays >= 5) {
+    billingStartDate = new Date();
+    billingEndDate = new Date();
+
+    billingStartDate.setDate(billingStartDate.getDate() + 6);
+    billingEndDate.setDate(billingEndDate.getDate() + 6);
+
+    if (data.ad_duration_type == "0") {
+      billingEndDate.setMonth(billingEndDate.getMonth() + duration);
+    } else {
+      billingEndDate.setMonth(billingEndDate.getMonth() + 1);
+    }
+  } else {
+    billingStartDate = startDate
+    billingEndDate = endDate
+  }
+
+  const timeStampFirstBill = Math.floor(billingStartDate.getTime() / 1000);
+  const timeStampEndDate = Math.floor(billingEndDate.getTime() / 1000);
   //get the seller connected stripe account
-  const result = await getSeller(data.created_by,data.company_id);
-  sellerAccount = result[0].stripe_account;
+  const result = await getSeller(data.created_by, data.company_id);
+  const sellerAccount = result[0].stripe_account;
 
   //get the buyer info
   const results = await getBuyer(
-    data.requested_by ? data.requested_by : userId
+    data.requested_by ? data.requested_by : userId,
+    data.requested_by_company ? data.requested_by_company : companyId
   );
 
   const customerId = results[0].customer_id;
 
   let subscription = "";
+  let coupon = "";
+
   try {
-    // if (data.ad_duration_type != "0") {
-    //   startDate.setDate(startDate.getDate() + 6);
-    //   endDate.setDate(endDate.getDate() + 6);
-    // }
-    let timeStampFirstBill = Math.floor(startDate.getTime() / 1000);
-    let timeStampEndDate = Math.floor(endDate.getTime() / 1000);
-
-    let coupon = "";
-
     if (current_discount > 0) {
       coupon = await stripe.coupons.create({
         percent_off: current_discount,
@@ -487,7 +511,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
     const buyerName = requestedByUser[0].name;
     const buyerEmail = requestedByUser[0].email;
     //send email to the seller
-    const advertisement =  await getAdvertisementById(data.id)
+    const advertisement = await getAdvertisementById(data.id);
     const imageName = advertisement[0].image.split(";");
     if (createdByUser.length > 0) {
       const email = createdByUser[0].email;
@@ -530,7 +554,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 });
 
 const RequestReserve = asyncHandler(async (req, res) => {
-  const { data, start_date, duration,companyId } = req.body;
+  const { data, start_date, duration, companyId } = req.body;
 
   //get user id
   const token = req.cookies.jwt;
@@ -539,7 +563,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
   const currentDate = new Date();
   const createdAtFormatted = getFormattedDate(currentDate);
 
-  const startDate = new Date( start_date );
+  const startDate = new Date(start_date);
   const startDateFormatted = getFormattedDate(startDate);
 
   let endDate = new Date(start_date);
@@ -548,7 +572,6 @@ const RequestReserve = asyncHandler(async (req, res) => {
     endDate.setMonth(startDate.getMonth() + duration);
   } else {
     endDate.setMonth(startDate.getMonth() + 1);
-
   }
 
   endDate = new Date(endDate);
@@ -562,7 +585,13 @@ const RequestReserve = asyncHandler(async (req, res) => {
         status = 4,
         start_date = '${startDateFormatted}',
         end_date = '${endDateFormatted}',
-        ${data.ad_duration_type == '0' ? `duration = ${duration},` : data.ad_duration_type == '2' ? `units = ${duration},` : ''}
+        ${
+          data.ad_duration_type == "0"
+            ? `duration = ${duration},`
+            : data.ad_duration_type == "2"
+            ? `units = ${duration},`
+            : ""
+        }
         requested_by = ${userId},
         requested_by_company = ${companyId ? companyId : null}
         WHERE id = ${data.id}
@@ -709,7 +738,6 @@ const CancelBooking = asyncHandler(async (req, res) => {
 
       const buyerInfo = await getBuyer(buyerId);
       const buyerStripeId = buyerInfo[0].customer_id;
-
 
       ////////////////////////////////////////////////////////////////////////
       const createdByUser = await getUsersById(sellerId);
@@ -1052,7 +1080,6 @@ const getContractInfo = asyncHandler(async (req, res) => {
   res.status(200).json(contract[0]);
 });
 const getAccountBalance = asyncHandler(async (req, res) => {
-
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -1108,26 +1135,30 @@ const deleteBankAccount = asyncHandler(async (req, res) => {
       const userId = decoded.userId;
 
       const sellerInfo = await getSeller(userId);
-      const connectAccountId = sellerInfo[0].stripe_account
+      const connectAccountId = sellerInfo[0].stripe_account;
 
       const deleted = await stripe.accounts.deleteExternalAccount(
         connectAccountId,
         bankAccountId
       );
-        deleteExternalBankAccount(userId,bankAccountId,formattedDeletedAt)
-        res.status(200).json({message : 'Payout Method deleted successfully'})
+      deleteExternalBankAccount(userId, bankAccountId, formattedDeletedAt);
+      res.status(200).json({ message: "Payout Method deleted successfully" });
     } catch (error) {
       console.error(error);
       let message = "";
 
-      if(error.type =='StripeInvalidRequestError'){
-        if(error.raw.message.includes('You cannot delete the default external account')){
-          message = "You cannot delete the default external account, Please make another external account the default and try to delete this one again";
-        }else{
+      if (error.type == "StripeInvalidRequestError") {
+        if (
+          error.raw.message.includes(
+            "You cannot delete the default external account"
+          )
+        ) {
+          message =
+            "You cannot delete the default external account, Please make another external account the default and try to delete this one again";
+        } else {
           message = "Something went wrong,Please try again later ";
         }
-      }else{
-
+      } else {
         message = "Something went wrong,Please try again later";
       }
 
@@ -1153,11 +1184,9 @@ const deleteCard = asyncHandler(async (req, res) => {
   if (token) {
     try {
       const userId = decoded.userId;
-      const paymentMethod = await stripe.paymentMethods.detach(
-        cardId
-      );
-      deleteCreditCard(userId,cardId,formattedDeletedAt)
-      res.status(200).json({message : 'Card deleted successfully'})
+      const paymentMethod = await stripe.paymentMethods.detach(cardId);
+      deleteCreditCard(userId, cardId, formattedDeletedAt);
+      res.status(200).json({ message: "Card deleted successfully" });
     } catch (error) {
       console.error(error);
 
@@ -1189,5 +1218,5 @@ export {
   getContractInfo,
   getAccountBalance,
   deleteBankAccount,
-  deleteCard
+  deleteCard,
 };
