@@ -151,8 +151,11 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
 
 const getSharedListing = asyncHandler(async (req, res) => {
   const { id } = req.body;
+  console.log('entrou no sharing listing')
   try {
     const result = await getAdvertisementById(id);
+    console.log('line 157')
+
     if (result.length == 0) {
       res.status(401).json({
         error: "Advertisement does not exists",
@@ -162,6 +165,7 @@ const getSharedListing = asyncHandler(async (req, res) => {
 
       const advertisementsWithImages = result.map((advertisement) => {
         const images = [];
+        console.log('line 168')
 
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
@@ -173,6 +177,8 @@ const getSharedListing = asyncHandler(async (req, res) => {
           shared_image: imageArray[0],
         };
       });
+      console.log('line 180')
+
       res.status(200).json({
         data: advertisementsWithImages,
       });
