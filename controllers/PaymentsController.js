@@ -101,7 +101,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      //test_clock: "clock_1O37VLL3Lxo3VPLovDsUuytL",
+      // test_clock: "clock_1OXpvkL3Lxo3VPLoguCriIba",
     });
 
     customerId = customer.id;
@@ -363,7 +363,7 @@ const SetDefaultBank = asyncHandler(async (req, res) => {
 });
 
 const CreatePaymentIntent = asyncHandler(async (req, res) => {
-  const { data, start_date, duration, current_discount, companyId } = req.body;
+  const { data, current_discount, companyId } = req.body;
   const token = req.cookies.jwt;
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
@@ -371,21 +371,13 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   const createdAt = new Date();
   const formattedUpdatedAt = getFormattedDate(createdAt);
 
-  const startDate = new Date(start_date);
+  const startDate = new Date(data.date.from);
   const startDateFormatted = getFormattedDate(startDate);
 
-  let endDate = new Date(start_date);
-
-  if (data.ad_duration_type == "0") {
-    endDate.setMonth(startDate.getMonth() + duration);
-  } else {
-    endDate.setMonth(startDate.getMonth() + 1);
-  }
-
-  endDate = new Date(endDate);
+  const endDate = new Date(data.date.to);
   const endDateFormatted = getFormattedDate(endDate);
 
-  const diferencaInDays = diferenceBetweenDates(start_date);
+  const diferencaInDays = diferenceBetweenDates(data.date.from);
   let billingStartDate;
   let billingEndDate;
 
@@ -397,13 +389,18 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
     billingEndDate.setDate(billingEndDate.getDate() + 6);
 
     if (data.ad_duration_type == "0") {
-      billingEndDate.setMonth(billingEndDate.getMonth() + duration);
+      billingEndDate.setMonth(billingEndDate.getMonth() + data.duration);
     } else {
       billingEndDate.setMonth(billingEndDate.getMonth() + 1);
     }
   } else {
-    billingStartDate = startDate
-    billingEndDate = endDate
+    billingStartDate = new Date(data.date.from);
+    billingEndDate = new Date(data.date.from);
+    if (data.ad_duration_type == "0") {
+      billingEndDate.setMonth(billingEndDate.getMonth() + data.duration);
+    } else {
+      billingEndDate.setMonth(billingEndDate.getMonth() + 1);
+    }
   }
 
   const timeStampFirstBill = Math.floor(billingStartDate.getTime() / 1000);
@@ -487,7 +484,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
         SET status = 2,
         start_date = '${startDateFormatted}',
         end_date = '${endDateFormatted}',
-        duration = '${duration ? duration : 1}'
+        duration = '${data.duration ? data.duration : 1}'
         WHERE id = ${data.id}
     `;
     updateAdvertismentById(queryUpDateAdStatus);
@@ -554,7 +551,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 });
 
 const RequestReserve = asyncHandler(async (req, res) => {
-  const { data, start_date, duration, companyId } = req.body;
+  const { data, start_date,end_date, duration, companyId } = req.body;
 
   //get user id
   const token = req.cookies.jwt;
@@ -571,7 +568,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
   if (data.ad_duration_type == "0") {
     endDate.setMonth(startDate.getMonth() + duration);
   } else {
-    endDate.setMonth(startDate.getMonth() + 1);
+    endDate = end_date;
   }
 
   endDate = new Date(endDate);
@@ -817,7 +814,12 @@ const CancelBooking = asyncHandler(async (req, res) => {
 
           const query = `
           UPDATE advertisement SET
-            status = '1'
+            status = '1',
+            duration = null,
+            requested_by = null,
+            requested_by_company = null,
+            start_date = CASE WHEN ad_duration_type <> 1 THEN NULL ELSE start_date END,
+            end_date = CASE WHEN ad_duration_type <> 1 THEN NULL ELSE end_date END
           WHERE id = '${advertisementId}' 
         `;
           updateAdvertismentById(query);
@@ -856,79 +858,14 @@ const CancelBooking = asyncHandler(async (req, res) => {
 const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
   const event = req.body;
 
-  if (event.type === "subscription_schedule.canceled") {
-    const updatedAt = new Date();
-    const formattedUpdateddAt = getFormattedDate(updatedAt);
-
-    const contractId = event.data.object.id;
-    updateContract(contractId, "3", "Contract is ended");
-
-    const result = await getContractByStripeId(contractId);
-    const advertisementId = result[0].advertisement_id;
-    const advertisement = await getAdvertisementById(advertisementId);
-    const data = advertisement[0];
-    const imageName = data.image.split(";");
-
-    const query = `
-    UPDATE advertisement SET
-      status = '1',
-      updated_at = '${formattedUpdateddAt}'
-    WHERE id = ${advertisementId} 
-  `;
-    updateAdvertismentById(query);
-
-    if (updatedAt == data.end_date) {
-      let emailData;
-      let emailContent;
-
-      const sellerId = data[0].created_by;
-      const seller = await getUsersById(sellerId);
-      const email = seller[0].email;
-
-      const buyerId = data[0].requested_by;
-      const buyer = await getUsersById(buyerId);
-      const buyerEmail = buyer[0].email;
-      //send email to the seller
-      emailData = {
-        title: "ADEX Booking",
-        subTitle: "Booking Expired",
-        message: `Your booking has expired!`,
-        icon: "booking-expired",
-        advertisement: {
-          title: data.title,
-          address: data.address,
-          description: data.description,
-          image: imageName[0],
-          price: data.price,
-        },
-      };
-      emailContent = renderEmail(emailData);
-      sendEmail(email, "Booking Expired", emailContent);
-
-      //email to the buyer
-      emailData = {
-        title: "ADEX Booking",
-        subTitle: "Booking Expired",
-        message: `Your booking has expired!`,
-        icon: "booking-expired",
-        advertisement: {
-          title: data.title,
-          address: data.address,
-          description: data.description,
-          image: imageName[0],
-          price: data.price,
-        },
-      };
-      emailContent = renderEmail(emailData);
-      sendEmail(buyerEmail, "Booking Expired", emailContent);
-    }
-  } else if (event.type === "subscription_schedule.updated") {
+  if (event.type === "subscription_schedule.updated") {
     const scheduleId = event.data.object.id;
     const subscriptionId = event.data.object.subscription;
 
     if (subscriptionId) {
       updateContractSubscriptionId(subscriptionId, scheduleId);
     }
+
   } else if (event.type === "invoice.paid") {
     const subscriptionId = event.data.object.subscription;
     const price = event.data.object.lines.data[0].price.id;
@@ -957,7 +894,7 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     const advertisementDurationType = advertisement[0].ad_duration_type;
 
     let timeStampEndDate = "";
-    if (advertisementDurationType == 0) {
+    if (advertisementDurationType != 0) {
       //  sum 86400 sec to increment the end date one day
       timeStampEndDate = event.data.object.status_transitions.paid_at + 86400;
     } else {
@@ -972,7 +909,7 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
       timeStampStartDate = contract[0].phase_start_date;
     }
     if (duration == invoicesPaidAmount + 1) {
-      if (advertisementDurationType == 0) {
+      if (advertisementDurationType != 0) {
         const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
           scheduleId,
           { prorate: false }
@@ -1039,8 +976,8 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     emailContent = renderEmail(emailData);
     sendEmail(buyerEmail, "Booking Payment", emailContent);
   }
-  res.status(401).json({
-    error: "Not authorized, token failed",
+  res.status(200).json({
+    message: "webhook event: "+event,
   });
 });
 

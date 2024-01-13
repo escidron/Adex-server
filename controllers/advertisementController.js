@@ -154,7 +154,6 @@ const getSharedListing = asyncHandler(async (req, res) => {
   console.log('entrou no sharing listing')
   try {
     const result = await getAdvertisementById(id);
-    console.log('line 157')
 
     if (result.length == 0) {
       res.status(401).json({
@@ -165,7 +164,6 @@ const getSharedListing = asyncHandler(async (req, res) => {
 
       const advertisementsWithImages = result.map((advertisement) => {
         const images = [];
-        console.log('line 168')
 
         const imageArray = advertisement.image.split(";");
         imageArray.map((image) => {
@@ -177,7 +175,6 @@ const getSharedListing = asyncHandler(async (req, res) => {
           shared_image: imageArray[0],
         };
       });
-      console.log('line 180')
 
       res.status(200).json({
         data: advertisementsWithImages,
@@ -412,15 +409,9 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     unit_amount: parseInt(data.price) * 100,
     currency: "usd",
     recurring: {
-      interval:
-        data.ad_duration_type === "0" ||
-        data.ad_duration_type === "1" ||
-        data.ad_duration_type === "2"
-          ? "month"
-          : "year",
-      interval_count: data.ad_duration_type === "2" ? 3 : 1,
+      interval:'month',
+      interval_count:  1,
     },
-
     product: product.id,
   });
 
