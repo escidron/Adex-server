@@ -755,7 +755,11 @@ const CancelBooking = asyncHandler(async (req, res) => {
         const emailData = {
           title: "ADEX Booking",
           subTitle: "Booking Canceled",
-          message: `${buyerName} has cancelled this booking!`,
+          message: userId == sellerId 
+          ? 'Booking cancelled successfully!' 
+          : `${buyerName} has cancelled this booking!
+            ${cancelMessage ? `Message: ${cancelMessage}` : ''}
+          `,
           icon: "sem-image",
           advertisement: {
             title: data.title,
@@ -772,7 +776,12 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const emailData = {
         title: "ADEX Booking",
         subTitle: "Booking Cancelled",
-        message: `Booking cancelled successfully!`,
+        message: userId == buyerId 
+        ? 'Booking cancelled successfully!' 
+        : `${buyerName} has cancelled this booking!
+        ${cancelMessage ? `Message: ${cancelMessage}` : ''}
+
+        `,
         icon: "sem-image",
         advertisement: {
           title: data.title,
