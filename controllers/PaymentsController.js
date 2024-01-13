@@ -760,7 +760,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
           : `${buyerName} has cancelled this booking!
             ${cancelMessage ? `Message: ${cancelMessage}` : ''}
           `,
-          icon: "sem-image",
+          icon: "cancel-booking",
           advertisement: {
             title: data.title,
             address: data.address,
@@ -782,7 +782,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
         ${cancelMessage ? `Message: ${cancelMessage}` : ''}
 
         `,
-        icon: "sem-image",
+        icon: "cancel-booking",
         advertisement: {
           title: data.title,
           address: data.address,
@@ -956,7 +956,7 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
       title: "An ADEX Payment Has Been Made!",
       subTitle: "",
       message: `A Payment from ${buyerName} has been sent to your account.`,
-      icon: "sem-image",
+      icon: "payment-made",
       advertisement: {
         title: data.title,
         address: data.address,
