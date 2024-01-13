@@ -264,13 +264,14 @@ const getMyBookings = asyncHandler(async (req, res) => {
         finishedListing = await getFinishedContract(null, userId);
         pendingBoking = await getPendingBookings(userId);
       }
-      if (result.length == 0 && finishedListing.length == 0) {
+      if (result.length == 0 && finishedListing.length == 0 && pendingBoking.length == 0) {
         res.status(200).json({
           data: [],
         });
       } else {
         const advertisementsWithImages = addImagesPath(result);
         const finishedListingWithImages = addImagesPath(finishedListing);
+        const pendingBokingWithImages = addImagesPath(pendingBoking);
         
         const status = {
           all: result.length + finishedListing.length + pendingBoking.length,
@@ -288,6 +289,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
         const bookings = [
           ...advertisementsWithImages,
           ...finishedListingWithImages,
+          ...pendingBokingWithImages
         ];
 
         res.status(200).json({
