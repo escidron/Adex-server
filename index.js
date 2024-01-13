@@ -15,7 +15,7 @@ dotenv.config();
 const port = process.env.PORT || 5001;
 
 //sendEmail()
-schedule.scheduleJob('56 * * * *', updateFinishedListingAndContract);
+schedule.scheduleJob('1 0 * * *', updateFinishedListingAndContract);
 
 // const io = new Server({
 //   cors: {

@@ -353,7 +353,11 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   if (data.date) {
     let dateFrom = new Date(data.date.from.substring(0, 10));
     const dateFromFormatted = getFormattedDate(dateFrom);
-    let dateTo = new Date(data.date.to.substring(0, 10));
+
+    let dateTo = new Date(data.date.from.substring(0, 10));
+    if(data.date.to){
+       dateTo = new Date(data.date.to.substring(0, 10));
+    }
     const dateToFormatted = getFormattedDate(dateTo);
     dateFormatted = {
       from: dateFromFormatted,
@@ -530,14 +534,18 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   }
 
   let dateFormatted = "";
-  if (date.from && date.to) {
-    let dateFrom = new Date(date.from);
+  if (date.from) {
+    let dateFrom = new Date(date.from.substring(0, 10));
     const dateFromFormatted = getFormattedDate(dateFrom);
-    let dateTo = new Date(date.to);
+
+    let dateTo = new Date(date.from.substring(0, 10));
+    if(date.to){
+       dateTo = new Date(date.to.substring(0, 10));
+    }
     const dateToFormatted = getFormattedDate(dateTo);
     dateFormatted = {
-      from: dateFromFormatted.substring(0, 10),
-      to: dateToFormatted.substring(0, 10),
+      from: dateFromFormatted,
+      to: dateToFormatted,
     };
   }
 
