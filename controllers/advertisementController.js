@@ -94,7 +94,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           all: 0,
           draft: 0,
           available: 0,
-          running: 0,
+          booked: 0,
           finished: 0,
           pending: 0,
         };
@@ -106,7 +106,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
             status.available++;
             status.all++;
           } else if (item.status == "2") {
-            status.running++;
+            status.booked++;
             status.all++;
           } else if (item.status == "4") {
             status.pending++;
