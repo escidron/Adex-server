@@ -256,11 +256,13 @@ const getMyBookings = asyncHandler(async (req, res) => {
       const userId = decoded.userId;
       let result = "";
       let finishedListing = [];
+      let pendingBoking = [];
       if (advertisementId) {
         result = await getAdvertisementById(advertisementId);
       } else {
         result = await getAdvertisementAndBuyers(userId);
         finishedListing = await getFinishedContract(null, userId);
+        pendingBoking = await getPendingBookings(userId);
       }
       if (result.length == 0 && finishedListing.length == 0) {
         res.status(200).json({
@@ -269,6 +271,13 @@ const getMyBookings = asyncHandler(async (req, res) => {
       } else {
         const advertisementsWithImages = addImagesPath(result);
         const finishedListingWithImages = addImagesPath(finishedListing);
+        
+        const status = {
+          all: result.length + finishedListing.length + pendingBoking.length,
+          booked: result.length,
+          finished: finishedListing.length,
+          pending: pendingBoking.length,
+        };
 
         if (notificationId != undefined) {
           updateNotificationStatus(notificationId);
@@ -283,6 +292,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
 
         res.status(200).json({
           data: bookings,
+          status:status
         });
       }
     } catch (error) {
