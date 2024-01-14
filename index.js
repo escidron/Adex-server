@@ -2,81 +2,29 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import userRoutes from "./routes/userRoutes.js";
 import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import schedule from 'node-schedule';
+
+import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import { updateFinishedListingAndContract } from "./queries/Payments.js";
-import sendEmail from "./utils/sendEmail.js";
 import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
 import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
 
 dotenv.config();
 const port = process.env.PORT || 5001;
 
-//update the listing after contract ends
+//update the listing after contract ends (triggers every day at 12:01am)
 schedule.scheduleJob('1 0 * * *', updateFinishedListingAndContract);
 
-//send notifications email about the listing expiere (triggers every day at 7am)
+//send notifications email about the listing expire (triggers every day at 7am)
 schedule.scheduleJob('0 7 * * *', sendExpiredListingEmail);
 
 //update status of the expired listings (triggers every day at 12:05am)
-schedule.scheduleJob('13 * * * *', updateExpiredListingsStatus);
+schedule.scheduleJob('5 0 * * *', updateExpiredListingsStatus);
 
-
-
-// const io = new Server({
-//   cors: {
-//     origin: process.env.CLIENT_IP,
-//   },
-// });
-
-// io.on("connection", (socket) => {
-//   socket.on("send-buyer-message", (data) => {
-//     const createdAt = new Date();
-//     const formattedCreatedAt = getFormattedDate(createdAt)
-
-//     insertMessages(data, formattedCreatedAt);
-//     socket.broadcast.emit("resend-data", data);
-
-//     insertUserNotifications(
-//       data.seller_id,
-//       "You have a new message",
-//       data.message,
-//       formattedCreatedAt,
-//       `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
-//       `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
-//     );
-//     socket.broadcast.emit("resend-data", data);
-//   });
-
-//   socket.on("send-message", (data) => {
-//     const createdAt = new Date();
-//     const formattedCreatedAt = getFormattedDate(createdAt)
-
-//     insertMessages(data, formattedCreatedAt);
-
-//     socket.broadcast.emit("resend-data", data);
-
-//     insertUserNotifications(
-//       data.seller_id,
-//       "You have a new message",
-//       data.message,
-//       formattedCreatedAt,
-//       `/messages?key=${data.advertisement_id}${data.seller_id}${data.buyer_id}`,
-//       `${data.advertisement_id}${data.seller_id}${data.buyer_id}`
-//     );
-//     socket.broadcast.emit("resend-data", data);
-//   });
-
-//   socket.on("disconnect", () => {
-//     console.log("disconnect");
-//   });
-// });
-
-//io.listen(4500);
 
 const app = express();
 app.use(express.json({ limit: "100mb" }));
@@ -101,18 +49,9 @@ app.use("/api/users", userRoutes);
 app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
-// app.use("/api/stripe-connect", connectRoutes);
 app.use('/images', express.static('D:/Projetos Front-end/2-Adex-next/adex/server/images'));
 
 app.use(notFound);
 app.use(errorHandler);
-
-// const options = {
-//   key: fs.readFileSync('key.pem'),
-//   cert: fs.readFileSync('cert.pem')
-// }
-
-// https.createServer(options, app).listen(port, console.log(`server https runs on port ${port}`))
-
 
 app.listen(port, () => console.log(`Server Started on port ${port}`));
