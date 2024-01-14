@@ -3,7 +3,11 @@ import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import * as fs from "fs";
 import Stripe from "stripe";
-import { getCompanyQuery, addGalleryImages, getCompaniesById } from "../queries/Companies.js";
+import {
+  getCompanyQuery,
+  addGalleryImages,
+  getCompaniesById,
+} from "../queries/Companies.js";
 import {
   getFilteredAdvertisements,
   getAdvertisementByCreator,
@@ -97,6 +101,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           booked: 0,
           finished: 0,
           pending: 0,
+          expired: 0,
         };
         advertisementsWithImages.map((item) => {
           if (item.status == "0") {
@@ -110,6 +115,9 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
             status.all++;
           } else if (item.status == "4") {
             status.pending++;
+            status.all++;
+          } else if (item.status == "5") {
+            status.expired++;
             status.all++;
           }
         });
@@ -151,7 +159,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
 
 const getSharedListing = asyncHandler(async (req, res) => {
   const { id } = req.body;
-  console.log('entrou no sharing listing')
+  console.log("entrou no sharing listing");
   try {
     const result = await getAdvertisementById(id);
 
@@ -188,29 +196,28 @@ const getSharedListing = asyncHandler(async (req, res) => {
   }
 });
 const getSellerListings = asyncHandler(async (req, res) => {
-  const { id,companyId } = req.body;
+  const { id, companyId } = req.body;
   try {
-    
     let sellerInfo = {};
     let image = "";
 
-    if(companyId){
-      const company = await getCompaniesById(companyId)
+    if (companyId) {
+      const company = await getCompaniesById(companyId);
       sellerInfo = company[0];
-    }else{
+    } else {
       const sellers = await getUsersById(id);
-       sellerInfo = sellers[0];
+      sellerInfo = sellers[0];
     }
 
     if (sellerInfo.profile_image) {
       image = `${process.env.SERVER_IP}/images/${sellerInfo.profile_image}`;
       sellerInfo = { ...sellerInfo, image: image };
-    }else if(sellerInfo.company_logo){
+    } else if (sellerInfo.company_logo) {
       image = `${process.env.SERVER_IP}/images/${sellerInfo.company_logo}`;
       sellerInfo = { ...sellerInfo, company_logo: image };
     }
 
-    const result = await getAdvertisementByCreator(id,null,companyId);
+    const result = await getAdvertisementByCreator(id, null, companyId);
 
     if (result.length == 0) {
       res.status(401).json({
@@ -264,7 +271,11 @@ const getMyBookings = asyncHandler(async (req, res) => {
         finishedListing = await getFinishedContract(null, userId);
         pendingBoking = await getPendingBookings(userId);
       }
-      if (result.length == 0 && finishedListing.length == 0 && pendingBoking.length == 0) {
+      if (
+        result.length == 0 &&
+        finishedListing.length == 0 &&
+        pendingBoking.length == 0
+      ) {
         res.status(200).json({
           data: [],
         });
@@ -272,7 +283,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
         const advertisementsWithImages = addImagesPath(result);
         const finishedListingWithImages = addImagesPath(finishedListing);
         const pendingBokingWithImages = addImagesPath(pendingBoking);
-        
+
         const status = {
           all: result.length + finishedListing.length + pendingBoking.length,
           booked: result.length,
@@ -289,12 +300,12 @@ const getMyBookings = asyncHandler(async (req, res) => {
         const bookings = [
           ...advertisementsWithImages,
           ...finishedListingWithImages,
-          ...pendingBokingWithImages
+          ...pendingBokingWithImages,
         ];
 
         res.status(200).json({
           data: bookings,
-          status:status
+          status: status,
         });
       }
     } catch (error) {
@@ -367,8 +378,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const dateFromFormatted = getFormattedDate(dateFrom);
 
     let dateTo = new Date(data.date.from.substring(0, 10));
-    if(data.date.to){
-       dateTo = new Date(data.date.to.substring(0, 10));
+    if (data.date.to) {
+      dateTo = new Date(data.date.to.substring(0, 10));
     }
     const dateToFormatted = getFormattedDate(dateTo);
     dateFormatted = {
@@ -425,8 +436,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     unit_amount: parseInt(data.price) * 100,
     currency: "usd",
     recurring: {
-      interval:'month',
-      interval_count:  1,
+      interval: "month",
+      interval_count: 1,
     },
     product: product.id,
   });
@@ -551,8 +562,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     const dateFromFormatted = getFormattedDate(dateFrom);
 
     let dateTo = new Date(date.from.substring(0, 10));
-    if(date.to){
-       dateTo = new Date(date.to.substring(0, 10));
+    if (date.to) {
+      dateTo = new Date(date.to.substring(0, 10));
     }
     const dateToFormatted = getFormattedDate(dateTo);
     dateFormatted = {
@@ -649,7 +660,7 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
           ...advertisementsWithImages[0],
           seller_image: image,
           seller_name: seller[0].name,
-          seller_rating:seller[0].rating
+          seller_rating: seller[0].rating,
         },
       });
     } else {
@@ -658,8 +669,7 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
           ...advertisementsWithImages[0],
           seller_image: image,
           seller_name: seller[0].name,
-          seller_rating:seller[0].rating
-
+          seller_rating: seller[0].rating,
         },
       });
     }
@@ -1046,7 +1056,7 @@ const getListingReviews = asyncHandler(async (req, res) => {
 
   try {
     const result = await getReviewsByListingId(id);
-    const reviewsWithImages = addImageToReviews(result)
+    const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
     res.status(401).json({
@@ -1060,7 +1070,7 @@ const getSellerReviews = asyncHandler(async (req, res) => {
 
   try {
     const result = await getReviewsBySellerId(id, companyId);
-    const reviewsWithImages = addImageToReviews(result)
+    const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
     res.status(401).json({
@@ -1074,7 +1084,7 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
 
   try {
     const result = await getReviewsByBuyerId(id, companyId);
-    const reviewsWithImages = addImageToReviews(result)
+    const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
     res.status(401).json({

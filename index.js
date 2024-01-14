@@ -10,12 +10,22 @@ import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import schedule from 'node-schedule';
 import { updateFinishedListingAndContract } from "./queries/Payments.js";
 import sendEmail from "./utils/sendEmail.js";
+import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
+import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
 
 dotenv.config();
 const port = process.env.PORT || 5001;
 
-//sendEmail()
+//update the listing after contract ends
 schedule.scheduleJob('1 0 * * *', updateFinishedListingAndContract);
+
+//send notifications email about the listing expiere (triggers every day at 7am)
+schedule.scheduleJob('0 7 * * *', sendExpiredListingEmail);
+
+//update status of the expired listings (triggers every day at 12:05am)
+schedule.scheduleJob('13 * * * *', updateExpiredListingsStatus);
+
+
 
 // const io = new Server({
 //   cors: {

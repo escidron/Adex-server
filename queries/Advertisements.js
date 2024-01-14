@@ -35,7 +35,7 @@ export async function getFilteredAdvertisements(
 }
 //add the id of the user is filtering so does not return his listings
 export async function getAllAdvertisements() {
-  const allAdvertisementsQuery = `SELECT * FROM advertisement where status <> '0'`;
+  const allAdvertisementsQuery = `SELECT * FROM advertisement where status NOT IN('0','5')`;
 
   return new Promise((resolve, reject) => {
     db.query(allAdvertisementsQuery, (err, result) => {
@@ -48,7 +48,7 @@ export async function getAllAdvertisements() {
 }
 
 export async function getAdvertisementByCreator(userId, id,companyId) {
-  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and created_by = ${userId} 
+  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where status NOT IN('0','5') and created_by = ${userId} 
   ${id ? "and id=" + id : ""} ${companyId ? "and company_id=" + companyId : ""}`;
   return new Promise((resolve, reject) => {
     db.query(advertisementByCreateorQuery, (err, result) => {
@@ -523,6 +523,60 @@ export async function getReviewsByBuyerId(id,companyId) {
 
   return new Promise((resolve, reject) => {
     db.query(getListingReviewsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+
+//expire listing queries
+export async function getNearingExpiryListings() {
+  const nearingExpiryListingsQuery = `
+    SELECT advertisement.*,users.email
+    FROM advertisement
+    LEFT JOIN users ON users.id = advertisement.created_by COLLATE utf8mb4_unicode_ci
+    where advertisement.ad_duration_type = '1' and advertisement.status = '1' and advertisement.end_date = CURDATE()
+    `;
+  return new Promise((resolve, reject) => {
+    db.query(nearingExpiryListingsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getRecentExpiredListings() {
+  const nearingExpiryListingsQuery = `
+    SELECT advertisement.*,users.email
+    FROM advertisement
+    LEFT JOIN users ON users.id = advertisement.created_by COLLATE utf8mb4_unicode_ci
+    where advertisement.ad_duration_type = '1' and advertisement.status = '1' and advertisement.end_date < CURDATE()
+    `;
+  return new Promise((resolve, reject) => {
+    db.query(nearingExpiryListingsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+
+export async function updateExpiredListingsStatus() {
+  const updateExpiredListingsStatusQuery = `
+  UPDATE advertisement
+  SET status = '5'
+  WHERE status = 1 AND ad_duration_type = '1' AND end_date < CURDATE();
+`;
+
+  return new Promise((resolve, reject) => {
+    db.query(updateExpiredListingsStatusQuery, (err, result) => {
       if (err) {
         reject(err);
       }

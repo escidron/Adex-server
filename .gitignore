@@ -1,4 +1,5 @@
 .env
 node_modules
 
-/images
+images/*
+!images/email/
