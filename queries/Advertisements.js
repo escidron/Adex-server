@@ -48,7 +48,7 @@ export async function getAllAdvertisements() {
 }
 
 export async function getAdvertisementByCreator(userId, id,companyId) {
-  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where status NOT IN('0','5') and created_by = ${userId} 
+  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where  created_by = ${userId} 
   ${id ? "and id=" + id : ""} ${companyId ? "and company_id=" + companyId : ""}`;
   return new Promise((resolve, reject) => {
     db.query(advertisementByCreateorQuery, (err, result) => {
@@ -364,7 +364,7 @@ export async function DraftToAdvertisement(
       company_id = '${data.company_id}',
       created_at = '${formattedCreatedAt}',
       created_by = '${userId}',
-      status = '1',
+      status = ${data.has_payout_method ? '1' : '0'},
       stripe_product_id = '${product.id}',
       stripe_price = '${price.id}',
       created_by_type = '${userType}',

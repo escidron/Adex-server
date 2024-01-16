@@ -567,6 +567,8 @@ const RequestReserve = asyncHandler(async (req, res) => {
 
   if (data.ad_duration_type == "0") {
     endDate.setMonth(startDate.getMonth() + duration);
+  } else if (data.ad_duration_type == "2") {
+    endDate = start_date;
   } else {
     endDate = end_date;
   }
@@ -755,10 +757,11 @@ const CancelBooking = asyncHandler(async (req, res) => {
         const emailData = {
           title: "ADEX Booking",
           subTitle: "Booking Canceled",
-          message: userId == sellerId 
-          ? 'Booking cancelled successfully!' 
-          : `${buyerName} has cancelled this booking!
-            ${cancelMessage ? `Message: ${cancelMessage}` : ''}
+          message:
+            userId == sellerId
+              ? "Booking cancelled successfully!"
+              : `${buyerName} has cancelled this booking!
+            ${cancelMessage ? `Message: ${cancelMessage}` : ""}
           `,
           icon: "cancel-booking",
           advertisement: {
@@ -776,10 +779,11 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const emailData = {
         title: "ADEX Booking",
         subTitle: "Booking Cancelled",
-        message: userId == buyerId 
-        ? 'Booking cancelled successfully!' 
-        : `${buyerName} has cancelled this booking!
-        ${cancelMessage ? `Message: ${cancelMessage}` : ''}
+        message:
+          userId == buyerId
+            ? "Booking cancelled successfully!"
+            : `${buyerName} has cancelled this booking!
+        ${cancelMessage ? `Message: ${cancelMessage}` : ""}
 
         `,
         icon: "cancel-booking",
@@ -874,7 +878,6 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     if (subscriptionId) {
       updateContractSubscriptionId(subscriptionId, scheduleId);
     }
-
   } else if (event.type === "invoice.paid") {
     const subscriptionId = event.data.object.subscription;
     const price = event.data.object.lines.data[0].price.id;
@@ -986,7 +989,7 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     sendEmail(buyerEmail, "Booking Payment", emailContent);
   }
   res.status(200).json({
-    message: "webhook event: "+event,
+    message: "webhook event: " + event,
   });
 });
 
