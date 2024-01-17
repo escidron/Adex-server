@@ -1,4 +1,5 @@
 import getDatabaseConnection from ".././db.js";
+import escapeText from "../utils/escapeText.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 
 const db = getDatabaseConnection();
@@ -645,7 +646,7 @@ export async function insertSellerRating(
         ${companyId ? companyId : null},
         ${contract.buyer_id},
         ${contract.buyer_company_id ? contract.buyer_company_id : null},
-        '${comments}',
+        ${escapeText(comments)},
         ${rating},
         ${contract.id},
         ${contract.advertisement_id}
