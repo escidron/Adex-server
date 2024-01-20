@@ -18,7 +18,8 @@ deleteDiscount,
 getPendingListings,
 getListingReviews,
 getSellerReviews,
-getBuyerReviews
+getBuyerReviews,
+GetBase64Images
 } from '../controllers/advertisementController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -42,5 +43,6 @@ router.get('/get-pending-bookings', getPendingListings);
 router.post('/get-listing-reviews', getListingReviews);
 router.post('/get-seller-reviews', getSellerReviews);
 router.post('/get-buyer-reviews', getBuyerReviews);
+router.post('/get-base64-images', GetBase64Images);
 
 export default router;
