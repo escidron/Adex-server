@@ -266,9 +266,7 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 
         res.status(200).json(bankAccounts);
       }else{
-        res.status(401).json({
-          error: "No bank account founded",
-        });
+        res.status(200).json([]);
       }
     } catch (error) {
       console.error(error);
