@@ -233,7 +233,7 @@ const getSellerProfile = asyncHandler(async (req, res) => {
 const createUserConnectAccount = asyncHandler(async (req, res) => {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const { address } = pkg;
-  const { idNumber, bod, street, city, state, zip, verificationImage } =
+  const { idNumber, dob, street, city, state, zip, verificationImage } =
     req.body;
 
   const token = req.cookies.jwt;
@@ -291,9 +291,9 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             },
             political_exposure: "none",
             dob: {
-              day: bod.substring(8, 10),
-              month: bod.substring(5, 7),
-              year: bod.substring(0, 4),
+              day: dob.substring(8, 10),
+              month: dob.substring(5, 7),
+              year: dob.substring(0, 4),
             },
 
             verification: {
@@ -352,9 +352,9 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             },
             political_exposure: "none",
             dob: {
-              day: bod.substring(8, 10),
-              month: bod.substring(5, 7),
-              year: bod.substring(0, 4),
+              day: dob.substring(8, 10),
+              month: dob.substring(5, 7),
+              year: dob.substring(0, 4),
             },
 
             verification: {
