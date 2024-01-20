@@ -526,6 +526,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     first_available_date,
     instructions,
     discounts,
+    status
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -536,7 +537,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   const formattedUpdatedAt = getFormattedDate(updatedAt);
 
   let updateImages = "";
-  images.map((image, index) => {
+  images.map((image) => {
     let imageName = "";
     if (
       image.data_url.startsWith("http://") ||
@@ -577,6 +578,16 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   } else {
     dateFormatted = "";
   }
+
+  let reactivate = false
+  if(status == 5){
+    const currentDate = new Date()
+    const startDate = new Date(date.from)
+    if(startDate > currentDate){
+      reactivate = true
+    }
+    console.log('date.from',date.from)
+  }
   const query = `
     UPDATE advertisement SET
       title = ${escapeText(title)},
@@ -598,6 +609,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
       company_id = '${company_id}',
       per_unit_price = '${per_unit_price}',
       category_id = '${category_id}'
+      ${reactivate ? ',status= 1' : ''}
     WHERE id = ${id}
   `;
   updateAdvertismentById(query);
