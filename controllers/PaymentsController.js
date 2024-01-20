@@ -266,7 +266,7 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
 
         res.status(200).json(bankAccounts);
       }else{
-        res.status(200).json([]);
+        res.status(200).json({data:[]});
       }
     } catch (error) {
       console.error(error);
