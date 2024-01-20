@@ -1107,35 +1107,6 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
   }
 });
 
-const GetBase64Images = asyncHandler(async (req, res) => {
-  const { id } = req.body;
-
-  try {
-    const result = await getAdvertisementById(id);
-
-    let base64Images = []
-    if(result.length > 0){
-      const images = result[0].image
-      const imagesArray = images.split(';')
-      imagesArray.map((image)=>{
-        let base64Image = getImageBase64(image)
-        base64Images.push(base64Image)
-      })
-      console.log('imagesArray',imagesArray)
-    }
-
-      res.status(200).json({
-        data: base64Images
-        ,
-      });
-    
-  } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
-    });
-  }
-});
 
 export {
   getAdvertisement,
@@ -1156,6 +1127,5 @@ export {
   getPendingListings,
   getListingReviews,
   getSellerReviews,
-  getBuyerReviews,
-  GetBase64Images
+  getBuyerReviews
 };
