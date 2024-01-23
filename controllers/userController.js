@@ -7,7 +7,11 @@ import Stripe from "stripe";
 import * as fs from "fs";
 import pkg from "ip";
 import sendEmail from "../utils/sendEmail.js";
-import { editCompanyById, getCompaniesQuery, removeCompanyById } from "../queries/Companies.js";
+import {
+  editCompanyById,
+  getCompaniesQuery,
+  removeCompanyById,
+} from "../queries/Companies.js";
 import dotenv from "dotenv";
 import {
   getUsersByEmail,
@@ -128,8 +132,8 @@ const autoLogin = asyncHandler(async (req, res) => {
           name: firstName,
           image: image,
           userId: result[0].id,
-          rating:result[0].rating,
-          userType:result[0].user_type
+          rating: result[0].rating,
+          userType: result[0].user_type,
         });
       }
     } catch (error) {
@@ -809,77 +813,74 @@ const getExternalAccount = asyncHandler(async (req, res) => {
 const getUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
-  if (token) {
-    try {
+  let userId = ''
+  try {
+    if(token){
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
-      const result = await getUsersById(id ? id : userId);
-      if (result.length == 0) {
-        res.status(200).json({
-          data: "",
-        });
-      } else {
-        const name = result[0].first_name;
-        const lastName = result[0].last_name;
-        const email = result[0].email;
-        const phone = result[0].mobile_number;
-        const bio = result[0].bio;
-        const sex = result[0].sex;
-        const profession = result[0].profession;
-        const handle = result[0].handle;
-        const handleIsPublic = result[0].handle_is_public;
-        const professionIsPublic = result[0].profession_is_public;
-        const sexIsPublic = result[0].sex_is_public;
-        const bioIsPublic = result[0].bio_is_public;
-        const city = result[0].city;
-        const cityIsPublic = result[0].city_is_public;
-        const userType = result[0].user_type;
-        const images = result[0].image_gallery;
-        const imagesWithPath = [];
-        const rating = result[0].rating
-        if (images) {
-          const imageArray = images.split(";");
-          imageArray.map((image) => {
-            if (image) {
-              const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-              imagesWithPath.push({ data_url: imagePath });
-            }
-          });
-        }
-        let image = "";
-        if (result[0].profile_image) {
-          image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
-        }
-        res.status(200).json({
-          name,
-          lastName,
-          email,
-          image,
-          phone,
-          bio,
-          sex,
-          profession,
-          handle,
-          handleIsPublic,
-          professionIsPublic,
-          sexIsPublic,
-          bioIsPublic,
-          city,
-          cityIsPublic,
-          userType,
-          images: imagesWithPath,
-          rating
+      userId = decoded.userId;
+    }
+    const result = await getUsersById(id ? id : userId);
+    if (result.length == 0) {
+      res.status(200).json({
+        data: "",
+      });
+    } else {
+      const name = result[0].first_name;
+      const lastName = result[0].last_name;
+      const email = result[0].email;
+      const phone = result[0].mobile_number;
+      const bio = result[0].bio;
+      const sex = result[0].sex;
+      const profession = result[0].profession;
+      const handle = result[0].handle;
+      const handleIsPublic = result[0].handle_is_public;
+      const professionIsPublic = result[0].profession_is_public;
+      const sexIsPublic = result[0].sex_is_public;
+      const bioIsPublic = result[0].bio_is_public;
+      const city = result[0].city;
+      const cityIsPublic = result[0].city_is_public;
+      const userType = result[0].user_type;
+      const images = result[0].image_gallery;
+      const imagesWithPath = [];
+      const rating = result[0].rating;
+      if (images) {
+        const imageArray = images.split(";");
+        imageArray.map((image) => {
+          if (image) {
+            const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+            imagesWithPath.push({ data_url: imagePath });
+          }
         });
       }
-    } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      let image = "";
+      if (result[0].profile_image) {
+        image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
+      }
+      res.status(200).json({
+        name,
+        lastName,
+        email,
+        image,
+        phone,
+        bio,
+        sex,
+        profession,
+        handle,
+        handleIsPublic,
+        professionIsPublic,
+        sexIsPublic,
+        bioIsPublic,
+        city,
+        cityIsPublic,
+        userType,
+        images: imagesWithPath,
+        rating,
       });
     }
-  } else {
+  } catch (error) {
+    console.error(error);
     res.status(401).json({
-      error: "Not authorized, no token",
+      error: "Not authorized, token failed",
     });
   }
 });
@@ -891,15 +892,13 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const userId = decoded.userId;
-      let imageName = ''
-      if(image){
-
+      let imageName = "";
+      if (image) {
         imageName = Date.now() + ".png";
         const path = "./images/" + imageName;
         const imgdata = image;
         const base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
         fs.writeFileSync(path, base64Data, { encoding: "base64" });
-        
       }
       updateProfileImage(imageName, userId);
     } catch (error) {
@@ -1139,7 +1138,7 @@ const editCompany = asyncHandler(async (req, res) => {
         imageName,
         address,
         industry,
-        hasPhysicalSpace,
+        hasPhysicalSpace
       );
       res.status(200).json({ message: "Company edited succesfully" });
     } catch (error) {
@@ -1628,5 +1627,5 @@ export {
   removeCompany,
   rateBuyer,
   rateSeller,
-  editCompany
+  editCompany,
 };
