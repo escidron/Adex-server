@@ -5,12 +5,11 @@ import fs from "fs/promises";
 export async function generateQrCode(listingId) {
   try {
 
-    // Gere o QR code
     const qrCodeContent = `https://adexconnect.com/market-place/details?id=${listingId}`;
     const qrCodeImage = await qrcode.toDataURL(qrCodeContent);
 
-    const imagePath = '../server/images/email/adex-logo-white-yellow.png';
-
+    const imagePath = new URL('../images/email/adex-logo-white-yellow.png', import.meta.url);
+    
     const imageBuffer = await fs.readFile(imagePath);
 
     const base64Image = imageBuffer.toString('base64');
