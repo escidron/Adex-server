@@ -47,6 +47,7 @@ import getImageNameFromLink from "../utils/getImageNameFromLink.js";
 import { addImageToReviews } from "../utils/addImageToReviews.js";
 import { log } from "console";
 import getImageBase64 from "../utils/getImageBase64.js";
+import { generateQrCode } from "../utils/generateQrCode.js";
 
 dotenv.config();
 
@@ -465,6 +466,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       availableDateFormatted
     );
     advertisementId = userDraft[0].id;
+    await generateQrCode(advertisementId)
   } else {
     newAdvertisement = await insertAdvertisement(
       data,
@@ -479,6 +481,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       availableDateFormatted
     );
     advertisementId = newAdvertisement.insertId;
+    await generateQrCode(advertisementId)
+
   }
 
   const imageName = images.split(";");
@@ -496,7 +500,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     },
   };
   const emailContent = renderEmail(emailData);
-  sendEmail(email, "Listing Created", emailContent);
+  sendEmail(email, "Listing Created", emailContent,advertisementId);
 
   data.discounts.map((item) => {
     const createdAt = new Date();

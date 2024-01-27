@@ -12,6 +12,10 @@ import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import { updateFinishedListingAndContract } from "./queries/Payments.js";
 import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
 import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
+import { publishRatings } from "./utils/publishRatings.js";
+import { generateQrCode } from "./utils/generateQrCode.js";
+import sendEmail from "./utils/sendEmail.js";
+import renderEmail from "./utils/emailTamplates/emailTemplate.js";
 
 dotenv.config();
 const port = process.env.PORT || 5001;
@@ -24,6 +28,9 @@ schedule.scheduleJob('0 7 * * *', sendExpiredListingEmail);
 
 //update status of the expired listings (triggers every day at 12:05am)
 schedule.scheduleJob('5 0 * * *', updateExpiredListingsStatus);
+
+//send notifications email about the listing expire (triggers every day at 12:10am)//'10 0 * * *
+schedule.scheduleJob('49 * * * *', publishRatings);
 
 
 const app = express();

@@ -13,7 +13,16 @@ CREATE TABLE IF NOT EXISTS contracts (
     invoices_paid INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     phase_start_date VARCHAR(45),
-    cancellation_allowed VARCHAR(1)
+    cancellation_allowed VARCHAR(1),
+    price int, 
+    ad_duration_type varchar(1) ,
+    duration int ,
+    is_rated_by_seller varchar(1) ,
+    is_rated_by_buyer varchar(1) ,
+    seller_company_id int ,
+    buyer_company_id int ,
+    is_reviewed_published varchar(1)
+    
   );
 `;
 

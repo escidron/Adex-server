@@ -1,40 +1,47 @@
 import dotenv from "dotenv";
 import AWS from "aws-sdk";
 import message from "aws-sdk/lib/maintenance_mode_message.js";
+import * as fs from "fs";
+import nodemailer from "nodemailer";
+
 message.suppress = true;
 dotenv.config();
 
-export default function sendEmail(sendTo, subject, template) {
+export default async function sendEmail(sendTo, subject, template, listingId) {
+  let attachmentData = ''
+  if (listingId) {
+     attachmentData = fs.readFileSync(
+      `./images/email/qr_code_images/listing_qrcode${listingId}.png`
+    );
+  }
+
   AWS.config.update({
     accessKeyId: process.env.AWS_SES_ACCESS_KEY,
     secretAccessKey: process.env.AWS_SES_SECRET_ACCESS_KEY,
     region: process.env.AWS_SES_REGION,
   });
-
-  const ses = new AWS.SES({ apiVersion: "2010-12-01" });
-
-  const params = {
-    Destination: {
-      ToAddresses: [sendTo],
-    },
-    Message: {
-      Body: {
-        Html: {
-          Data: template
-        }
-      },
-      Subject: {
-        Data: subject,
-      },
-    },
-    Source: process.env.EMAIL_ACCOUNT,
-  };
-
-  ses.sendEmail(params, (err, data) => {
-    if (err) {
-      console.error(err.message);
-    } else {
-      console.log("E-mail sended successfully", data.MessageId);
-    }
+  let transporter = nodemailer.createTransport({
+    SES: new AWS.SES({
+      region: process.env.AWS_SES_REGION,
+      apiVersion: "2010-12-01",
+    }),
   });
+
+  let info = await transporter.sendMail({
+    from: process.env.EMAIL_ACCOUNT,
+    to: sendTo,
+    subject: subject,
+    text: "",
+    html: template ? template : "",
+    attachments: attachmentData ? [
+      {
+        filename: `Listing_qrcode${listingId}.png`,
+        content: attachmentData,
+      },
+    ] : '',
+  });
+
+  console.log("Message sent: %s", info.messageId);
+  // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
+  return info; 
 }
