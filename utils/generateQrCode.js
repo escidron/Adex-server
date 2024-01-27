@@ -25,7 +25,7 @@ export async function generateQrCode(listingId) {
     `;
 
     // Inicialize o navegador Puppeteer
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ headless: "new" });
     const page = await browser.newPage();
 
     // Configure o conteúdo HTML na página
