@@ -1,6 +1,7 @@
 import puppeteer from "puppeteer";
 import qrcode from "qrcode";
 import fs from "fs/promises";
+import nodeHtmlToImage from "node-html-to-image";
 
 export async function generateQrCode(listingId) {
   try {
@@ -24,28 +25,33 @@ export async function generateQrCode(listingId) {
       </div>
     `;
 
-    // Inicialize o navegador Puppeteer
-    const browser = await puppeteer.launch({ headless: "new" });
-    const page = await browser.newPage();
-
-    // Configure o conteúdo HTML na página
-    await page.setContent(htmlContent);
-
-    // Ajuste a largura e a altura da página para evitar o fundo branco extra
-    await page.setViewport({ width: 800, height: 150 });
-
-    // Capture uma captura de tela como Buffer
-    const screenshotBuffer = await page.screenshot({
-      clip: { x: 8, y: 8, width: 784, height: 412 },
+    await nodeHtmlToImage({
+      output: `./images/email/qr_code_images/listing_qrcode${listingId}.png`,
+      html: htmlContent,
     });
-    // Caminho do arquivo de imagem
-    const cardImagePath = `./images/email/qr_code_images/listing_qrcode${listingId}.png`;
 
-    // Salve a imagem no arquivo
-    await fs.writeFile(cardImagePath, screenshotBuffer);
+    // Inicialize o navegador Puppeteer
+    // const browser = await puppeteer.launch({ headless: "new" });
+    // const page = await browser.newPage();
 
-    // Feche o navegador Puppeteer
-    await browser.close();
+    // // Configure o conteúdo HTML na página
+    // await page.setContent(htmlContent);
+
+    // // Ajuste a largura e a altura da página para evitar o fundo branco extra
+    // await page.setViewport({ width: 800, height: 150 });
+
+    // // Capture uma captura de tela como Buffer
+    // const screenshotBuffer = await page.screenshot({
+    //   clip: { x: 8, y: 8, width: 784, height: 412 },
+    // });
+    // // Caminho do arquivo de imagem
+    // const cardImagePath = `./images/email/qr_code_images/listing_qrcode${listingId}.png`;
+
+    // // Salve a imagem no arquivo
+    // await fs.writeFile(cardImagePath, screenshotBuffer);
+
+    // // Feche o navegador Puppeteer
+    // await browser.close();
   } catch (error) {
     console.log("[generateQrCode]", error);
   }

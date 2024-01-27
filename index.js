@@ -16,6 +16,7 @@ import { publishRatings } from "./utils/publishRatings.js";
 import { generateQrCode } from "./utils/generateQrCode.js";
 import sendEmail from "./utils/sendEmail.js";
 import renderEmail from "./utils/emailTamplates/emailTemplate.js";
+import nodeHtmlToImage from "node-html-to-image";
 
 dotenv.config();
 const port = process.env.PORT || 5001;
@@ -31,6 +32,18 @@ schedule.scheduleJob('5 0 * * *', updateExpiredListingsStatus);
 
 //send notifications email about the listing expire (triggers every day at 12:10am)//'10 0 * * *
 schedule.scheduleJob('49 * * * *', publishRatings);
+
+// const emailData = {
+//   title: "ADEX Listing",
+//   subTitle: "Listing  created",
+//   message: "Your Listing has been successfully created ",
+//   icon: "listing-created"
+// };
+// const emailContent = renderEmail(emailData);
+// sendEmail('eduardosanchezcidron@gmail.com', "Listing Created", emailContent,"0021");
+
+//  generateQrCode('0021')
+
 
 
 const app = express();
