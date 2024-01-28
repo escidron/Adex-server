@@ -13,8 +13,9 @@ import { updateFinishedListingAndContract } from "./queries/Payments.js";
 import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
 import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
 import { publishRatings } from "./utils/publishRatings.js";
+import { generateQrCode } from "./utils/generateQrCode.js";
 
-
+//generateQrCode(123)
 dotenv.config();
 const port = process.env.PORT || 5001;
 

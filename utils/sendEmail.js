@@ -13,7 +13,7 @@ export default async function sendEmail(sendTo, subject, template, listingId) {
 
   if (listingId) {
      attachmentData = fs.readFileSync(
-      `./images/email/qr_code_images/listing_qrcode${listingId}-1.png`
+      `./images/email/qr_code_images/listing_qrcode${listingId}.png`
     );
   }
 
