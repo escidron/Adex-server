@@ -1,6 +1,6 @@
 import qrcode from "qrcode";
 import fs from "fs/promises";
-import pdf from 'html-pdf';
+//import pdf from 'html-pdf';
 import { convert } from 'pdf-poppler';
 
 export async function generateQrCode(listingId) {
@@ -23,25 +23,25 @@ export async function generateQrCode(listingId) {
     const pdfOptions = { format: 'Letter' }; 
     const outputPath = './images/email/qr_code_images/document.pdf';
 
-    await new Promise((resolve, reject) => {
-      pdf.create(htmlContent, pdfOptions).toFile(outputPath, async (err, res) => {
-        if (err) {
-          reject(err);
-        } else {
-          const pngOptions = {
-            format: 'png',
-            out_dir: './images/email/qr_code_images',
-            out_prefix: `listing_qrcode${listingId}`,
-            page: 1,
-          };
+    // await new Promise((resolve, reject) => {
+    //   pdf.create(htmlContent, pdfOptions).toFile(outputPath, async (err, res) => {
+    //     if (err) {
+    //       reject(err);
+    //     } else {
+    //       const pngOptions = {
+    //         format: 'png',
+    //         out_dir: './images/email/qr_code_images',
+    //         out_prefix: `listing_qrcode${listingId}`,
+    //         page: 1,
+    //       };
 
-          await convert(outputPath, pngOptions);
-          await fs.unlink(outputPath);
+    //       await convert(outputPath, pngOptions);
+    //       await fs.unlink(outputPath);
 
-          resolve();
-        }
-      });
-    });
+    //       resolve();
+    //     }
+    //   });
+    // });
   } catch (error) {
     console.log("[generateQrCode]", error);
   }

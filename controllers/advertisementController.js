@@ -500,10 +500,11 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     },
   };
   const emailContent = renderEmail(emailData);
-   sendEmail(email, "Listing Created", emailContent,advertisementId);
-   fs.unlink(`./images/email/qr_code_images/listing_qrcode${advertisementId}-1.png`, (err) => {
-    if (err) throw err;
-  });
+   sendEmail(email, "Listing Created", emailContent);
+  //  sendEmail(email, "Listing Created", emailContent,advertisementId);
+  //  fs.unlink(`./images/email/qr_code_images/listing_qrcode${advertisementId}-1.png`, (err) => {
+  //   if (err) throw err;
+  // });
   data.discounts.map((item) => {
     const createdAt = new Date();
     const formattedCreatedAt = getFormattedDate(createdAt);
