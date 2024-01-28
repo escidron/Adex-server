@@ -1,7 +1,7 @@
 import qrcode from "qrcode";
 import fs from "fs/promises";
 //import pdf from 'html-pdf';
-import { convert } from 'pdf-poppler';
+// import { convert } from 'pdf-poppler';
 
 export async function generateQrCode(listingId) {
   try {
