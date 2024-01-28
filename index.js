@@ -17,6 +17,11 @@ import { generateQrCode } from "./utils/generateQrCode.js";
 import sendEmail from "./utils/sendEmail.js";
 import renderEmail from "./utils/emailTamplates/emailTemplate.js";
 import nodeHtmlToImage from "node-html-to-image";
+import { createCanvas, loadImage } from 'canvas';
+import fs from 'fs';
+import { createDocument } from 'domino';
+import { DOMParser } from 'xmldom';
+import xmlserializer from 'xmlserializer';
 
 dotenv.config();
 const port = process.env.PORT || 5001;
@@ -42,7 +47,7 @@ schedule.scheduleJob('49 * * * *', publishRatings);
 // const emailContent = renderEmail(emailData);
 // sendEmail('eduardosanchezcidron@gmail.com', "Listing Created", emailContent,"0021");
 
-//  generateQrCode('0021')
+ //generateQrCode('0021')
 
 
 

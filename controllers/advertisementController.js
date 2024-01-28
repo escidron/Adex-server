@@ -466,7 +466,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       availableDateFormatted
     );
     advertisementId = userDraft[0].id;
-    await generateQrCode(advertisementId)
   } else {
     newAdvertisement = await insertAdvertisement(
       data,
@@ -481,10 +480,11 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       availableDateFormatted
     );
     advertisementId = newAdvertisement.insertId;
-    await generateQrCode(advertisementId)
-
+    
   }
-
+  
+  await generateQrCode(advertisementId)
+  
   const imageName = images.split(";");
   const emailData = {
     title: "ADEX Listing",
@@ -500,8 +500,10 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     },
   };
   const emailContent = renderEmail(emailData);
-  sendEmail(email, "Listing Created", emailContent,advertisementId);
-
+   sendEmail(email, "Listing Created", emailContent,advertisementId);
+   fs.unlink(`./images/email/qr_code_images/listing_qrcode${advertisementId}-1.png`, (err) => {
+    if (err) throw err;
+  });
   data.discounts.map((item) => {
     const createdAt = new Date();
     const formattedCreatedAt = getFormattedDate(createdAt);
