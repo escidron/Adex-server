@@ -13,15 +13,7 @@ import { updateFinishedListingAndContract } from "./queries/Payments.js";
 import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
 import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
 import { publishRatings } from "./utils/publishRatings.js";
-import { generateQrCode } from "./utils/generateQrCode.js";
-import sendEmail from "./utils/sendEmail.js";
-import renderEmail from "./utils/emailTamplates/emailTemplate.js";
-import nodeHtmlToImage from "node-html-to-image";
-import { createCanvas, loadImage } from 'canvas';
-import fs from 'fs';
-import { createDocument } from 'domino';
-import { DOMParser } from 'xmldom';
-import xmlserializer from 'xmlserializer';
+
 
 dotenv.config();
 const port = process.env.PORT || 5001;
