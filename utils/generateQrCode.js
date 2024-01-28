@@ -27,7 +27,7 @@ export async function generateQrCode(listingId) {
         if (err) {
           reject(err);
         } else {
-
+          console.log('image generated')
           resolve();
         }
       });
