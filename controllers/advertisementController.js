@@ -48,6 +48,7 @@ import { addImageToReviews } from "../utils/addImageToReviews.js";
 import { generateQrCode } from "../utils/generateQrCode.js";
 import multer from "multer";
 import path from "path";
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
@@ -1175,24 +1176,23 @@ const removeFiles = asyncHandler(async (req, res) => {
   }
 });
 const downloadFiles = asyncHandler(async (req, res) => {
-  const { fileName } = req.body;
-  const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const userId = decoded.userId;
+  const { file } = req.body;
 
   try {
 
-    const fileName = `console_workflow_schedule.log (30).pdf`;
-    const filePath = `D:/Projetos Front-end/2-Adex-next/adex/server/images/files/console_workflow_schedule.log(30).pdf`;
-    res.download(filePath, fileName, (err) => {
-      if (err) {
-        console.error('Erro durante o download do arquivo:', err);
-        res.status(500).send('Erro interno do servidor');
-      }
-    });
+    if (!file) {
+      return res.status(400).json({ error: 'No file name provided' });
+    }
 
-    // Adicione o cabeçalho Content-Disposition para forçar o download
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    const imagePath = new URL(`../images/files/${file}`, import.meta.url);
+
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ error: 'File does not exist' });
+    }
+
+    const fileStream = fs.createReadStream(imagePath);
+    fileStream.pipe(res);
+
   } catch (error) {
     res.status(401).json({
       error: "Not authorized, token failed",
