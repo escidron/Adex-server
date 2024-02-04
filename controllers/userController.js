@@ -1412,13 +1412,17 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
 
 const sendMessage = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { sended_by, seller_id, buyer_id, advertisement_id, message } =
-    req.body;
+  const { sended_by, seller_id, buyer_id, advertisement_id, message, filesNames } = req.body;
 
   if (token) {
     try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
+
+      const filesNamesString = filesNames.join(';') 
 
       insertMessages(
         sended_by,
@@ -1426,10 +1430,11 @@ const sendMessage = asyncHandler(async (req, res) => {
         buyer_id,
         advertisement_id,
         message,
-        formattedCreatedAt
+        formattedCreatedAt,
+        filesNamesString
       );
       insertUserNotifications(
-        seller_id,
+        userId ==seller_id ? buyer_id : seller_id,
         "You have a new message",
         message,
         formattedCreatedAt,

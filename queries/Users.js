@@ -360,7 +360,7 @@ export async function getAllMessages() {
   });
 }
 
-export async function insertMessages( sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt) {
+export async function insertMessages( sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt, filesNamesString) {
   const insertMessageQuery = `
   INSERT INTO messages (
     sended_by,
@@ -368,14 +368,16 @@ export async function insertMessages( sended_by, seller_id, buyer_id, advertisem
     buyer_id,
     advertisement_id,
     message,
-    created_at
+    created_at,
+    files
   ) VALUES (
     '${sended_by}',
     '${seller_id}',
     '${buyer_id}',
     '${advertisement_id}',
     '${message}',
-    '${formattedCreatedAt}'
+    '${formattedCreatedAt}',
+    '${filesNamesString}'
   )
 `;
   return new Promise((resolve, reject) => {

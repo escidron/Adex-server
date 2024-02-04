@@ -45,9 +45,9 @@ import getImageNameFromBase64 from "../utils/getImageNameFromBase64.js";
 import { getFinishedContract } from "../queries/Payments.js";
 import getImageNameFromLink from "../utils/getImageNameFromLink.js";
 import { addImageToReviews } from "../utils/addImageToReviews.js";
-import { log } from "console";
-import getImageBase64 from "../utils/getImageBase64.js";
 import { generateQrCode } from "../utils/generateQrCode.js";
+import multer from "multer";
+import path from "path";
 
 dotenv.config();
 
@@ -480,11 +480,10 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       availableDateFormatted
     );
     advertisementId = newAdvertisement.insertId;
-    
   }
-  
-  await generateQrCode(advertisementId)
-  
+
+  await generateQrCode(advertisementId);
+
   const imageName = images.split(";");
   const emailData = {
     title: "ADEX Listing",
@@ -500,7 +499,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     },
   };
   const emailContent = renderEmail(emailData);
-   sendEmail(email, "Listing Created", emailContent,advertisementId);
+  sendEmail(email, "Listing Created", emailContent, advertisementId);
   //  fs.unlink(`./images/email/qr_code_images/listing_qrcode${advertisementId}.png`, (err) => {
   //   if (err) throw err;
   // });
@@ -534,7 +533,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     first_available_date,
     instructions,
     discounts,
-    status
+    status,
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -587,14 +586,14 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     dateFormatted = "";
   }
 
-  let reactivate = false
-  if(status == 5){
-    const currentDate = new Date()
-    const startDate = new Date(date.from)
-    if(startDate > currentDate){
-      reactivate = true
+  let reactivate = false;
+  if (status == 5) {
+    const currentDate = new Date();
+    const startDate = new Date(date.from);
+    if (startDate > currentDate) {
+      reactivate = true;
     }
-    console.log('date.from',date.from)
+    console.log("date.from", date.from);
   }
   const query = `
     UPDATE advertisement SET
@@ -617,7 +616,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
       company_id = '${company_id}',
       per_unit_price = '${per_unit_price}',
       category_id = '${category_id}'
-      ${reactivate ? ',status= 1' : ''}
+      ${reactivate ? ",status= 1" : ""}
     WHERE id = ${id}
   `;
   updateAdvertismentById(query);
@@ -1113,6 +1112,93 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
   }
 });
 
+const receiveFiles = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.puserId;
+
+  try {
+    const storage = multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, "images/files");
+      },
+      filename: (req, file, cb) => {
+        cb(null, file.originalname);
+      },
+    });
+
+    const upload = multer({ storage }).array("files", 1000);
+
+    upload(req, res, function (err) {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({ error: err.message });
+      } else if (err) {
+        return res.status(500).json({ error: "Processing file error" });
+      }
+      res.status(200).json({ message: "File sucessfully saved." });
+    });
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+
+const removeFiles = asyncHandler(async (req, res) => {
+  const { files } = req.body;
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  try {
+    const storageFiles = await fs.promises.readdir("images/files");
+
+    for (const fileName of files) {
+      const fullFileName = fileName;
+
+      if (storageFiles.includes(fullFileName)) {
+        const filePath = `./images/files/${fullFileName}`;
+        await fs.promises.unlink(filePath);
+        res.status(200).json({
+          success: "Files remove!",
+        });
+      } else {
+        res.status(201).json({
+          success: "Could not find the file",
+        });
+      }
+    }
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
+const downloadFiles = asyncHandler(async (req, res) => {
+  const { fileName } = req.body;
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  try {
+
+    const fileName = `console_workflow_schedule.log (30).pdf`;
+    const filePath = `D:/Projetos Front-end/2-Adex-next/adex/server/images/files/console_workflow_schedule.log(30).pdf`;
+    res.download(filePath, fileName, (err) => {
+      if (err) {
+        console.error('Erro durante o download do arquivo:', err);
+        res.status(500).send('Erro interno do servidor');
+      }
+    });
+
+    // Adicione o cabeçalho Content-Disposition para forçar o download
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  } catch (error) {
+    res.status(401).json({
+      error: "Not authorized, token failed",
+    });
+  }
+});
 
 export {
   getAdvertisement,
@@ -1133,5 +1219,8 @@ export {
   getPendingListings,
   getListingReviews,
   getSellerReviews,
-  getBuyerReviews
+  getBuyerReviews,
+  receiveFiles,
+  removeFiles,
+  downloadFiles
 };

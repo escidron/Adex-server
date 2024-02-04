@@ -18,11 +18,18 @@ deleteDiscount,
 getPendingListings,
 getListingReviews,
 getSellerReviews,
-getBuyerReviews
+getBuyerReviews,
+receiveFiles,
+removeFiles,
+downloadFiles
 } from '../controllers/advertisementController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import multer from 'multer';
 
 const router = express.Router();
+
+
+
 router.post('/', getAdvertisement);
 router.post('/my-advertisement', getMyAdvertisement);
 router.post('/my-booking', getMyBookings);
@@ -42,5 +49,9 @@ router.get('/get-pending-bookings', getPendingListings);
 router.post('/get-listing-reviews', getListingReviews);
 router.post('/get-seller-reviews', getSellerReviews);
 router.post('/get-buyer-reviews', getBuyerReviews);
+router.post('/send-files', receiveFiles);
+router.post('/remove-files', removeFiles);
+router.post('/download-files', downloadFiles);
+
 
 export default router;
