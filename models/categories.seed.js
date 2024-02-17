@@ -1,6 +1,7 @@
 const categoriesSeeding = `
 INSERT IGNORE INTO categories (id, name, image, parent_id, is_one_time, is_periodic, is_units, created_at, updated_at, deleted_at) 
 VALUES 
+  (1, 'Person', '636e5978db6f1.png', 0, 0, 0, 0, '2023-04-19 22:07:58', '2023-04-19 22:07:58', NULL),
   (2, 'Place', '636e59ca40caf.png', 0, 0, 0, 0, '2023-04-19 22:07:58', '2023-04-19 22:07:58', NULL),
   (3, 'Thing', '636e59eb81ddd.png', 0, 0, 0, 0, '2023-04-19 22:07:58', '2023-04-19 22:07:58', NULL),
   (4, 'Event', '636e57c48b62d.png', 1, 1, 0, 0, '2023-04-19 22:07:58', '2023-04-19 22:07:58', NULL),
@@ -17,7 +18,11 @@ VALUES
   (15, 'Interior wall', '636e590be642c.png', 9, 0, 1, 0, '2023-04-19 22:07:58', '2023-04-19 22:07:58', NULL),
   (16, 'Exterior wall', '636e5837c9640.png', 9, 0, 1, 0, '2023-04-19 22:07:58', '2023-04-19 22:07:58', NULL),
   (17, 'Pizza Box', '64300b8bdfe5c.png', 3, 0, 0, 1, NULL, NULL, NULL),
-  (18, 'Other', '636e594c8953c.png', 3, 0, 0, 1, NULL, NULL, NULL)
+  (18, 'Other', '636e594c8953c.png', 3, 0, 0, 1, NULL, NULL, NULL),
+  (19, 'Social Media', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
+  (20, 'Audio Podcast', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
+  (21, 'Video Podcast', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
+  (22, 'Video Content', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL)
   ON DUPLICATE KEY UPDATE id = id
 `;
 

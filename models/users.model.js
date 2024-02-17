@@ -52,7 +52,10 @@ CREATE TABLE IF NOT EXISTS users (
     sex_is_public varchar(1),
     bio_is_public varchar(1),
     city_is_public varchar(1),
-    rating float(10,2)
+    rating float(10,2),
+    plataforms longtext, 
+    followers longtext ,
+    audience_preference longtext
   );
 `;
 

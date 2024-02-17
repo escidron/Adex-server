@@ -682,3 +682,85 @@ export async function updateListingRate(id,rating) {
     });
   });
 }
+
+export async function addPlataformsAndFollowers(userId,plataform,followers) {
+  const addPlataformsAndFollowersQuery = `
+  UPDATE users
+  SET 
+  plataforms = IF(plataforms IS NOT NULL, CONCAT(plataforms, "${plataform};"), "${plataform};"),
+  followers = IF(followers IS NOT NULL, CONCAT(followers, "${followers};"), "${followers};")
+  WHERE id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(addPlataformsAndFollowersQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function addPreference(userId,preference) {
+  const addAudiencePreferencesQuery = `
+  UPDATE users
+  SET 
+  audience_preference = IF(audience_preference IS NOT NULL, CONCAT(audience_preference, "${preference};"), "${preference};")
+  WHERE id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(addAudiencePreferencesQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+export async function removePlataformAndFollowers(userId,plataforms,followers) {
+  const removePlataformQuery = `
+  UPDATE users
+  SET 
+  plataforms = '${plataforms}',
+  followers = '${followers}'
+  WHERE id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(removePlataformQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+export async function removePreference(userId,preference) {
+  const addAudiencePreferencesQuery = `
+  UPDATE users
+  SET 
+  audience_preference = REPLACE(audience_preference, '${preference};', '')
+  WHERE id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(addAudiencePreferencesQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function setIsContentCreatorById(userId,isContentCreator) {
+  const setIsContentCreatorQuery = `UPDATE users set 
+    is_content_creator = '${isContentCreator ? '1' : '0'}' 
+    WHERE id = '${userId}'`;
+  return new Promise((resolve, reject) => {
+    db.query(setIsContentCreatorQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}

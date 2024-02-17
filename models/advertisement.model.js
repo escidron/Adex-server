@@ -32,7 +32,8 @@
     is_draft varchar(1),
     instructions longtext,
     rating float(10,2),
-    amount_reviews int
+    amount_reviews int,
+    media_types varchar(2)
   )
 `;
 

@@ -37,6 +37,11 @@ import {
   getSellersRating,
   insertSellerRating,
   updateListingRate,
+  addPlataformsAndFollowers,
+  setIsContentCreatorById,
+  addPreference,
+  removePreference,
+  removePlataformAndFollowers,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -813,9 +818,9 @@ const getExternalAccount = asyncHandler(async (req, res) => {
 const getUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
-  let userId = ''
+  let userId = "";
   try {
-    if(token){
+    if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       userId = decoded.userId;
     }
@@ -841,6 +846,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
       const cityIsPublic = result[0].city_is_public;
       const userType = result[0].user_type;
       const images = result[0].image_gallery;
+      const isContentCreator =
+        result[0].is_content_creator == "0" ? false : true;
       const imagesWithPath = [];
       const rating = result[0].rating;
       if (images) {
@@ -875,6 +882,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
         userType,
         images: imagesWithPath,
         rating,
+        isContentCreator,
       });
     }
   } catch (error) {
@@ -1412,7 +1420,14 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
 
 const sendMessage = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { sended_by, seller_id, buyer_id, advertisement_id, message, filesNames } = req.body;
+  const {
+    sended_by,
+    seller_id,
+    buyer_id,
+    advertisement_id,
+    message,
+    filesNames,
+  } = req.body;
 
   if (token) {
     try {
@@ -1422,7 +1437,7 @@ const sendMessage = asyncHandler(async (req, res) => {
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
-      const filesNamesString = filesNames.join(';') 
+      const filesNamesString = filesNames.join(";");
 
       insertMessages(
         sended_by,
@@ -1434,7 +1449,7 @@ const sendMessage = asyncHandler(async (req, res) => {
         filesNamesString
       );
       insertUserNotifications(
-        userId ==seller_id ? buyer_id : seller_id,
+        userId == seller_id ? buyer_id : seller_id,
         "You have a new message",
         message,
         formattedCreatedAt,
@@ -1603,6 +1618,180 @@ const rateSeller = asyncHandler(async (req, res) => {
   }
 });
 
+const addSocialMediaInfo = asyncHandler(async (req, res) => {
+  const { plataform, followers } = req.body;
+  const token = req.cookies.jwt;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    await addPlataformsAndFollowers(userId, plataform, followers);
+    res.status(200).json({
+      message: "Plataform added successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+
+const addAudiencePreference = asyncHandler(async (req, res) => {
+  const { preference } = req.body;
+  const token = req.cookies.jwt;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    await addPreference(userId, preference);
+    res.status(200).json({
+      message: "Preference added successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+
+const getSocialMediaInfo = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    const response = await getUsersById(userId);
+    if (response.length > 0) {
+      const user = response[0];
+
+      if (user.plataforms) {
+        const plataformsArray = user.plataforms.slice(0, -1).split(";");
+        const followersArray = user.followers.slice(0, -1).split(";");
+
+        const data = plataformsArray.map((plataform, index) => {
+          const followers = followersArray[index];
+          return { name: plataform, amount: followers };
+        });
+        res.status(200).json({ data: data });
+        return;
+      }
+    }
+    res.status(200).json({ data: [] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+const getAudiencePreference = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    const response = await getUsersById(userId);
+    if (response.length > 0) {
+      const user = response[0];
+
+      if (user.audience_preference) {
+        const preferencesArray = user.audience_preference
+          .slice(0, -1)
+          .split(";");
+
+        res.status(200).json({ data: preferencesArray });
+        return;
+      }
+      res.status(200).json({ data: [] });
+      return;
+    }
+    res.status(200).json({ data: [] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+const removeAudiencePreference = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { preferenceId } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    const response = await getUsersById(userId);
+    if (response.length > 0) {
+      const user = response[0];
+
+      const preferences = user.audience_preference?.slice(0, -1);
+
+      if (preferences) {
+        await removePreference(userId, preferenceId);
+        res.status(200).json({ message: "Preference removed!" });
+        return;
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+const removePlataform = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { plataformId } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    const response = await getUsersById(userId);
+    if (response.length > 0) {
+      const user = response[0];
+
+      const plataformsArray = user.plataforms?.slice(0, -1).split(";");
+      const followersArray = user.followers?.slice(0, -1).split(";");
+      if (plataformsArray.length > 0) {
+        let newPlataforms = "";
+        let plataformPosition = null;
+        plataformsArray.forEach((plataform, index) => {
+          if (plataform != plataformId) {
+            newPlataforms += plataform + ";";
+          } else {
+            plataformPosition = index;
+          }
+        });
+
+        followersArray.splice(plataformPosition, 1);
+        const newFollowers = followersArray.join(";") + ";";
+
+        await removePlataformAndFollowers(userId, newPlataforms, newFollowers);
+        res.status(200).json({ message: "Plataform removed!" });
+        return;
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+
+const setIsContentCreator = asyncHandler(async (req, res) => {
+  const token = req.cookies.jwt;
+  const { isContentCreator } = req.body;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    const response = await setIsContentCreatorById(userId, isContentCreator);
+
+    res.status(200).json({ data: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Somewthing went Wrong",
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -1633,4 +1822,11 @@ export {
   rateBuyer,
   rateSeller,
   editCompany,
+  addSocialMediaInfo,
+  getSocialMediaInfo,
+  setIsContentCreator,
+  addAudiencePreference,
+  getAudiencePreference,
+  removeAudiencePreference,
+  removePlataform,
 };
