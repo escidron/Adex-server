@@ -73,8 +73,8 @@ router.post('/rate-seller', rateSeller);
 router.post('/set-is-content-creator', setIsContentCreator);
 router.post('/add-social-media-info', addSocialMediaInfo);
 router.post('/add-audience-preference', addAudiencePreference);
-router.get('/get-social-media-info', getSocialMediaInfo);
-router.get('/get-audience-preference', getAudiencePreference);
+router.post('/get-social-media-info', getSocialMediaInfo);
+router.post('/get-audience-preference', getAudiencePreference);
 router.post('/remove-audience-preference', removeAudiencePreference);
 router.post('/remove-plataform', removePlataform);
 //router.route('/seller-profile').get(protect, getSellerProfile)

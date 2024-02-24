@@ -1656,10 +1656,11 @@ const addAudiencePreference = asyncHandler(async (req, res) => {
 
 const getSocialMediaInfo = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
+  const { id } = req.body;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    const response = await getUsersById(userId);
+    const response = await getUsersById(id ? id : userId);
     if (response.length > 0) {
       const user = response[0];
 
@@ -1685,10 +1686,11 @@ const getSocialMediaInfo = asyncHandler(async (req, res) => {
 });
 const getAudiencePreference = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
+  const { id } = req.body;
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    const response = await getUsersById(userId);
+    const response = await getUsersById(id ? id : userId);
     if (response.length > 0) {
       const user = response[0];
 
