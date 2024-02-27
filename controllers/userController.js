@@ -1762,7 +1762,10 @@ const removePlataform = asyncHandler(async (req, res) => {
         });
 
         followersArray.splice(plataformPosition, 1);
-        const newFollowers = followersArray.join(";") + ";";
+        let newFollowers = "";
+        if(followersArray.length > 0){
+          newFollowers = followersArray.join(";") + ";";
+        }
 
         await removePlataformAndFollowers(userId, newPlataforms, newFollowers);
         res.status(200).json({ message: "Plataform removed!" });

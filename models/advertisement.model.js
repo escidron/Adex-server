@@ -33,7 +33,8 @@
     instructions longtext,
     rating float(10,2),
     amount_reviews int,
-    media_types varchar(2)
+    media_types varchar(2),
+    digital_price_type varchar(45)
   )
 `;
 

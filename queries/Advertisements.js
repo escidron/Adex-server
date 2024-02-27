@@ -142,6 +142,7 @@ export async function insertAdvertisement(
       ${data.date ? ",end_date" : ""}
       ${availableDateFormatted ? ",first_available_date" : ""}
       ${data.instructions ? ",instructions" : ""}
+      ${data.digital_price_type ? ",digital_price_type" : ""}
       ) VALUES (
       '${data.category_id}',
       '${userId}',
@@ -167,7 +168,8 @@ export async function insertAdvertisement(
       ${data.date ? `,'${dateFormatted.to}'` : ""}
       ${availableDateFormatted ? `,'${availableDateFormatted}'` : ""}
       ${data.instructions ? `,${escapeText(data.instructions)}` : ""},
-      '${data.media_types}'
+      '${data.media_types}',
+      ${data.digital_price_type ? data.digital_price_type : null}
 
       
     )
@@ -373,7 +375,8 @@ export async function DraftToAdvertisement(
       stripe_price = '${price.id}',
       created_by_type = '${userType}',
       instructions = ${escapeText(data.instructions)},
-      is_draft = '0'
+      is_draft = '0',
+      digital_price_type = ${data.digital_price_type ? `${digital_price_type}` : null},
     WHERE id = ${id}
   `;
   return new Promise((resolve, reject) => {

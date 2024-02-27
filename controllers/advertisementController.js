@@ -535,6 +535,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     instructions,
     discounts,
     status,
+    digital_duration,
+    digital_price_type
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -587,6 +589,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     dateFormatted = "";
   }
 
+  let durationType = ad_duration_type ? ad_duration_type : 0
+
   let reactivate = false;
   if (status == 5) {
     const currentDate = new Date();
@@ -610,12 +614,13 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
       address = ${escapeText(address)},
       lat = '${lat}',
       \`long\` = '${long}',
-      ad_duration_type = '${ad_duration_type ? ad_duration_type : 0}',
+      ad_duration_type = '${durationType}',
       updated_at = '${formattedUpdatedAt}',
       instructions = ${escapeText(instructions)},
       sub_asset_type = '${sub_asset_type}',
       company_id = '${company_id}',
       per_unit_price = '${per_unit_price}',
+      digital_price_type  = ${digital_price_type ? `${digital_price_type}` : null}, 
       category_id = '${category_id}'
       ${reactivate ? ",status= 1" : ""}
     WHERE id = ${id}

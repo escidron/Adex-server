@@ -14,6 +14,8 @@ import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
 import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
 import { publishRatings } from "./utils/publishRatings.js";
 
+import cluster from 'cluster';
+import { cpus } from 'os';
 dotenv.config();
 const port = process.env.PORT || 5001;
 
@@ -58,4 +60,17 @@ app.use('/images', express.static('D:/Projetos Front-end/2-Adex-next/adex/server
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(port, () => console.log(`Server Started on port ${port}`));
+
+ const cpusArray = cpus();
+
+if(cluster.isPrimary) {
+  for(let i = 0; i < cpusArray.length; i++) {
+    console.log('cluster online')
+    cluster.fork();
+  }
+  cluster.on('exit', (worker, code, signal) => {
+    cluster.fork();
+  });
+} else {
+  app.listen(port, () => console.log(`Server Started on port ${port}`));
+}
