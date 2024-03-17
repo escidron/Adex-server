@@ -136,8 +136,8 @@ export async function insertAdvertisement(
       stripe_price,
       created_by_type,
       is_draft,
-      company_id,
-      media_types
+      company_id
+      ${data.media_types ? ",media_types" : ""}
       ${data.date ? ",start_date" : ""}
       ${data.date ? ",end_date" : ""}
       ${availableDateFormatted ? ",first_available_date" : ""}
@@ -167,9 +167,9 @@ export async function insertAdvertisement(
       ${data.date ? `,'${dateFormatted.from}'` : ""}
       ${data.date ? `,'${dateFormatted.to}'` : ""}
       ${availableDateFormatted ? `,'${availableDateFormatted}'` : ""}
-      ${data.instructions ? `,${escapeText(data.instructions)}` : ""},
-      '${data.media_types}',
-      ${data.digital_price_type ? data.digital_price_type : null}
+      ${data.instructions ? `,${escapeText(data.instructions)}` : ""}
+      ${data.media_types ? `,${data.media_types}` : ""}
+      ${data.digital_price_type ? `,${data.digital_price_type}` : ""}
 
       
     )
