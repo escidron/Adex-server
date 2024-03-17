@@ -150,7 +150,10 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
         }
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getMyAdvertisement'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getMyAdvertisement",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -193,7 +196,7 @@ const getSharedListing = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getSharedListing'});
+    logger.error(error.message, { endpoint: "getSharedListing" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -250,7 +253,7 @@ const getSellerListings = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getSellerListings'});
+    logger.error(error.message, { endpoint: "getSellerListings" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -313,7 +316,10 @@ const getMyBookings = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getMyBookings'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getMyBookings",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -346,7 +352,10 @@ const getPendingListings = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getPendingListings'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getPendingListings",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -359,160 +368,168 @@ const getPendingListings = asyncHandler(async (req, res) => {
 });
 
 const createAdvertisement = asyncHandler(async (req, res) => {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const data = req.body;
   const token = req.cookies.jwt;
+
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
   const userId = decoded.userId;
-  const email = decoded.email;
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-  const createdAt = new Date();
-  const formattedCreatedAt = getFormattedDate(createdAt);
+    const email = decoded.email;
 
-  let availableDateFormatted = "";
-  if (data.first_available_date) {
-    let availableDate = new Date(data.first_available_date.substring(0, 10));
-    availableDateFormatted = getFormattedDate(availableDate);
-  }
-
-  let dateFormatted = "";
-  if (data.date) {
-    let dateFrom = new Date(data.date.from.substring(0, 10));
-    const dateFromFormatted = getFormattedDate(dateFrom);
-
-    let dateTo = new Date(data.date.from.substring(0, 10));
-    if (data.date.to) {
-      dateTo = new Date(data.date.to.substring(0, 10));
-    }
-    const dateToFormatted = getFormattedDate(dateTo);
-    dateFormatted = {
-      from: dateFromFormatted,
-      to: dateToFormatted,
-    };
-  }
-
-  let parsedValue = 0;
-  if (typeof data.price == "string") {
-    parsedValue = parseFloat(data.price.replace(/,/g, ""));
-  } else {
-    parsedValue = data.price;
-  }
-
-  let images = "";
-  let imagesGroup = "";
-  const result = await getCompanyQuery(data.company_id);
-  const user = await getUsersById(userId);
-  const userImages = user[0].image_gallery;
-
-  data.images.map((image, index) => {
-    //images from user device
-    if (image.file) {
-      const imageName = getImageNameFromBase64(image.data_url);
-      images += imageName + ";";
-      imagesGroup += imageName + ";";
-    } else {
-      const imageArray = userImages.split(";");
-      imageArray.map((galleryImage) => {
-        if (galleryImage) {
-          const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
-          if (image.data_url == imagePath) {
-            images += galleryImage + ";";
-          }
-        }
-      });
-    }
-  });
-  images = images.slice(0, -1);
-  imagesGroup = imagesGroup.slice(0, -1);
-  addGalleryImages("", userId, userImages, imagesGroup);
-
-  if (data.company_id) {
-    const id = data.company_id;
-    addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
-  }
-
-  const product = await stripe.products.create({
-    name: data.title,
-  });
-
-  const price = await stripe.prices.create({
-    unit_amount: parseInt(data.price) * 100,
-    currency: "usd",
-    recurring: {
-      interval: "month",
-      interval_count: 1,
-    },
-    product: product.id,
-  });
-
-  const results = await getUsersById(userId);
-  const userType = results[0].user_type;
-
-  const userDraft = await getDraftByUserId(userId);
-  let newAdvertisement = null;
-  let advertisementId = null;
-  if (userDraft.length > 0) {
-    newAdvertisement = await DraftToAdvertisement(
-      userDraft[0].id,
-      data,
-      userId,
-      parsedValue,
-      images,
-      formattedCreatedAt,
-      product,
-      price,
-      userType,
-      dateFormatted,
-      availableDateFormatted
-    );
-    advertisementId = userDraft[0].id;
-  } else {
-    newAdvertisement = await insertAdvertisement(
-      data,
-      userId,
-      parsedValue,
-      images,
-      formattedCreatedAt,
-      product,
-      price,
-      userType,
-      dateFormatted,
-      availableDateFormatted
-    );
-    advertisementId = newAdvertisement.insertId;
-  }
-
-  await generateQrCode(advertisementId);
-
-  const imageName = images.split(";");
-  const emailData = {
-    title: "ADEX Listing",
-    subTitle: "Listing  created",
-    message: "Your Listing has been successfully created ",
-    icon: "listing-created",
-    advertisement: {
-      title: data.title,
-      address: data.address,
-      description: data.description,
-      image: imageName[0],
-      price: parsedValue,
-    },
-  };
-  const emailContent = renderEmail(emailData);
-  sendEmail(email, "Listing Created", emailContent, advertisementId);
-  //  fs.unlink(`./images/email/qr_code_images/listing_qrcode${advertisementId}.png`, (err) => {
-  //   if (err) throw err;
-  // });
-  data.discounts.map((item) => {
     const createdAt = new Date();
     const formattedCreatedAt = getFormattedDate(createdAt);
 
-    insertDiscounts(advertisementId, item, formattedCreatedAt);
-  });
-  res.status(200).json({
-    message: "data saved successfully.",
-  });
+    let availableDateFormatted = "";
+    if (data.first_available_date) {
+      let availableDate = new Date(data.first_available_date.substring(0, 10));
+      availableDateFormatted = getFormattedDate(availableDate);
+    }
+
+    let dateFormatted = "";
+    if (data.date) {
+      let dateFrom = new Date(data.date.from.substring(0, 10));
+      const dateFromFormatted = getFormattedDate(dateFrom);
+
+      let dateTo = new Date(data.date.from.substring(0, 10));
+      if (data.date.to) {
+        dateTo = new Date(data.date.to.substring(0, 10));
+      }
+      const dateToFormatted = getFormattedDate(dateTo);
+      dateFormatted = {
+        from: dateFromFormatted,
+        to: dateToFormatted,
+      };
+    }
+
+    let parsedValue = 0;
+    if (typeof data.price == "string") {
+      parsedValue = parseFloat(data.price.replace(/,/g, ""));
+    } else {
+      parsedValue = data.price;
+    }
+
+    let images = "";
+    let imagesGroup = "";
+    const result = await getCompanyQuery(data.company_id);
+    const user = await getUsersById(userId);
+    const userImages = user[0].image_gallery;
+
+    data.images.map((image, index) => {
+      //images from user device
+      if (image.file) {
+        const imageName = getImageNameFromBase64(image.data_url);
+        images += imageName + ";";
+        imagesGroup += imageName + ";";
+      } else {
+        const imageArray = userImages.split(";");
+        imageArray.map((galleryImage) => {
+          if (galleryImage) {
+            const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+            if (image.data_url == imagePath) {
+              images += galleryImage + ";";
+            }
+          }
+        });
+      }
+    });
+    images = images.slice(0, -1);
+    imagesGroup = imagesGroup.slice(0, -1);
+    addGalleryImages("", userId, userImages, imagesGroup);
+
+    if (data.company_id) {
+      const id = data.company_id;
+      addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
+    }
+
+    const product = await stripe.products.create({
+      name: data.title,
+    });
+
+    const price = await stripe.prices.create({
+      unit_amount: parseInt(data.price) * 100,
+      currency: "usd",
+      recurring: {
+        interval: "month",
+        interval_count: 1,
+      },
+      product: product.id,
+    });
+
+    const results = await getUsersById(userId);
+    const userType = results[0].user_type;
+
+    const userDraft = await getDraftByUserId(userId);
+    let newAdvertisement = null;
+    let advertisementId = null;
+    if (userDraft.length > 0) {
+      newAdvertisement = await DraftToAdvertisement(
+        userDraft[0].id,
+        data,
+        userId,
+        parsedValue,
+        images,
+        formattedCreatedAt,
+        product,
+        price,
+        userType,
+        dateFormatted,
+        availableDateFormatted
+      );
+      advertisementId = userDraft[0].id;
+    } else {
+      newAdvertisement = await insertAdvertisement(
+        data,
+        userId,
+        parsedValue,
+        images,
+        formattedCreatedAt,
+        product,
+        price,
+        userType,
+        dateFormatted,
+        availableDateFormatted
+      );
+      advertisementId = newAdvertisement.insertId;
+    }
+
+    await generateQrCode(advertisementId);
+
+    const imageName = images.split(";");
+    const emailData = {
+      title: "ADEX Listing",
+      subTitle: "Listing  created",
+      message: "Your Listing has been successfully created ",
+      icon: "listing-created",
+      advertisement: {
+        title: data.title,
+        address: data.address,
+        description: data.description,
+        image: imageName[0],
+        price: parsedValue,
+      },
+    };
+    const emailContent = renderEmail(emailData);
+    sendEmail(email, "Listing Created", emailContent, advertisementId);
+    //  fs.unlink(`./images/email/qr_code_images/listing_qrcode${advertisementId}.png`, (err) => {
+    //   if (err) throw err;
+    // });
+    data.discounts.map((item) => {
+      const createdAt = new Date();
+      const formattedCreatedAt = getFormattedDate(createdAt);
+
+      insertDiscounts(advertisementId, item, formattedCreatedAt);
+    });
+    res.status(200).json({
+      message: "data saved successfully.",
+    });
+  } catch (error) {
+    logger.error(error.message,{userId:userId,endpoint: 'getUserProfile'});
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
 });
 
 const updateAdvertisement = asyncHandler(async (req, res) => {
@@ -701,7 +718,7 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error(error.message,{endpoint: 'GetAdvertisementDetails'});
+    logger.error(error.message, { endpoint: "GetAdvertisementDetails" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -717,7 +734,7 @@ const getMessages = asyncHandler(async (req, res) => {
         messages: result,
       });
     } catch (error) {
-      logger.error(error.message,{endpoint: 'getMessages'});
+      logger.error(error.message, { endpoint: "getMessages" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -764,7 +781,7 @@ const getChatInfo = asyncHandler(async (req, res) => {
         notifications: notifications,
       });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getChatInfo'});
+      logger.error(error.message, { userId: userId, endpoint: "getChatInfo" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -783,7 +800,7 @@ const getDiscounts = asyncHandler(async (req, res) => {
     const result = await getDiscountsByAd(id);
     res.status(200).json(result);
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getDiscounts'});
+    logger.error(error.message, { endpoint: "getDiscounts" });
 
     res.status(500).json({
       error: "Something went wrong",
@@ -800,7 +817,7 @@ const DeleteAdvertisment = asyncHandler(async (req, res) => {
       message: "advertisement deleted successfully",
     });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'DeleteAdvertisment'});
+    logger.error(error.message, { endpoint: "DeleteAdvertisment" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -816,7 +833,7 @@ const deleteDiscount = asyncHandler(async (req, res) => {
       message: "discount deleted successfully",
     });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'deleteDiscount'});
+    logger.error(error.message, { endpoint: "deleteDiscount" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -848,7 +865,6 @@ const createDraft = asyncHandler(async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
     try {
-
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
@@ -974,7 +990,7 @@ const createDraft = asyncHandler(async (req, res) => {
 
       res.status(200).json({ messages: "Draft created successfully" });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'createDraft'});
+      logger.error(error.message, { userId: userId, endpoint: "createDraft" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1068,7 +1084,7 @@ const getDraft = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getDraft'});
+      logger.error(error.message, { userId: userId, endpoint: "getDraft" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1088,7 +1104,7 @@ const getListingReviews = asyncHandler(async (req, res) => {
     const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getListingReviews'});
+    logger.error(error.message, { endpoint: "getListingReviews" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1103,7 +1119,7 @@ const getSellerReviews = asyncHandler(async (req, res) => {
     const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getSellerReviews'});
+    logger.error(error.message, { endpoint: "getSellerReviews" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1118,7 +1134,7 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
     const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getBuyerReviews'});
+    logger.error(error.message, { endpoint: "getBuyerReviews" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1151,7 +1167,7 @@ const receiveFiles = asyncHandler(async (req, res) => {
       res.status(200).json({ message: "File sucessfully saved." });
     });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'receiveFiles'});
+    logger.error(error.message, { endpoint: "receiveFiles" });
 
     res.status(500).json({
       error: "Something went wrong",
@@ -1184,7 +1200,7 @@ const removeFiles = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    logger.error(error.message,{endpoint: 'removeFiles'});
+    logger.error(error.message, { endpoint: "removeFiles" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1207,7 +1223,7 @@ const downloadFiles = asyncHandler(async (req, res) => {
     const fileStream = fs.createReadStream(imagePath);
     fileStream.pipe(res);
   } catch (error) {
-    logger.error(error.message,{endpoint: 'downloadFiles'});
+    logger.error(error.message, { endpoint: "downloadFiles" });
 
     res.status(500).json({
       error: "Something went wrong",
