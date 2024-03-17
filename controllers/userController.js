@@ -847,8 +847,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       const cityIsPublic = result[0].city_is_public;
       const userType = result[0].user_type;
       const images = result[0].image_gallery;
-      const isContentCreator =
-        result[0].is_content_creator == "0" ? false : true;
+      const isContentCreator = result[0].is_content_creator == "1" ? true : false;
       const imagesWithPath = [];
       const rating = result[0].rating;
       if (images) {
