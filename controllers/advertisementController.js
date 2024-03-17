@@ -530,7 +530,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       endpoint: "createAdvertisement",
     });
     res.status(500).json({
-      error: "Something went wrong",
+      error: error.message,
     });
   }
 });
