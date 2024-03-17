@@ -25,6 +25,7 @@
         "nodemailer-mailgun-transport": "^2.1.5",
         "qrcode": "^1.5.3",
         "socket.io": "^4.7.1",
-        "stripe": "^12.9.0"
+        "stripe": "^12.9.0",
+        "winston": "^3.12.0"
     }
 }
