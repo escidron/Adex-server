@@ -525,7 +525,10 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       message: "data saved successfully.",
     });
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'getUserProfile'});
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "createAdvertisement",
+    });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -560,127 +563,134 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const userId = decoded.userId;
 
-  const updatedAt = new Date();
-  const formattedUpdatedAt = getFormattedDate(updatedAt);
+  try {
+    const updatedAt = new Date();
+    const formattedUpdatedAt = getFormattedDate(updatedAt);
 
-  let updateImages = "";
-  images.map((image) => {
-    let imageName = "";
-    if (
-      image.data_url.startsWith("http://") ||
-      image.data_url.startsWith("https://")
-    ) {
-      imageName = getImageNameFromLink(image.data_url);
-    } else if (image.data_url.startsWith("data:image/")) {
-      imageName = getImageNameFromBase64(image.data_url);
+    let updateImages = "";
+    images.map((image) => {
+      let imageName = "";
+      if (
+        image.data_url.startsWith("http://") ||
+        image.data_url.startsWith("https://")
+      ) {
+        imageName = getImageNameFromLink(image.data_url);
+      } else if (image.data_url.startsWith("data:image/")) {
+        imageName = getImageNameFromBase64(image.data_url);
+      }
+      updateImages += imageName + ";";
+    });
+    updateImages = updateImages.slice(0, -1);
+
+    let availableDateFormatted = "";
+    if (first_available_date) {
+      let availableDate = new Date(first_available_date);
+      availableDateFormatted = getFormattedDate(availableDate);
     }
-    updateImages += imageName + ";";
-  });
-  updateImages = updateImages.slice(0, -1);
 
-  let availableDateFormatted = "";
-  if (first_available_date) {
-    let availableDate = new Date(first_available_date);
-    availableDateFormatted = getFormattedDate(availableDate);
-  }
+    let dateFormatted = "";
+    if (date.from) {
+      let dateFrom = new Date(date.from.substring(0, 10));
+      const dateFromFormatted = getFormattedDate(dateFrom);
 
-  let dateFormatted = "";
-  if (date.from) {
-    let dateFrom = new Date(date.from.substring(0, 10));
-    const dateFromFormatted = getFormattedDate(dateFrom);
-
-    let dateTo = new Date(date.from.substring(0, 10));
-    if (date.to) {
-      dateTo = new Date(date.to.substring(0, 10));
+      let dateTo = new Date(date.from.substring(0, 10));
+      if (date.to) {
+        dateTo = new Date(date.to.substring(0, 10));
+      }
+      const dateToFormatted = getFormattedDate(dateTo);
+      dateFormatted = {
+        from: dateFromFormatted,
+        to: dateToFormatted,
+      };
     }
-    const dateToFormatted = getFormattedDate(dateTo);
-    dateFormatted = {
-      from: dateFromFormatted,
-      to: dateToFormatted,
-    };
-  }
 
-  if (ad_duration_type == 1) {
-    availableDateFormatted = "";
-  } else {
-    dateFormatted = "";
-  }
-
-  let durationType = ad_duration_type ? ad_duration_type : 0;
-
-  let reactivate = false;
-  if (status == 5) {
-    const currentDate = new Date();
-    const startDate = new Date(date.from);
-    if (startDate > currentDate) {
-      reactivate = true;
+    if (ad_duration_type == 1) {
+      availableDateFormatted = "";
+    } else {
+      dateFormatted = "";
     }
-    console.log("date.from", date.from);
-  }
-  const query = `
-    UPDATE advertisement SET
-      title = ${escapeText(title)},
-      description = ${escapeText(description)},
-      start_date = ${dateFormatted ? `'${dateFormatted.from}'` : null}, 
-      end_date = ${dateFormatted ? `'${dateFormatted.to}'` : null}, 
-      first_available_date = ${
-        availableDateFormatted ? `'${availableDateFormatted}'` : null
-      }, 
-      price = ${price},
-      image = '${updateImages}',
-      address = ${escapeText(address)},
-      lat = '${lat}',
-      \`long\` = '${long}',
-      ad_duration_type = '${durationType}',
-      updated_at = '${formattedUpdatedAt}',
-      instructions = ${escapeText(instructions)},
-      sub_asset_type = '${sub_asset_type}',
-      company_id = '${company_id}',
-      per_unit_price = '${per_unit_price}',
-      digital_price_type  = ${
-        digital_price_type ? `${digital_price_type}` : null
-      }, 
-      category_id = '${category_id}'
-      ${reactivate ? ",status= 1" : ""}
-    WHERE id = ${id}
-  `;
-  updateAdvertismentById(query);
 
-  const allDiscounts = await getDiscountsByAd(id);
-  discounts.map((item) => {
-    const createdAt = new Date();
-    const formattedCreatedAt = getFormattedDate(createdAt);
-    if (allDiscounts.length > 0) {
-      const ids = allDiscounts.map((discount) => discount.id);
-      const existDiscount = ids.includes(item.id);
-      if (!existDiscount) {
+    let durationType = ad_duration_type ? ad_duration_type : 0;
+
+    let reactivate = false;
+    if (status == 5) {
+      const currentDate = new Date();
+      const startDate = new Date(date.from);
+      if (startDate > currentDate) {
+        reactivate = true;
+      }
+      console.log("date.from", date.from);
+    }
+    const query = `
+      UPDATE advertisement SET
+        title = ${escapeText(title)},
+        description = ${escapeText(description)},
+        start_date = ${dateFormatted ? `'${dateFormatted.from}'` : null}, 
+        end_date = ${dateFormatted ? `'${dateFormatted.to}'` : null}, 
+        first_available_date = ${
+          availableDateFormatted ? `'${availableDateFormatted}'` : null
+        }, 
+        price = ${price},
+        image = '${updateImages}',
+        address = ${escapeText(address)},
+        lat = '${lat}',
+        \`long\` = '${long}',
+        ad_duration_type = '${durationType}',
+        updated_at = '${formattedUpdatedAt}',
+        instructions = ${escapeText(instructions)},
+        sub_asset_type = '${sub_asset_type}',
+        company_id = '${company_id}',
+        per_unit_price = '${per_unit_price}',
+        digital_price_type  = ${
+          digital_price_type ? `${digital_price_type}` : null
+        }, 
+        category_id = '${category_id}'
+        ${reactivate ? ",status= 1" : ""}
+      WHERE id = ${id}
+    `;
+    updateAdvertismentById(query);
+
+    const allDiscounts = await getDiscountsByAd(id);
+    discounts.map((item) => {
+      const createdAt = new Date();
+      const formattedCreatedAt = getFormattedDate(createdAt);
+      if (allDiscounts.length > 0) {
+        const ids = allDiscounts.map((discount) => discount.id);
+        const existDiscount = ids.includes(item.id);
+        if (!existDiscount) {
+          insertDiscounts(id, item, formattedCreatedAt);
+        }
+      } else {
         insertDiscounts(id, item, formattedCreatedAt);
       }
-    } else {
-      insertDiscounts(id, item, formattedCreatedAt);
-    }
-  });
+    });
 
-  const user = await getUsersById(userId);
-  const email = user[0].email;
-  const imageName = updateImages.split(";");
-  const emailData = {
-    title: "ADEX Listing",
-    subTitle: "Listing  created",
-    message: "Your Listing has been successfully updated ",
-    icon: "listing-created",
-    advertisement: {
-      title: title,
-      address: address,
-      description: description,
-      image: imageName[0],
-      price: price,
-    },
-  };
-  const emailContent = renderEmail(emailData);
-  sendEmail(email, "Listing Updated", emailContent);
+    const user = await getUsersById(userId);
+    const email = user[0].email;
+    const imageName = updateImages.split(";");
+    const emailData = {
+      title: "ADEX Listing",
+      subTitle: "Listing  created",
+      message: "Your Listing has been successfully updated ",
+      icon: "listing-created",
+      advertisement: {
+        title: title,
+        address: address,
+        description: description,
+        image: imageName[0],
+        price: price,
+      },
+    };
+    const emailContent = renderEmail(emailData);
+    sendEmail(email, "Listing Updated", emailContent);
 
-  res.status(200).json({ message: "Advertisement updated successfully." });
+    res.status(200).json({ message: "Advertisement updated successfully." });
+  } catch (error) {
+    logger.error(error.message,{userId:userId,endpoint: 'updateAdvertisement'});
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
 });
 
 const GetAdvertisementDetails = asyncHandler(async (req, res) => {
