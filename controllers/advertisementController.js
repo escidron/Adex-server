@@ -48,7 +48,8 @@ import { addImageToReviews } from "../utils/addImageToReviews.js";
 import { generateQrCode } from "../utils/generateQrCode.js";
 import multer from "multer";
 import path from "path";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
+import logger from "../utils/logger.js";
 
 dotenv.config();
 
@@ -72,9 +73,9 @@ const getAdvertisement = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message, { endpoint: "getAdvertisement" });
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -83,9 +84,9 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
   const { id, notificationId } = req.body;
   const token = req.cookies.jwt;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getAdvertisementByCreator(userId, id);
       const finishedListing = await getFinishedContract(userId);
       if (result.length == 0) {
@@ -149,9 +150,9 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
         }
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getMyAdvertisement'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -163,7 +164,6 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
 
 const getSharedListing = asyncHandler(async (req, res) => {
   const { id } = req.body;
-  console.log("entrou no sharing listing");
   try {
     const result = await getAdvertisementById(id);
 
@@ -193,9 +193,9 @@ const getSharedListing = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'getSharedListing'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -224,7 +224,7 @@ const getSellerListings = asyncHandler(async (req, res) => {
     const result = await getAdvertisementByCreator(id, null, companyId);
 
     if (result.length == 0) {
-      res.status(401).json({
+      res.status(404).json({
         error: "Advertisement does not exists",
       });
     } else {
@@ -250,9 +250,9 @@ const getSellerListings = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'getSellerListings'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -262,9 +262,9 @@ const getMyBookings = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       let result = "";
       let finishedListing = [];
       let pendingBoking = [];
@@ -313,9 +313,9 @@ const getMyBookings = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getMyBookings'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -329,9 +329,9 @@ const getPendingListings = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getPendingBookings(userId);
 
       if (result.length == 0) {
@@ -346,9 +346,9 @@ const getPendingListings = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getPendingListings'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -536,7 +536,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     discounts,
     status,
     digital_duration,
-    digital_price_type
+    digital_price_type,
   } = req.body;
 
   const token = req.cookies.jwt;
@@ -589,7 +589,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     dateFormatted = "";
   }
 
-  let durationType = ad_duration_type ? ad_duration_type : 0
+  let durationType = ad_duration_type ? ad_duration_type : 0;
 
   let reactivate = false;
   if (status == 5) {
@@ -620,7 +620,9 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
       sub_asset_type = '${sub_asset_type}',
       company_id = '${company_id}',
       per_unit_price = '${per_unit_price}',
-      digital_price_type  = ${digital_price_type ? `${digital_price_type}` : null}, 
+      digital_price_type  = ${
+        digital_price_type ? `${digital_price_type}` : null
+      }, 
       category_id = '${category_id}'
       ${reactivate ? ",status= 1" : ""}
     WHERE id = ${id}
@@ -699,9 +701,9 @@ const GetAdvertisementDetails = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'GetAdvertisementDetails'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -715,9 +717,9 @@ const getMessages = asyncHandler(async (req, res) => {
         messages: result,
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{endpoint: 'getMessages'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -732,9 +734,9 @@ const getChatInfo = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       // const messagesQuery = `SELECT * FROM messages`;
       const messages = await getAllChatMessages(userId);
 
@@ -762,9 +764,9 @@ const getChatInfo = asyncHandler(async (req, res) => {
         notifications: notifications,
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getChatInfo'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -781,8 +783,10 @@ const getDiscounts = asyncHandler(async (req, res) => {
     const result = await getDiscountsByAd(id);
     res.status(200).json(result);
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'getDiscounts'});
+
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -796,9 +800,9 @@ const DeleteAdvertisment = asyncHandler(async (req, res) => {
       message: "advertisement deleted successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'DeleteAdvertisment'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -812,9 +816,9 @@ const deleteDiscount = asyncHandler(async (req, res) => {
       message: "discount deleted successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'deleteDiscount'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -841,9 +845,9 @@ const createDraft = asyncHandler(async (req, res) => {
 
   const token = req.cookies.jwt;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
 
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
@@ -970,9 +974,9 @@ const createDraft = asyncHandler(async (req, res) => {
 
       res.status(200).json({ messages: "Draft created successfully" });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'createDraft'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -986,9 +990,9 @@ const getDraft = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getDraftByUserId(id ? id : userId);
       if (result.length == 0) {
         res.status(200).json({
@@ -1064,9 +1068,9 @@ const getDraft = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getDraft'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1084,8 +1088,9 @@ const getListingReviews = asyncHandler(async (req, res) => {
     const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'getListingReviews'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1098,8 +1103,9 @@ const getSellerReviews = asyncHandler(async (req, res) => {
     const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'getSellerReviews'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1112,8 +1118,9 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
     const reviewsWithImages = addImageToReviews(result);
     res.status(200).json(reviewsWithImages);
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'getBuyerReviews'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1144,8 +1151,10 @@ const receiveFiles = asyncHandler(async (req, res) => {
       res.status(200).json({ message: "File sucessfully saved." });
     });
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'receiveFiles'});
+
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1175,8 +1184,9 @@ const removeFiles = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'removeFiles'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1184,23 +1194,23 @@ const downloadFiles = asyncHandler(async (req, res) => {
   const { file } = req.body;
 
   try {
-
     if (!file) {
-      return res.status(400).json({ error: 'No file name provided' });
+      return res.status(400).json({ error: "No file name provided" });
     }
 
     const imagePath = new URL(`../images/files/${file}`, import.meta.url);
 
     if (!fs.existsSync(imagePath)) {
-      return res.status(404).json({ error: 'File does not exist' });
+      return res.status(404).json({ error: "File does not exist" });
     }
 
     const fileStream = fs.createReadStream(imagePath);
     fileStream.pipe(res);
-
   } catch (error) {
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'downloadFiles'});
+
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1227,5 +1237,5 @@ export {
   getBuyerReviews,
   receiveFiles,
   removeFiles,
-  downloadFiles
+  downloadFiles,
 };

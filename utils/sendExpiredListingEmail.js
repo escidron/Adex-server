@@ -1,5 +1,6 @@
 import { getNearingExpiryListings, getRecentExpiredListings } from "../queries/Advertisements.js"
 import renderEmail from "./emailTamplates/emailTemplate.js"
+import logger from "./logger.js"
 import sendEmail from "./sendEmail.js"
 
 export async function sendExpiredListingEmail (){
@@ -57,8 +58,10 @@ export async function sendExpiredListingEmail (){
 
         }
     } catch(error){
-        console.log('[checkExpiredListing]',error)
-    }
+        logger.error(error.message,{endpoint: 'sendExpiredListingEmail'});
+        res.status(500).json({
+          error: "Something went wrong",
+        });    }
 
     return null
 }

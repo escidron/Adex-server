@@ -39,6 +39,7 @@ import dotenv from "dotenv";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
 import diferenceBetweenDates from "../utils/diferenceBetweenDates.js";
+import logger from "../utils/logger.js";
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -183,21 +184,25 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
 
     res.status(200).json({ message: "Bank account created" });
   } catch (error) {
-    console.log("error", error.message);
-    res.status(400).json({ error: error.message });
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "CreateExternalBankAccount",
+    });
+    res.status(500).json({
+      error: "Something went wrong",
+    });
   }
 
   //save card
 });
 
 const GetCards = asyncHandler(async (req, res) => {
-  //get user id
   const token = req.cookies.jwt;
   const { companyId } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const storagedCards = await getCard(userId);
 
       const buyer = await getBuyer(userId, companyId);
@@ -210,21 +215,17 @@ const GetCards = asyncHandler(async (req, res) => {
         });
         const stripeCards = paymentMethods.data;
         const cards = stripeCards.map((card) => {
-          // Procurando o elemento correspondente em array2 com o mesmo ID
           const storagedCard = storagedCards.find(
             (item) => item.stripe_payment_method_id === card.id
           );
 
-          // Se encontrarmos um elemento correspondente em array2, adicionamos o parâmetro "age"
           if (storagedCard) {
             return {
-              ...card, // Mantém as propriedades originais de card
+              ...card,
               is_default: storagedCard.is_default,
-              name_on_card: storagedCard.name, // Adiciona o parâmetro "age" de storagedCard
+              name_on_card: storagedCard.name,
             };
           }
-
-          // Se não encontrarmos um elemento correspondente em array2, retornamos card sem alterações
           return card;
         });
         res.status(200).json({
@@ -236,9 +237,9 @@ const GetCards = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message, { userId: userId, endpoint: "GetCards" });
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -253,9 +254,9 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { companyId } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const seller = await getSeller(userId, companyId);
       if (seller.length > 0) {
         const accountId = seller[0].stripe_account;
@@ -265,13 +266,16 @@ const GetBankAccounts = asyncHandler(async (req, res) => {
         );
 
         res.status(200).json(bankAccounts);
-      }else{
-        res.status(200).json({data:[]});
+      } else {
+        res.status(200).json({ data: [] });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "GetBankAccounts",
+      });
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -553,7 +557,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
 });
 
 const RequestReserve = asyncHandler(async (req, res) => {
-  const { data, start_date,end_date, duration, companyId } = req.body;
+  const { data, start_date, end_date, duration, companyId } = req.body;
 
   //get user id
   const token = req.cookies.jwt;
@@ -655,9 +659,12 @@ const RequestReserve = asyncHandler(async (req, res) => {
         data: result,
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "RequestReserve",
+      });
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -712,9 +719,12 @@ const DeclineRequest = asyncHandler(async (req, res) => {
         data: result,
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "DeclineRequest",
+      });
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -727,13 +737,12 @@ const DeclineRequest = asyncHandler(async (req, res) => {
 const CancelBooking = asyncHandler(async (req, res) => {
   const { advertisementId, sellerId, buyerId, cancelMessage } = req.body;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const currentDate = new Date();
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const userId = decoded.userId;
-
       const sellerInfo = await getSeller(sellerId);
       const sellerStripeId = sellerInfo[0].stripe_account;
 
@@ -848,7 +857,11 @@ const CancelBooking = asyncHandler(async (req, res) => {
         error: "It is not possible to cancel this booking",
       });
     } catch (error) {
-      console.error(error);
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "CancelBooking",
+      });
+
       let message = "";
       if (error.type === "StripeInvalidRequestError") {
         message = error.raw.message.includes(
@@ -859,7 +872,7 @@ const CancelBooking = asyncHandler(async (req, res) => {
       } else {
         message = "Something went wrong,please try again";
       }
-      res.status(401).json({
+      res.status(500).json({
         error: message,
       });
     }
@@ -1032,12 +1045,11 @@ const getContractInfo = asyncHandler(async (req, res) => {
 });
 const getAccountBalance = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const userId = decoded.userId;
-
       const sellerInfo = await getSeller(userId);
       if (sellerInfo.length > 0) {
         const sellerStripeId = sellerInfo[0].stripe_account;
@@ -1059,10 +1071,13 @@ const getAccountBalance = asyncHandler(async (req, res) => {
         res.status(200).json(customer);
       }
     } catch (error) {
-      console.error(error);
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getAccountBalance",
+      });
       let message = "Something went wrong";
 
-      res.status(401).json({
+      res.status(500).json({
         error: message,
       });
     }
@@ -1077,14 +1092,13 @@ const deleteBankAccount = asyncHandler(async (req, res) => {
   const { bankAccountId } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const deletedAt = new Date();
   const formattedDeletedAt = getFormattedDate(deletedAt);
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const userId = decoded.userId;
-
       const sellerInfo = await getSeller(userId);
       const connectAccountId = sellerInfo[0].stripe_account;
 
@@ -1095,7 +1109,10 @@ const deleteBankAccount = asyncHandler(async (req, res) => {
       deleteExternalBankAccount(userId, bankAccountId, formattedDeletedAt);
       res.status(200).json({ message: "Payout Method deleted successfully" });
     } catch (error) {
-      console.error(error);
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "deleteBankAccount",
+      });
       let message = "";
 
       if (error.type == "StripeInvalidRequestError") {
@@ -1113,7 +1130,7 @@ const deleteBankAccount = asyncHandler(async (req, res) => {
         message = "Something went wrong,Please try again later";
       }
 
-      res.status(401).json({
+      res.status(500).json({
         error: message,
       });
     }
@@ -1128,21 +1145,20 @@ const deleteCard = asyncHandler(async (req, res) => {
   const { cardId } = req.body;
 
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
   const deletedAt = new Date();
   const formattedDeletedAt = getFormattedDate(deletedAt);
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const userId = decoded.userId;
       const paymentMethod = await stripe.paymentMethods.detach(cardId);
       deleteCreditCard(userId, cardId, formattedDeletedAt);
       res.status(200).json({ message: "Card deleted successfully" });
     } catch (error) {
-      console.error(error);
-
-      res.status(401).json({
-        error: message,
+      logger.error(error.message, { userId: userId, endpoint: "deleteCard" });
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {

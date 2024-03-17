@@ -4,3 +4,4 @@ node_modules
 images/*
 !images/email/
 images/email/qr_code_images
+error.log

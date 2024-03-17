@@ -58,6 +58,7 @@ import {
   getContractByStripeId,
   updateContractRatingStatus,
 } from "../queries/Payments.js";
+import logger from "../utils/logger.js";
 
 dotenv.config();
 
@@ -118,12 +119,12 @@ const authUser = asyncHandler(async (req, res) => {
 const autoLogin = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getUsersById(userId);
       if (result.length == 0) {
-        res.status(400).json({
+        res.status(404).json({
           error: "User does not exists",
         });
       } else {
@@ -142,9 +143,9 @@ const autoLogin = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'autoLogin'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -208,9 +209,9 @@ const getSellerProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { companyId } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getSeller(userId, companyId);
       const user = await getUsersById(userId);
       const userType = user[0].user_type;
@@ -227,9 +228,9 @@ const getSellerProfile = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getSellerProfile'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -782,9 +783,9 @@ const getExternalAccount = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { companyId } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getSeller(userId, companyId);
       if (result.length == 0) {
         res.status(200).json({
@@ -803,9 +804,9 @@ const getExternalAccount = asyncHandler(async (req, res) => {
         }
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getExternalAccount'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -819,11 +820,11 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
   let userId = "";
+  if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    userId = decoded.userId;
+  }
   try {
-    if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      userId = decoded.userId;
-    }
     const result = await getUsersById(id ? id : userId);
     if (result.length == 0) {
       res.status(200).json({
@@ -886,9 +887,9 @@ const getUserProfile = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{userId:userId,endpoint: 'getUserProfile'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -897,9 +898,9 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { image } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       let imageName = "";
       if (image) {
         imageName = Date.now() + ".png";
@@ -910,9 +911,9 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
       }
       updateProfileImage(imageName, userId);
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'updateUserProfileImage'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -941,9 +942,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     cityIsPublic,
   } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       updatePublicProfile(
         name,
         lastName,
@@ -965,9 +966,9 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         message: "Profile updated!",
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'updateUserProfile'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -980,17 +981,17 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 const getMyNotifications = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getUserNotifications(userId);
       res.status(200).json({
         notifications: result,
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getMyNotifications'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1089,9 +1090,9 @@ const addCompany = asyncHandler(async (req, res) => {
   const formattedCreatedAt = getFormattedDate(createdAt);
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       let imageName = "";
 
       if (image.startsWith("http://") || image.startsWith("https://")) {
@@ -1111,9 +1112,9 @@ const addCompany = asyncHandler(async (req, res) => {
       );
       res.status(200).json({ message: "Company registered succesfully" });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'addCompany'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1128,9 +1129,9 @@ const editCompany = asyncHandler(async (req, res) => {
   const { id, name, image, address, hasPhysicalSpace, industry } = req.body;
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       let imageName = "";
 
       if (image.startsWith("http://") || image.startsWith("https://")) {
@@ -1150,9 +1151,9 @@ const editCompany = asyncHandler(async (req, res) => {
       );
       res.status(200).json({ message: "Company edited succesfully" });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'editCompany'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1165,9 +1166,9 @@ const editCompany = asyncHandler(async (req, res) => {
 const getCompanies = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getCompaniesQuery(userId);
 
       if (result.length > 0) {
@@ -1181,9 +1182,9 @@ const getCompanies = asyncHandler(async (req, res) => {
       }
       res.status(200).json(result);
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getCompanies'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1202,9 +1203,9 @@ const removeCompany = asyncHandler(async (req, res) => {
       message: "company removed successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'removeCompany'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1227,9 +1228,9 @@ const getCompany = asyncHandler(async (req, res) => {
       }
       res.status(200).json(result);
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{endpoint: 'getCompany'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1283,9 +1284,9 @@ const imageGallery = asyncHandler(async (req, res) => {
   imagesGroup = imagesGroup.slice(0, -1);
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
       const result = await getUsersById(userId);
 
       if (result.length == 0) {
@@ -1305,9 +1306,9 @@ const imageGallery = asyncHandler(async (req, res) => {
         res.status(200).json({ message: "Image added to the gallery" });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'imageGallery'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1322,9 +1323,9 @@ const getImageGallery = asyncHandler(async (req, res) => {
   const { id } = req.body;
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
 
       let result = [];
       if (id) {
@@ -1376,9 +1377,9 @@ const getImageGallery = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'getImageGallery'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1406,9 +1407,9 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
         message: "Notifications readed",
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'clearUserNotifications'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1430,9 +1431,9 @@ const sendMessage = asyncHandler(async (req, res) => {
   } = req.body;
 
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
 
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
@@ -1460,9 +1461,9 @@ const sendMessage = asyncHandler(async (req, res) => {
         message: "MESSAGE SENDED",
       });
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'sendMessage'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1476,9 +1477,9 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { remove } = req.body;
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.userId;
 
       const user = await getUsersById(userId);
       const userImages = user[0].image_gallery;
@@ -1513,9 +1514,9 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
         finalImages = images;
       }
     } catch (error) {
-      console.error(error);
-      res.status(401).json({
-        error: "Not authorized, token failed",
+      logger.error(error.message,{userId:userId,endpoint: 'removeGalleryImage'});
+      res.status(500).json({
+        error: "Something went wrong",
       });
     }
   } else {
@@ -1555,9 +1556,9 @@ const rateBuyer = asyncHandler(async (req, res) => {
       message: "listing rated successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'rateBuyer'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1611,9 +1612,9 @@ const rateSeller = asyncHandler(async (req, res) => {
       message: "listing rated successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(401).json({
-      error: "Not authorized, token failed",
+    logger.error(error.message,{endpoint: 'rateSeller'});
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1621,17 +1622,17 @@ const rateSeller = asyncHandler(async (req, res) => {
 const addSocialMediaInfo = asyncHandler(async (req, res) => {
   const { plataform, followers } = req.body;
   const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
     await addPlataformsAndFollowers(userId, plataform, followers);
     res.status(200).json({
       message: "Plataform added successfully",
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{userId:userId,endpoint: 'addSocialMediaInfo'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
@@ -1639,17 +1640,17 @@ const addSocialMediaInfo = asyncHandler(async (req, res) => {
 const addAudiencePreference = asyncHandler(async (req, res) => {
   const { preference } = req.body;
   const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
     await addPreference(userId, preference);
     res.status(200).json({
       message: "Preference added successfully",
     });
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{userId:userId,endpoint: 'addAudiencePreference'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
@@ -1678,9 +1679,9 @@ const getSocialMediaInfo = asyncHandler(async (req, res) => {
     }
     res.status(200).json({ data: [] });
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{endpoint: 'getSocialMediaInfo'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
@@ -1707,9 +1708,9 @@ const getAudiencePreference = asyncHandler(async (req, res) => {
     }
     res.status(200).json({ data: [] });
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{endpoint: 'getAudiencePreference'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
@@ -1732,18 +1733,18 @@ const removeAudiencePreference = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{endpoint: 'removeAudiencePreference'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
 const removePlataform = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { plataformId } = req.body;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
     const response = await getUsersById(userId);
     if (response.length > 0) {
       const user = response[0];
@@ -1773,9 +1774,9 @@ const removePlataform = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{userId:userId,endpoint: 'removePlataform'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
@@ -1783,16 +1784,16 @@ const removePlataform = asyncHandler(async (req, res) => {
 const setIsContentCreator = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { isContentCreator } = req.body;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const userId = decoded.userId;
     const response = await setIsContentCreatorById(userId, isContentCreator);
 
     res.status(200).json({ data: true });
   } catch (error) {
-    console.error(error);
+    logger.error(error.message,{userId:userId,endpoint: 'setIsContentCreator'});
     res.status(500).json({
-      error: "Somewthing went Wrong",
+      error: "Something went wrong",
     });
   }
 });
