@@ -1493,7 +1493,7 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
           }
         });
 
-        oldImages.map((oldImage, index) => {
+        oldImages.map( async (oldImage, index) => {
           if (oldImage == remove.data_url) {
             const newImages = imageArray.filter(
               (item, index2) => index2 != index
@@ -1505,10 +1505,15 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
               }
             });
             imageId = imageId.slice(0, -1);
+            const response = await updateGalleryImage(imageId, userId);
+            
+            const imageName = remove.data_url.slice(-17)
+            let  filePath = `./images/${imageName}`
+            await fs.promises.unlink(filePath);
 
-            updateGalleryImage(imageId, userId);
           }
         });
+        res.send('Image deleted')
       } else {
         finalImages = images;
       }
