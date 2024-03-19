@@ -137,11 +137,11 @@ export async function insertAdvertisement(
       created_by_type,
       is_draft,
       company_id
-      ${data.media_types ? ",media_types" : ""}
       ${data.date ? ",start_date" : ""}
       ${data.date ? ",end_date" : ""}
       ${availableDateFormatted ? ",first_available_date" : ""}
       ${data.instructions ? ",instructions" : ""}
+      ${data.media_types ? ",media_types" : ""}
       ${data.digital_price_type ? ",digital_price_type" : ""}
       ) VALUES (
       '${data.category_id}',

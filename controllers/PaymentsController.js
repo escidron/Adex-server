@@ -102,7 +102,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      // test_clock: "clock_1OXpvkL3Lxo3VPLoguCriIba",
+      //test_clock: "clock_1Ow8cpL3Lxo3VPLoqKhnU7eh",
     });
 
     customerId = customer.id;
@@ -445,7 +445,7 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
           items: [
             {
               price: data.stripe_price,
-              quantity: 1,
+              quantity: data.ad_duration_type == "2" ? data.units : 1,
             },
           ],
           end_date: timeStampEndDate,
