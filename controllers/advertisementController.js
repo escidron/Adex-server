@@ -417,27 +417,33 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const userImages = user[0].image_gallery;
 
     async function processImages() {
+      const processedImages = [];
+    
       for (let i = 0; i < data.images.length; i++) {
         const image = data.images[i];
+        let imageName;
+    
         // Images from user device
         if (image.file) {
-          const imageName = await getImageNameFromBase64(image.data_url);
-          images += imageName + ";";
-          imagesGroup += imageName + ";";
+          imageName = await getImageNameFromBase64(image.data_url);
         } else {
           const imageArray = userImages.split(";");
-          imageArray.map((galleryImage) => {
-            if (galleryImage) {
-              const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
-              if (image.data_url == imagePath) {
-                images += galleryImage + ";";
-              }
-            }
+          const foundImage = imageArray.find((galleryImage) => {
+            const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+            return image.data_url === imagePath;
           });
+    
+          imageName = foundImage ? foundImage : null;
+        }
+    
+        if (imageName && !processedImages.includes(imageName)) {
+          images += imageName + ";";
+          imagesGroup += imageName + ";";
+          processedImages.push(imageName);
         }
       }
     }
-
+    
     await processImages();
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
