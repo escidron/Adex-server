@@ -417,36 +417,28 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const userImages = user[0].image_gallery;
 
     async function processImages() {
-      const processedImages = new Set();
-    
-      // Processar imagens dos dados do usuário
-      for (let i = 0; i < data.images.length; i++) {
-        const image = data.images[i];
-        let imageName;
-    
+      const promises = data.images.map(async (image,index) => {
+        console.log('index',index)
         if (image.file) {
-          imageName = await getImageNameFromBase64(image.data_url);
+          return await getImageNameFromBase64(image.data_url);
         } else {
-          const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-          imageName = image;
+          const imageArray = userImages.split(";");
+          const foundImage = imageArray.find((galleryImage) => {
+            const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+            return image.data_url === imagePath;
+          });
+          return foundImage ? foundImage : null;
         }
+      });
     
-        if (imageName && !processedImages.has(imageName)) {
-          images += imageName + ";";
-          imagesGroup += imageName + ";";
-          processedImages.add(imageName);
+      const results = await Promise.all(promises);
+      console.log('results',results)
+      results.forEach((result) => {
+        if (result) {
+          images += result + ";";
+          imagesGroup += result + ";";
         }
-      }
-    
-      // Processar imagens da galeria do usuário
-      const userImageArray = userImages.split(';');
-      for (const userImage of userImageArray) {
-        if (userImage && !processedImages.has(userImage)) {
-          images += userImage + ";";
-          imagesGroup += userImage + ";";
-          processedImages.add(userImage);
-        }
-      }
+      });
     }
     
     await processImages();
