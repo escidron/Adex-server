@@ -420,7 +420,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       const promises = data.images.map(async (image,index) => {
         console.log('index',index)
         if (image.file) {
-          return await getImageNameFromBase64(image.data_url);
+          return await getImageNameFromBase64(image.data_url,index);
         } else {
           const imageArray = userImages.split(";");
           const foundImage = imageArray.find((galleryImage) => {
