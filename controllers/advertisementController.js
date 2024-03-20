@@ -418,19 +418,17 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     async function processImages() {
       const processedImages = new Set();
-      const allImages = data.images.concat(userImages.split(";")).filter(Boolean);
     
-      for (let i = 0; i < allImages.length; i++) {
-        const image = allImages[i];
+      // Processar imagens dos dados do usuário
+      for (let i = 0; i < data.images.length; i++) {
+        const image = data.images[i];
         let imageName;
     
         if (image.file) {
           imageName = await getImageNameFromBase64(image.data_url);
         } else {
           const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-          if (data.images.some(img => img.data_url === imagePath)) {
-            imageName = image;
-          }
+          imageName = image;
         }
     
         if (imageName && !processedImages.has(imageName)) {
@@ -439,10 +437,19 @@ const createAdvertisement = asyncHandler(async (req, res) => {
           processedImages.add(imageName);
         }
       }
+    
+      // Processar imagens da galeria do usuário
+      const userImageArray = userImages.split(';');
+      for (const userImage of userImageArray) {
+        if (userImage && !processedImages.has(userImage)) {
+          images += userImage + ";";
+          imagesGroup += userImage + ";";
+          processedImages.add(userImage);
+        }
+      }
     }
     
     await processImages();
-
 
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
