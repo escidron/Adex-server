@@ -416,24 +416,29 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const user = await getUsersById(userId);
     const userImages = user[0].image_gallery;
 
-    data.images.map((image, index) => {
-      //images from user device
-      if (image.file) {
-        const imageName = getImageNameFromBase64(image.data_url);
-        images += imageName + ";";
-        imagesGroup += imageName + ";";
-      } else {
-        const imageArray = userImages.split(";");
-        imageArray.map((galleryImage) => {
-          if (galleryImage) {
-            const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
-            if (image.data_url == imagePath) {
-              images += galleryImage + ";";
+    async function processImages() {
+      for (let i = 0; i < data.images.length; i++) {
+        const image = data.images[i];
+        // Images from user device
+        if (image.file) {
+          const imageName = await getImageNameFromBase64(image.data_url);
+          images += imageName + ";";
+          imagesGroup += imageName + ";";
+        } else {
+          const imageArray = userImages.split(";");
+          imageArray.map((galleryImage) => {
+            if (galleryImage) {
+              const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+              if (image.data_url == imagePath) {
+                images += galleryImage + ";";
+              }
             }
-          }
-        });
+          });
+        }
       }
-    });
+    }
+
+    await processImages();
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
     addGalleryImages("", userId, userImages, imagesGroup);
@@ -686,7 +691,10 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
     res.status(200).json({ message: "Advertisement updated successfully." });
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'updateAdvertisement'});
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "updateAdvertisement",
+    });
     res.status(500).json({
       error: "Something went wrong",
     });
