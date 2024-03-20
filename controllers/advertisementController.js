@@ -418,22 +418,19 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     async function processImages() {
       const processedImages = new Set();
+      const allImages = data.images.concat(userImages.split(";")).filter(Boolean);
     
-      for (let i = 0; i < data.images.length; i++) {
-        const image = data.images[i];
+      for (let i = 0; i < allImages.length; i++) {
+        const image = allImages[i];
         let imageName;
     
-        // Images from user device
         if (image.file) {
           imageName = await getImageNameFromBase64(image.data_url);
         } else {
-          const imageArray = userImages.split(";");
-          const foundImage = imageArray.find((galleryImage) => {
-            const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
-            return image.data_url === imagePath;
-          });
-    
-          imageName = foundImage ? foundImage : null;
+          const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+          if (data.images.some(img => img.data_url === imagePath)) {
+            imageName = image;
+          }
         }
     
         if (imageName && !processedImages.has(imageName)) {
