@@ -417,7 +417,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const userImages = user[0].image_gallery;
 
     async function processImages() {
-      const processedImages = [];
+      const processedImages = new Set();
     
       for (let i = 0; i < data.images.length; i++) {
         const image = data.images[i];
@@ -436,15 +436,17 @@ const createAdvertisement = asyncHandler(async (req, res) => {
           imageName = foundImage ? foundImage : null;
         }
     
-        if (imageName && !processedImages.includes(imageName)) {
+        if (imageName && !processedImages.has(imageName)) {
           images += imageName + ";";
           imagesGroup += imageName + ";";
-          processedImages.push(imageName);
+          processedImages.add(imageName);
         }
       }
     }
     
     await processImages();
+
+
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
     addGalleryImages("", userId, userImages, imagesGroup);
