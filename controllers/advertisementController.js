@@ -418,7 +418,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     async function processImages() {
       const promises = data.images.map(async (image,index) => {
-        console.log('index',index)
         if (image.file) {
           return await getImageNameFromBase64(image.data_url,index);
         } else {
@@ -432,7 +431,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       });
     
       const results = await Promise.all(promises);
-      console.log('results',results)
       results.forEach((result) => {
         if (result) {
           images += result + ";";
