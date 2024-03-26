@@ -91,6 +91,8 @@ const authUser = asyncHandler(async (req, res) => {
             image: image,
             userId: userId,
             user_type: userType,
+            userType:userType
+
           });
         } else {
           const externalAccount = resultSeller[0].external_account_id;
@@ -100,12 +102,14 @@ const authUser = asyncHandler(async (req, res) => {
               image: image,
               userId: userId,
               hasPayout: externalAccount,
+              userType:userType
             });
           } else {
             res.status(201).json({
               name: firstName,
               image: image,
               userId: userId,
+              userType:userType
             });
           }
         }
