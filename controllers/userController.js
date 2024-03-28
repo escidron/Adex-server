@@ -91,8 +91,7 @@ const authUser = asyncHandler(async (req, res) => {
             image: image,
             userId: userId,
             user_type: userType,
-            userType:userType
-
+            userType: userType,
           });
         } else {
           const externalAccount = resultSeller[0].external_account_id;
@@ -102,14 +101,14 @@ const authUser = asyncHandler(async (req, res) => {
               image: image,
               userId: userId,
               hasPayout: externalAccount,
-              userType:userType
+              userType: userType,
             });
           } else {
             res.status(201).json({
               name: firstName,
               image: image,
               userId: userId,
-              userType:userType
+              userType: userType,
             });
           }
         }
@@ -147,7 +146,7 @@ const autoLogin = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'autoLogin'});
+      logger.error(error.message, { userId: userId, endpoint: "autoLogin" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -232,7 +231,10 @@ const getSellerProfile = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getSellerProfile'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getSellerProfile",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -808,7 +810,10 @@ const getExternalAccount = asyncHandler(async (req, res) => {
         }
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getExternalAccount'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getExternalAccount",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -851,7 +856,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
       const cityIsPublic = result[0].city_is_public;
       const userType = result[0].user_type;
       const images = result[0].image_gallery;
-      const isContentCreator = result[0].is_content_creator == "1" ? true : false;
+      const isContentCreator =
+        result[0].is_content_creator == "1" ? true : false;
       const imagesWithPath = [];
       const rating = result[0].rating;
       if (images) {
@@ -890,7 +896,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       });
     }
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'getUserProfile'});
+    logger.error(error.message, { userId: userId, endpoint: "getUserProfile" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -914,7 +920,10 @@ const updateUserProfileImage = asyncHandler(async (req, res) => {
       }
       updateProfileImage(imageName, userId);
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'updateUserProfileImage'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "updateUserProfileImage",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -969,7 +978,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         message: "Profile updated!",
       });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'updateUserProfile'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "updateUserProfile",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -992,7 +1004,10 @@ const getMyNotifications = asyncHandler(async (req, res) => {
         notifications: result,
       });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getMyNotifications'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getMyNotifications",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1115,7 +1130,7 @@ const addCompany = asyncHandler(async (req, res) => {
       );
       res.status(200).json({ message: "Company registered succesfully" });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'addCompany'});
+      logger.error(error.message, { userId: userId, endpoint: "addCompany" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1154,7 +1169,7 @@ const editCompany = asyncHandler(async (req, res) => {
       );
       res.status(200).json({ message: "Company edited succesfully" });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'editCompany'});
+      logger.error(error.message, { userId: userId, endpoint: "editCompany" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1185,7 +1200,7 @@ const getCompanies = asyncHandler(async (req, res) => {
       }
       res.status(200).json(result);
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getCompanies'});
+      logger.error(error.message, { userId: userId, endpoint: "getCompanies" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1206,7 +1221,7 @@ const removeCompany = asyncHandler(async (req, res) => {
       message: "company removed successfully",
     });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'removeCompany'});
+    logger.error(error.message, { endpoint: "removeCompany" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1216,29 +1231,24 @@ const removeCompany = asyncHandler(async (req, res) => {
 const getCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
-  if (token) {
-    try {
-      const result = await getCompaniesById(id);
 
-      if (result.length > 0) {
-        result.map((item, index) => {
-          let image = "";
-          if (item.company_logo) {
-            image = `${process.env.SERVER_IP}/images/${item.company_logo}`;
-            result[index].company_logo = image;
-          }
-        });
-      }
-      res.status(200).json(result);
-    } catch (error) {
-      logger.error(error.message,{endpoint: 'getCompany'});
-      res.status(500).json({
-        error: "Something went wrong",
+  try {
+    const result = await getCompaniesById(id);
+
+    if (result.length > 0) {
+      result.map((item, index) => {
+        let image = "";
+        if (item.company_logo) {
+          image = `${process.env.SERVER_IP}/images/${item.company_logo}`;
+          result[index].company_logo = image;
+        }
       });
     }
-  } else {
-    res.status(401).json({
-      error: "Not authorized, no token",
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(error.message, { endpoint: "getCompany" });
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1309,7 +1319,7 @@ const imageGallery = asyncHandler(async (req, res) => {
         res.status(200).json({ message: "Image added to the gallery" });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'imageGallery'});
+      logger.error(error.message, { userId: userId, endpoint: "imageGallery" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1329,7 +1339,6 @@ const getImageGallery = asyncHandler(async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
     try {
-
       let result = [];
       if (id) {
         result = await getCompaniesById(id);
@@ -1380,7 +1389,10 @@ const getImageGallery = asyncHandler(async (req, res) => {
         });
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'getImageGallery'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "getImageGallery",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1410,7 +1422,10 @@ const clearUserNotifications = asyncHandler(async (req, res) => {
         message: "Notifications readed",
       });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'clearUserNotifications'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "clearUserNotifications",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1437,7 +1452,6 @@ const sendMessage = asyncHandler(async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
     try {
-
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
@@ -1464,7 +1478,7 @@ const sendMessage = asyncHandler(async (req, res) => {
         message: "MESSAGE SENDED",
       });
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'sendMessage'});
+      logger.error(error.message, { userId: userId, endpoint: "sendMessage" });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1483,7 +1497,6 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
     try {
-
       const user = await getUsersById(userId);
       const userImages = user[0].image_gallery;
       let finalImages = [];
@@ -1497,7 +1510,7 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
           }
         });
 
-        oldImages.map( async (oldImage, index) => {
+        oldImages.map(async (oldImage, index) => {
           if (oldImage == remove.data_url) {
             const newImages = imageArray.filter(
               (item, index2) => index2 != index
@@ -1510,19 +1523,21 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
             });
             imageId = imageId.slice(0, -1);
             const response = await updateGalleryImage(imageId, userId);
-            
-            const imageName = remove.data_url.slice(-17)
-            let  filePath = `./images/${imageName}`
-            await fs.promises.unlink(filePath);
 
+            const imageName = remove.data_url.slice(-17);
+            let filePath = `./images/${imageName}`;
+            await fs.promises.unlink(filePath);
           }
         });
-        res.send('Image deleted')
+        res.send("Image deleted");
       } else {
         finalImages = images;
       }
     } catch (error) {
-      logger.error(error.message,{userId:userId,endpoint: 'removeGalleryImage'});
+      logger.error(error.message, {
+        userId: userId,
+        endpoint: "removeGalleryImage",
+      });
       res.status(500).json({
         error: "Something went wrong",
       });
@@ -1564,7 +1579,7 @@ const rateBuyer = asyncHandler(async (req, res) => {
       message: "listing rated successfully",
     });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'rateBuyer'});
+    logger.error(error.message, { endpoint: "rateBuyer" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1620,7 +1635,7 @@ const rateSeller = asyncHandler(async (req, res) => {
       message: "listing rated successfully",
     });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'rateSeller'});
+    logger.error(error.message, { endpoint: "rateSeller" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1638,7 +1653,10 @@ const addSocialMediaInfo = asyncHandler(async (req, res) => {
       message: "Plataform added successfully",
     });
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'addSocialMediaInfo'});
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "addSocialMediaInfo",
+    });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1656,7 +1674,10 @@ const addAudiencePreference = asyncHandler(async (req, res) => {
       message: "Preference added successfully",
     });
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'addAudiencePreference'});
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "addAudiencePreference",
+    });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1687,7 +1708,7 @@ const getSocialMediaInfo = asyncHandler(async (req, res) => {
     }
     res.status(200).json({ data: [] });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getSocialMediaInfo'});
+    logger.error(error.message, { endpoint: "getSocialMediaInfo" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1716,7 +1737,7 @@ const getAudiencePreference = asyncHandler(async (req, res) => {
     }
     res.status(200).json({ data: [] });
   } catch (error) {
-    logger.error(error.message,{endpoint: 'getAudiencePreference'});
+    logger.error(error.message, { endpoint: "getAudiencePreference" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1741,7 +1762,7 @@ const removeAudiencePreference = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    logger.error(error.message,{endpoint: 'removeAudiencePreference'});
+    logger.error(error.message, { endpoint: "removeAudiencePreference" });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1772,7 +1793,7 @@ const removePlataform = asyncHandler(async (req, res) => {
 
         followersArray.splice(plataformPosition, 1);
         let newFollowers = "";
-        if(followersArray.length > 0){
+        if (followersArray.length > 0) {
           newFollowers = followersArray.join(";") + ";";
         }
 
@@ -1782,7 +1803,10 @@ const removePlataform = asyncHandler(async (req, res) => {
       }
     }
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'removePlataform'});
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "removePlataform",
+    });
     res.status(500).json({
       error: "Something went wrong",
     });
@@ -1799,7 +1823,10 @@ const setIsContentCreator = asyncHandler(async (req, res) => {
 
     res.status(200).json({ data: true });
   } catch (error) {
-    logger.error(error.message,{userId:userId,endpoint: 'setIsContentCreator'});
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "setIsContentCreator",
+    });
     res.status(500).json({
       error: "Something went wrong",
     });
