@@ -1451,11 +1451,14 @@ const sendMessage = asyncHandler(async (req, res) => {
   if (token) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
+    let filesNamesString = ''
     try {
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
-      const filesNamesString = filesNames.join(";");
+      if(filesNames){
+         filesNamesString = filesNames.join(";");
+      }
 
       insertMessages(
         sended_by,
