@@ -1116,7 +1116,7 @@ const addCompany = asyncHandler(async (req, res) => {
       if (image.startsWith("http://") || image.startsWith("https://")) {
         imageName = getImageNameFromLink(image);
       } else if (image.startsWith("data:image/")) {
-        imageName = getImageNameFromBase64(image);
+        imageName = await getImageNameFromBase64(image,1);
       }
 
       insertCompany(
@@ -1155,7 +1155,7 @@ const editCompany = asyncHandler(async (req, res) => {
       if (image.startsWith("http://") || image.startsWith("https://")) {
         imageName = getImageNameFromLink(image);
       } else if (image.startsWith("data:image/")) {
-        imageName = getImageNameFromBase64(image);
+        imageName = await getImageNameFromBase64(image,1);
       }
 
       editCompanyById(

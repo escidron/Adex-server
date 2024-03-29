@@ -417,9 +417,9 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const userImages = user[0].image_gallery;
 
     async function processImages() {
-      const promises = data.images.map(async (image,index) => {
+      const promises = data.images.map(async (image, index) => {
         if (image.file) {
-          return await getImageNameFromBase64(image.data_url,index);
+          return await getImageNameFromBase64(image.data_url, index);
         } else {
           const imageArray = userImages.split(";");
           const foundImage = imageArray.find((galleryImage) => {
@@ -429,7 +429,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
           return foundImage ? foundImage : null;
         }
       });
-    
+
       const results = await Promise.all(promises);
       results.forEach((result) => {
         if (result) {
@@ -438,7 +438,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         }
       });
     }
-    
+
     await processImages();
 
     images = images.slice(0, -1);
@@ -575,19 +575,47 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     const formattedUpdatedAt = getFormattedDate(updatedAt);
 
     let updateImages = "";
-    images.map((image) => {
-      let imageName = "";
-      if (
-        image.data_url.startsWith("http://") ||
-        image.data_url.startsWith("https://")
-      ) {
-        imageName = getImageNameFromLink(image.data_url);
-      } else if (image.data_url.startsWith("data:image/")) {
-        imageName = getImageNameFromBase64(image.data_url);
-      }
-      updateImages += imageName + ";";
-    });
+
+    async function processEditImages() {
+      const promises = images.map(async (image, index) => {
+        if (
+          image.data_url.startsWith("http://") ||
+          image.data_url.startsWith("https://")
+        ) {
+          return await getImageNameFromLink(image.data_url);
+        } else if (image.data_url.startsWith("data:image/")) {
+          return await getImageNameFromBase64(image.data_url,index);
+        }
+      });
+
+      const results = await Promise.all(promises);
+      results.forEach((result) => {
+        if (result) {
+          updateImages += result + ";";
+        }
+      });
+    }
+
+    await processEditImages();
     updateImages = updateImages.slice(0, -1);
+
+    // images.map(async (image) => {
+    //   let imageName = "";
+    //   if (
+    //     image.data_url.startsWith("http://") ||
+    //     image.data_url.startsWith("https://")
+    //   ) {
+    //     imageName = getImageNameFromLink(image.data_url);
+    //   } else if (image.data_url.startsWith("data:image/")) {
+    //     imageName = await getImageNameFromBase64(image.data_url);
+    //   }
+    //   console.log("rodada");
+    //   updateImages += imageName + ";";
+    // });
+    // updateImages = updateImages.slice(0, -1);
+
+    // await processEditImages();
+    console.log("updateImages", updateImages);
 
     let availableDateFormatted = "";
     if (first_available_date) {
