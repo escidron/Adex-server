@@ -383,18 +383,18 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     let availableDateFormatted = "";
     if (data.first_available_date) {
-      let availableDate = new Date(data.first_available_date.substring(0, 10));
+      let availableDate = new Date(data.first_available_date);
       availableDateFormatted = getFormattedDate(availableDate);
     }
 
     let dateFormatted = "";
     if (data.date) {
-      let dateFrom = new Date(data.date.from.substring(0, 10));
+      let dateFrom = new Date(data.date.from);
       const dateFromFormatted = getFormattedDate(dateFrom);
 
-      let dateTo = new Date(data.date.from.substring(0, 10));
+      let dateTo = new Date(data.date.from);
       if (data.date.to) {
-        dateTo = new Date(data.date.to.substring(0, 10));
+        dateTo = new Date(data.date.to);
       }
       const dateToFormatted = getFormattedDate(dateTo);
       dateFormatted = {
@@ -625,12 +625,12 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
     let dateFormatted = "";
     if (date.from) {
-      let dateFrom = new Date(date.from.substring(0, 10));
+      let dateFrom = new Date(date.from);
       const dateFromFormatted = getFormattedDate(dateFrom);
 
-      let dateTo = new Date(date.from.substring(0, 10));
+      let dateTo = new Date(date.from);
       if (date.to) {
-        dateTo = new Date(date.to.substring(0, 10));
+        dateTo = new Date(date.to);
       }
       const dateToFormatted = getFormattedDate(dateTo);
       dateFormatted = {
@@ -959,15 +959,15 @@ const createDraft = asyncHandler(async (req, res) => {
 
       let availableDateFormatted = "";
       if (first_available_date) {
-        let availableDate = new Date(first_available_date.substring(0, 10));
+        let availableDate = new Date(first_available_date);
         availableDateFormatted = getFormattedDate(availableDate);
       }
 
       let dateFormatted = "";
       if (date) {
-        let dateFrom = new Date(date.from.substring(0, 10));
+        let dateFrom = new Date(date.from);
         const dateFromFormatted = getFormattedDate(dateFrom);
-        let dateTo = new Date(date.to.substring(0, 10));
+        let dateTo = new Date(date.to);
         const dateToFormatted = getFormattedDate(dateTo);
         dateFormatted = {
           from: dateFromFormatted,
