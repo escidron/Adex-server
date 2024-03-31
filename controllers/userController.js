@@ -166,7 +166,7 @@ const registerUser = asyncHandler(async (req, res) => {
   if (result.length > 0) {
     res
       .status(401)
-      .json({ error: "User already exist. Please use a diferent email" });
+      .json({ error: "User already exists, please use a different email." });
   } else {
     bcrypt.hash(password, 10).then(async function (hashedPass) {
       // Store hash in your password DB.
@@ -1079,7 +1079,7 @@ const sendResetPasswordEmail = asyncHandler(async (req, res) => {
   const emailContent = renderEmail(emailData);
   sendEmail(email, "Reset Password", emailContent);
 
-  res.status(200).json({ message: "Email sended successfuly" });
+  res.status(200).json({ message: "Email Notification Sent" });
 });
 
 const contactUs = asyncHandler(async (req, res) => {
