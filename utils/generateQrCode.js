@@ -19,7 +19,7 @@ export async function generateQrCode(listingId) {
       </div>
     `;
 
-    const pdfOptions = { format: 'Letter' }; 
+    const pdfOptions = { format: 'Letter', phantomPath: "../node_modules/phantomjs-prebuilt/bin/phantomjs" } ; 
     const outputPath = `./images/email/qr_code_images/listing_qrcode${listingId}.png`;
 
     await new Promise((resolve, reject) => {
