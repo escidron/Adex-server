@@ -11,7 +11,7 @@ export default function renderEmail(data) {
         <div style="background-color: #e5e5e3;max-width: 600px;margin: 20px auto;padding: 20px;align-items: center;border-radius: 10px;font-family: Optimistic Text, Helvetica, sans-serif">
           <div class="header" style="text-align: center;margin-top: 20px">
             <img
-              src="http://test.adexconnect.com/email/email-logo.png"
+              src="http://server.adexconnect.com/email/email-logo.png"
               alt="Company Logo"
             />
           </div>
@@ -40,7 +40,7 @@ export default function renderEmail(data) {
           ">
                 <img
                   style="width: 100%;height: 150px;border-radius: 10px;object-fit: cover;"
-                  src="http://test.adexconnect.com/images/{{ advertisement.image }}"
+                  src="http://server.adexconnect.com/images/{{ advertisement.image }}"
                   alt={{ advertisement.image }}
                 />
                 <div style="margin-left: 20px;height: 100%;">
@@ -78,7 +78,7 @@ export default function renderEmail(data) {
             ADEX Login
           </a>
           <img
-            src="http://test.adexconnect.com/email/{{ icon }}.png"
+            src="http://server.adexconnect.com/email/{{ icon }}.png"
             alt="{{ icon }}"
             class="message-image"
             style="margin-top: 40px;display: block;margin-left: auto;margin-right: auto;"
@@ -93,21 +93,21 @@ export default function renderEmail(data) {
           <div class="icons-group" style="margin-left: auto;margin-right: auto;width: 100px;margin-top: 10px;">
             <a href="https://facebook.com"
               ><img
-                src="http://test.adexconnect.com/email/facebook-logo.png"
+                src="http://server.adexconnect.com/email/facebook-logo.png"
                 alt="Facebook"
                 class="social-media-icons"
                 style="height: 16px;"
             /></a>
             <a href="https://instagram.com"
               ><img
-                src="http://test.adexconnect.com/email/instagram-logo.png"
+                src="http://server.adexconnect.com/email/instagram-logo.png"
                 alt="Instagram"
                 class="social-media-icons"
                 style="height: 16px;"
             /></a>
             <a href="https://youtube.com"
               ><img
-                src="http://test.adexconnect.com/email/youtube-logo.jpg"
+                src="http://server.adexconnect.com/email/youtube-logo.jpg"
                 alt="Instagram"
                 class="social-media-icons"
                 style="height: 16px;"
