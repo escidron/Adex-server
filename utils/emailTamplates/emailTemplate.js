@@ -59,7 +59,7 @@ export default function renderEmail(data) {
           }
           
           
-          <a href="http://localhost:5000/login" target="_blank" id="login-button" class="login-button"
+          <a href="https://adexconnect.com/login" target="_blank" id="login-button" class="login-button"
             style="color: black;
                     margin-top: 20px;
                     text-decoration: none;
