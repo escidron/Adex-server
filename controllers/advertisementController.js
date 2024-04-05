@@ -104,7 +104,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           draft: 0,
           available: 0,
           booked: 0,
-          finished: 0,
+          completed: 0,
           pending: 0,
           expired: 0,
         };
@@ -127,7 +127,7 @@ const getMyAdvertisement = asyncHandler(async (req, res) => {
           }
         });
 
-        status.finished = finishedListing.length;
+        status.completed = finishedListing.length;
         status.all += finishedListing.length;
 
         const listings = [
