@@ -443,11 +443,19 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
-    addGalleryImages("", userId, userImages, imagesGroup);
 
-    if (data.company_id) {
-      const id = data.company_id;
-      addGalleryImages(id, userId, result[0].company_gallery, imagesGroup);
+
+    const userImagesArray = userImages.split(";");
+    let newgalleryImages = imagesGroup.split(";").filter((image) => !userImagesArray.includes(image));
+    if(newgalleryImages.length > 0){
+
+      newgalleryImages = newgalleryImages.join(";");
+      addGalleryImages("", userId, userImages, newgalleryImages);
+  
+      if (data.company_id) {
+        const id = data.company_id;
+        addGalleryImages(id, userId, result[0].company_gallery, newgalleryImages);
+      }
     }
 
     const product = await stripe.products.create({
