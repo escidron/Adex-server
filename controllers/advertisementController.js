@@ -294,7 +294,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
         const status = {
           all: result.length + finishedListing.length + pendingBoking.length,
           booked: result.length,
-          finished: finishedListing.length,
+          completed: finishedListing.length,
           pending: pendingBoking.length,
         };
 
@@ -443,9 +443,11 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
+    let userImagesArray = [];
+    if(userImages){
+      userImagesArray = userImages.split(";");
+    }
 
-
-    const userImagesArray = userImages.split(";");
     let newgalleryImages = imagesGroup.split(";").filter((image) => !userImagesArray.includes(image));
     if(newgalleryImages.length > 0){
 
