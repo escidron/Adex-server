@@ -343,7 +343,7 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
           },
           business_profile: {
             mcc: 7299,
-            url: "www." + user.first_name.replace(/\s/g, "").toLowerCase()+".com",
+            product_description: "Custumers will pay monthly or one-time",
           },
           tos_acceptance: {
             date: currentDate,
@@ -353,6 +353,11 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             tax_id: idNumber,
             name: user.name,
           },
+          settings: {
+            payments: {
+              statement_descriptor: `${user.first_name} ${user.last_name}`,
+            },
+          },
           individual: {
             email: user.email,
             first_name: user.first_name,
@@ -361,10 +366,10 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             phone: user.mobile_number,
             address: {
               country: "US",
-              city: city, //city,
+              city: city, 
               line1: street,
               postal_code: zip,
-              state: state, //state
+              state: state, 
             },
             political_exposure: "none",
             dob: {
@@ -376,7 +381,6 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             verification: {
               document: {
                 front: file.id,
-                // front: "file_identity_document_success",
               },
             },
           },
@@ -1116,7 +1120,7 @@ const addCompany = asyncHandler(async (req, res) => {
       if (image.startsWith("http://") || image.startsWith("https://")) {
         imageName = getImageNameFromLink(image);
       } else if (image.startsWith("data:image/")) {
-        imageName = await getImageNameFromBase64(image,1);
+        imageName = await getImageNameFromBase64(image, 1);
       }
 
       insertCompany(
@@ -1155,7 +1159,7 @@ const editCompany = asyncHandler(async (req, res) => {
       if (image.startsWith("http://") || image.startsWith("https://")) {
         imageName = getImageNameFromLink(image);
       } else if (image.startsWith("data:image/")) {
-        imageName = await getImageNameFromBase64(image,1);
+        imageName = await getImageNameFromBase64(image, 1);
       }
 
       editCompanyById(
@@ -1451,13 +1455,13 @@ const sendMessage = asyncHandler(async (req, res) => {
   if (token) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    let filesNamesString = ''
+    let filesNamesString = "";
     try {
       const createdAt = new Date();
       const formattedCreatedAt = getFormattedDate(createdAt);
 
-      if(filesNames){
-         filesNamesString = filesNames.join(";");
+      if (filesNames) {
+        filesNamesString = filesNames.join(";");
       }
 
       insertMessages(
