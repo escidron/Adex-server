@@ -102,7 +102,7 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     const customer = await stripe.customers.create({
       description: fullName,
       email: email,
-      //test_clock: "clock_1Ow8cpL3Lxo3VPLoqKhnU7eh",
+      //test_clock: "clock_1P5FJQL3Lxo3VPLolYyjc7Dp",
     });
 
     customerId = customer.id;
@@ -1002,6 +1002,112 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     };
     emailContent = renderEmail(emailData);
     sendEmail(buyerEmail, "Booking Payment", emailContent);
+  } else if (event.type === "invoice.payment_failed") {
+
+    const subscriptionId = event.data.object.subscription;
+    const contract = await getContractBySub(subscriptionId);
+    const contractStripeId = contract[0].schedule_subscription_id;
+    const advertisementId = contract[0].advertisement_id;
+    const advertisement = await getAdvertisementById(advertisementId);
+    const data = advertisement[0];
+    const imageName = data.image.split(";");
+
+    const sellerId = advertisement[0].created_by;
+    const seller = await getUsersById(sellerId);
+    const sellerEmail = seller[0].email;
+
+    const buyerId = advertisement[0].requested_by;
+    const buyer = await getUsersById(buyerId);
+    const buyerName = buyer[0].name;
+    const buyerEmail = buyer[0].email;
+
+    let emailData;
+    let emailContent;
+    if (event.data.object.attempt_count == 2) {
+      const cancelMessage = "Payment failed";
+
+      updateContract(contractStripeId, "3", cancelMessage);
+
+      const query = `
+      UPDATE advertisement SET
+        status = '1',
+        duration = null,
+        requested_by = null,
+        requested_by_company = null,
+        start_date = CASE WHEN ad_duration_type <> 1 THEN NULL ELSE start_date END,
+        end_date = CASE WHEN ad_duration_type <> 1 THEN NULL ELSE end_date END
+      WHERE id = '${advertisementId}' 
+    `;
+      updateAdvertismentById(query);
+
+      //send email to the seller
+      emailData = {
+        title: "Payment Failed!",
+        subTitle: "",
+        message: `A Payment from ${buyerName} has failed again.The booking has been canceled.`,
+        icon: "payment-made",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      emailContent = renderEmail(emailData);
+      sendEmail(sellerEmail, "Booking Payment", emailContent);
+
+      //send email to the buyer
+      emailData = {
+        title: "Payment Failed!",
+        subTitle: "",
+        message: `Dear ${buyerName}, Your booking has been canceled due to payment failures.`,
+        icon: "payment-made",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      emailContent = renderEmail(emailData);
+      sendEmail(buyerEmail, "Booking Payment", emailContent);
+    } else {
+      //send email to the seller
+      emailData = {
+        title: "Payment Failed!",
+        subTitle: "",
+        message: `A Payment from ${buyerName} has failed.`,
+        icon: "payment-made",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      emailContent = renderEmail(emailData);
+      sendEmail(sellerEmail, "Booking Payment", emailContent);
+
+      //send email to the buyer
+      emailData = {
+        title: "Payment Failed!",
+        subTitle: "",
+        message: `Your payment attempt has failed. Please update your payment information. We will automatically retry the payment within the next 24 hours.Please note that if the payment fails again, your booking will be canceled. Thank you for your understanding.`,
+        icon: "payment-made",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+          price: data.price,
+        },
+      };
+      emailContent = renderEmail(emailData);
+      sendEmail(buyerEmail, "Booking Payment", emailContent);
+    }
   }
   res.status(200).json({
     message: "webhook event: " + event,
