@@ -749,7 +749,6 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const buyerInfo = await getBuyer(buyerId);
       const buyerStripeId = buyerInfo[0].customer_id;
 
-      ////////////////////////////////////////////////////////////////////////
       const createdByUser = await getUsersById(sellerId);
       const sellerName = createdByUser[0].name;
 
@@ -761,54 +760,6 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const data = advertisementInfo[0];
       const imageName = data.image.split(";");
 
-      //send email to the seller
-      if (createdByUser.length > 0) {
-        const email = createdByUser[0].email;
-
-        const emailData = {
-          title: "ADEX Booking",
-          subTitle: "Booking Canceled",
-          message:
-            userId == sellerId
-              ? "Booking cancelled successfully!"
-              : `${buyerName} has cancelled this booking!
-            ${cancelMessage ? `Message: ${cancelMessage}` : ""}
-          `,
-          icon: "cancel-booking",
-          advertisement: {
-            title: data.title,
-            address: data.address,
-            description: data.description,
-            image: imageName[0],
-            price: data.price,
-          },
-        };
-        const emailContent = renderEmail(emailData);
-        sendEmail(email, "Booking Cancelled", emailContent);
-      }
-      //send email to the buyer
-      const emailData = {
-        title: "ADEX Booking",
-        subTitle: "Booking Cancelled",
-        message:
-          userId == buyerId
-            ? "Booking cancelled successfully!"
-            : `${buyerName} has cancelled this booking!
-        ${cancelMessage ? `Message: ${cancelMessage}` : ""}
-
-        `,
-        icon: "cancel-booking",
-        advertisement: {
-          title: data.title,
-          address: data.address,
-          description: data.description,
-          image: imageName[0],
-          price: data.price,
-        },
-      };
-      const emailContent = renderEmail(emailData);
-      sendEmail(buyerEmail, "Booking Cancelled", emailContent);
-      //////////////////////////////////////////////////////////////////////
       const contractInfo = await getContract(
         advertisementId,
         sellerStripeId,
@@ -820,13 +771,11 @@ const CancelBooking = asyncHandler(async (req, res) => {
       const advertisement = await getAdvertisementById(advertisementId);
       const advertisementDurationType = advertisement[0].ad_duration_type;
 
-      let cancellationRange = true;
       if (advertisementDurationType == "0") {
-        const startFormattedDate = contractInfo[0].start_date;
-        cancellationRange = startFormattedDate > currentDate;
+        cancellationAllowed = true;
       }
 
-      if (cancellationAllowed && cancellationRange) {
+      if (cancellationAllowed) {
         const subscriptionSchedule = await stripe.subscriptionSchedules.cancel(
           contractStripeId,
           { prorate: false }
@@ -847,11 +796,60 @@ const CancelBooking = asyncHandler(async (req, res) => {
           WHERE id = '${advertisementId}' 
         `;
           updateAdvertismentById(query);
+
+          //send email to the seller
+          if (createdByUser.length > 0) {
+            const email = createdByUser[0].email;
+
+            const emailData = {
+              title: "ADEX Booking",
+              subTitle: "Booking Canceled",
+              message:
+                userId == sellerId
+                  ? "Booking cancelled successfully!"
+                  : `${buyerName} has cancelled this booking!
+            ${cancelMessage ? `Message: ${cancelMessage}` : ""}
+          `,
+              icon: "cancel-booking",
+              advertisement: {
+                title: data.title,
+                address: data.address,
+                description: data.description,
+                image: imageName[0],
+                price: data.price,
+              },
+            };
+            const emailContent = renderEmail(emailData);
+            sendEmail(email, "Booking Cancelled", emailContent);
+          }
+          //send email to the buyer
+          const emailData = {
+            title: "ADEX Booking",
+            subTitle: "Booking Cancelled",
+            message:
+              userId == buyerId
+                ? "Booking cancelled successfully!"
+                : `${buyerName} has cancelled this booking!
+        ${cancelMessage ? `Message: ${cancelMessage}` : ""}
+
+        `,
+            icon: "cancel-booking",
+            advertisement: {
+              title: data.title,
+              address: data.address,
+              description: data.description,
+              image: imageName[0],
+              price: data.price,
+            },
+          };
+          const emailContent = renderEmail(emailData);
+          sendEmail(buyerEmail, "Booking Cancelled", emailContent);
         }
 
         res.status(200).json({
           data: "Contract canceled",
         });
+        return;
       }
       res.status(401).json({
         error: "It is not possible to cancel this booking",
@@ -1003,7 +1001,6 @@ const subscriptionEndedWebhook = asyncHandler(async (req, res) => {
     emailContent = renderEmail(emailData);
     sendEmail(buyerEmail, "Booking Payment", emailContent);
   } else if (event.type === "invoice.payment_failed") {
-
     const subscriptionId = event.data.object.subscription;
     const contract = await getContractBySub(subscriptionId);
     const contractStripeId = contract[0].schedule_subscription_id;
