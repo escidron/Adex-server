@@ -98,6 +98,18 @@ const CreateCustomer = asyncHandler(async (req, res) => {
     });
 
     updateBuyer(userId, cardId, companyId);
+    
+    const queryUpDateDefaultCard = `
+    UPDATE cards
+    SET updated_at = '${formattedCreatedAt}',
+    is_default = CASE
+    WHEN stripe_payment_method_id <> '${cardId}' THEN 0
+    WHEN stripe_payment_method_id = '${cardId}' THEN 1
+    END
+    WHERE user_id = ${userId}
+     
+`;
+    updateCard(queryUpDateDefaultCard);
   } else {
     const customer = await stripe.customers.create({
       description: fullName,

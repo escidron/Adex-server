@@ -366,10 +366,10 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             phone: user.mobile_number,
             address: {
               country: "US",
-              city: city, 
+              city: city,
               line1: street,
               postal_code: zip,
-              state: state, 
+              state: state,
             },
             political_exposure: "none",
             dob: {
@@ -460,7 +460,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
   const { address } = pkg;
   const {
     idNumber,
-    mcc,
+    mccValue,
     name,
     street,
     city,
@@ -557,13 +557,19 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
             transfers: { requested: true },
           },
           business_profile: {
-            mcc: mcc,
-            url:
-              "www." +
-              user.email.substring(
-                0,
-                user.email.indexOf("@") > 16 ? 16 : user.email.indexOf("@")
-              ),
+            mcc: mccValue,
+            // url:
+            //   "www." +
+            //   user.email.substring(
+            //     0,
+            //     user.email.indexOf("@") > 16 ? 16 : user.email.indexOf("@")
+            //   ),
+            product_description: "Custumers will pay monthly or one-time",
+          },
+          settings: {
+            payments: {
+              statement_descriptor: `${name}`,
+            },
           },
           company: {
             name: name,
