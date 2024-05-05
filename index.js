@@ -16,6 +16,7 @@ import { publishRatings } from "./utils/publishRatings.js";
 
 import cluster from 'cluster';
 import { cpus } from 'os';
+import { checkConnectAccountStatus } from "./utils/checkConnectAccountStatus.js";
 dotenv.config();
 const port = process.env.PORT || 5001;
 
@@ -31,6 +32,8 @@ schedule.scheduleJob('5 0 * * *', updateExpiredListingsStatus);
 //send notifications email about the listing expire (triggers every day at 12:10am)//'10 0 * * *
 schedule.scheduleJob('49 * * * *', publishRatings);
 
+//check the rejected connect seller accounts (triggers every hour)//'0 * * * *
+schedule.scheduleJob('0 * * * *', checkConnectAccountStatus);
 
 const app = express();
 app.use(express.json({ limit: "100mb" }));

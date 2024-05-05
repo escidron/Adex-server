@@ -184,15 +184,15 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
     );
     updateSeller(userId, bankAccount, formattedCreatedAt, companyId);
 
-    const query = `
-      UPDATE advertisement SET
-        status = '1',
-        updated_at = '${formattedCreatedAt}'
-      WHERE created_by = ${userId} and status = '0' ${
-      companyId ? `and company_id = ${companyId}` : ""
-    }
-    `;
-    updateAdvertismentById(query);
+    // const query = `
+    //   UPDATE advertisement SET
+    //     status = '1',
+    //     updated_at = '${formattedCreatedAt}'
+    //   WHERE created_by = ${userId} and status = '0' ${
+    //   companyId ? `and company_id = ${companyId}` : ""
+    // }
+    // `;
+    // updateAdvertismentById(query);
 
     res.status(200).json({ message: "Bank account created" });
   } catch (error) {

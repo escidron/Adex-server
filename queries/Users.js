@@ -764,3 +764,32 @@ export async function setIsContentCreatorById(userId,isContentCreator) {
     });
   });
 }
+
+//return connect seller account with rejected status
+export async function getRejectedAccounts() {
+  const sgetRejectedAccountsQuery = `SELECT * FROM sellers where 
+    isAccepted = '0'`;
+  return new Promise((resolve, reject) => {
+    db.query(sgetRejectedAccountsQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+//update connect seller account status
+export async function setAccountIsAccepted(account) {
+  const setAccountIsAcceptedQuery = `UPDATE sellers set 
+    isAccepted = '1' 
+    WHERE stripe_account = '${account}'`;
+  return new Promise((resolve, reject) => {
+    db.query(setAccountIsAcceptedQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
