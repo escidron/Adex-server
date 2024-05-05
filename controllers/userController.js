@@ -42,6 +42,7 @@ import {
   addPreference,
   removePreference,
   removePlataformAndFollowers,
+  insertContactUs,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -1101,9 +1102,9 @@ const contactUs = asyncHandler(async (req, res) => {
 
   //put the adex email account
   sendEmail(
-    "eduardosanchezcidron@gmail.com",
-    "Customer Service",
-    `${name} has sended the fallowing message :
+    process.env.EMAIL_SUPPORT,
+    "Customer Support",
+    `${name} has sended the following message :
     ${message}
     `
   );
