@@ -201,7 +201,7 @@ const CreateExternalBankAccount = asyncHandler(async (req, res) => {
       endpoint: "CreateExternalBankAccount",
     });
     res.status(500).json({
-      error: "Something went wrong",
+      error: error.message,
     });
   }
 
