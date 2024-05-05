@@ -414,6 +414,15 @@ const CreatePaymentIntent = asyncHandler(async (req, res) => {
   } else {
     billingStartDate = new Date(data.date.from);
     billingEndDate = new Date(data.date.from);
+    
+    //add seven hours to prevent blocking payment by the bank
+    billingStartDate.setHours(billingStartDate.getHours() + 7);
+    billingEndDate.setHours(billingEndDate.getHours() + 7);
+
+    //charge one day before start to prevent problems when payment fail and retry
+    billingStartDate.setDate(billingStartDate.getDate() -1);
+    billingEndDate.setDate(-1);
+
     if (data.ad_duration_type == "0") {
       billingEndDate.setMonth(billingEndDate.getMonth() + data.duration);
     } else {
