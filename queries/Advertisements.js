@@ -48,7 +48,8 @@ export async function getAllAdvertisements() {
 }
 
 export async function getAdvertisementByCreator(userId, id,companyId) {
-  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and  created_by = ${userId} 
+  // const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and  created_by = ${userId} 
+  const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where  created_by = ${userId} 
   ${id ? "and id=" + id : ""} ${companyId ? "and company_id=" + companyId : ""}`;
   return new Promise((resolve, reject) => {
     db.query(advertisementByCreateorQuery, (err, result) => {
@@ -357,17 +358,12 @@ export async function DraftToAdvertisement(
       \`long\` = '${data.long}',
       ad_duration_type = '${data.ad_duration_type ? data.ad_duration_type : 0}',
       sub_asset_type = '${data.sub_asset_type}',
-      media_types = '${data.media_types}',
+      media_types = ${data.media_types ? `'${data.media_types}'` : null},
       per_unit_price = ${data.per_unit_price ? data.per_unit_price : 0},
-      company_id = ${data.company_id ? `'${data.company_id}'` : null},
-      start_date =  ${
-        startDateFormatted ? `'${startDateFormatted.from}'` : null
-      },
+      company_id = ${data.company_id && data.company_id != 'null' ? `'${data.company_id}'` : null},
+      start_date =  ${startDateFormatted ? `'${startDateFormatted.from}'` : null},
       end_date =  ${startDateFormatted ? `'${startDateFormatted.to}'` : null},
-      first_available_date =  ${
-        availableDateFormatted ? `'${availableDateFormatted}'` : null
-      },
-      company_id = '${data.company_id}',
+      first_available_date =  ${availableDateFormatted ? `'${availableDateFormatted}'` : null},
       created_at = '${formattedCreatedAt}',
       created_by = '${userId}',
       status = ${data.has_payout_method ? '1' : '0'},
@@ -376,7 +372,7 @@ export async function DraftToAdvertisement(
       created_by_type = '${userType}',
       instructions = ${escapeText(data.instructions)},
       is_draft = '0',
-      digital_price_type = ${data.digital_price_type ? `${digital_price_type}` : null},
+      digital_price_type = ${data.digital_price_type ? `${digital_price_type}` : null}
     WHERE id = ${id}
   `;
   return new Promise((resolve, reject) => {

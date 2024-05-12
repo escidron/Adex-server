@@ -77,7 +77,8 @@ const authUser = asyncHandler(async (req, res) => {
     const firstName = result[0].first_name;
     const lastName = result[0].last_name;
     const userType = result[0].user_type;
-
+    const notifications = await getUserNotifications(userId);
+    const notificationQuantity = notifications.length;
     let image = "";
     if (result[0].profile_image) {
       image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
@@ -93,6 +94,8 @@ const authUser = asyncHandler(async (req, res) => {
             userId: userId,
             user_type: userType,
             userType: userType,
+            notifications: notifications,
+            notificationQuantity: notificationQuantity
           });
         } else {
           const externalAccount = resultSeller[0].external_account_id;
@@ -103,6 +106,8 @@ const authUser = asyncHandler(async (req, res) => {
               userId: userId,
               hasPayout: externalAccount,
               userType: userType,
+              notifications: notifications,
+              notificationQuantity: notificationQuantity
             });
           } else {
             res.status(201).json({
@@ -110,6 +115,8 @@ const authUser = asyncHandler(async (req, res) => {
               image: image,
               userId: userId,
               userType: userType,
+              notifications: notifications,
+              notificationQuantity: notificationQuantity
             });
           }
         }
@@ -196,6 +203,7 @@ const registerUser = asyncHandler(async (req, res) => {
       res.status(200).json({
         name: firstName,
         userId: userId,
+        userType:accountType
       });
     });
   }
