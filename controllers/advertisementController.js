@@ -444,19 +444,23 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     images = images.slice(0, -1);
     imagesGroup = imagesGroup.slice(0, -1);
     let userImagesArray = [];
-    if(userImages){
+    if (userImages) {
       userImagesArray = userImages.split(";");
     }
 
     let newgalleryImages = imagesGroup.split(";").filter((image) => !userImagesArray.includes(image));
-    if(newgalleryImages.length > 0){
-
+    if (newgalleryImages.length > 0) {
       newgalleryImages = newgalleryImages.join(";");
       addGalleryImages("", userId, userImages, newgalleryImages);
-  
+
       if (data.company_id) {
         const id = data.company_id;
-        addGalleryImages(id, userId, result[0].company_gallery, newgalleryImages);
+        addGalleryImages(
+          id,
+          userId,
+          result[0].company_gallery,
+          newgalleryImages
+        );
       }
     }
 
@@ -581,6 +585,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
 
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
     const updatedAt = new Date();
     const formattedUpdatedAt = getFormattedDate(updatedAt);
 
@@ -594,7 +600,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
         ) {
           return await getImageNameFromLink(image.data_url);
         } else if (image.data_url.startsWith("data:image/")) {
-          return await getImageNameFromBase64(image.data_url,index);
+          return await getImageNameFromBase64(image.data_url, index);
         }
       });
 
@@ -608,24 +614,6 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
 
     await processEditImages();
     updateImages = updateImages.slice(0, -1);
-
-    // images.map(async (image) => {
-    //   let imageName = "";
-    //   if (
-    //     image.data_url.startsWith("http://") ||
-    //     image.data_url.startsWith("https://")
-    //   ) {
-    //     imageName = getImageNameFromLink(image.data_url);
-    //   } else if (image.data_url.startsWith("data:image/")) {
-    //     imageName = await getImageNameFromBase64(image.data_url);
-    //   }
-    //   console.log("rodada");
-    //   updateImages += imageName + ";";
-    // });
-    // updateImages = updateImages.slice(0, -1);
-
-    // await processEditImages();
-    console.log("updateImages", updateImages);
 
     let availableDateFormatted = "";
     if (first_available_date) {
@@ -664,7 +652,39 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
       if (startDate > currentDate) {
         reactivate = true;
       }
-      console.log("date.from", date.from);
+    }
+
+    const result = await getAdvertisementById(id);
+    const currentPrice = result[0].price;
+    const currentTitle = result[0].title;
+    const stripeProductId = result[0].stripe_product_id;
+    let stripePriceId = result[0].stripe_price;
+    
+    if (currentPrice != parseInt(price)) {
+      //create a new stripe price for that product
+      const newPrice = await stripe.prices.create({
+        unit_amount: parseInt(price) * 100,
+        currency: "usd",
+        recurring: {
+          interval: "month",
+          interval_count: 1,
+        },
+        product: stripeProductId,
+      });
+      if (newPrice.id) {
+        stripePriceId = newPrice.id;
+
+        const updatedProduct = await stripe.products.update(stripeProductId, {
+          default_price: stripePriceId,
+        });
+      }
+    }
+
+
+    if(currentTitle != title){
+      const updatedProduct = await stripe.products.update(stripeProductId, {
+        name: title,
+      });
     }
     const query = `
       UPDATE advertisement SET
@@ -676,6 +696,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
           availableDateFormatted ? `'${availableDateFormatted}'` : null
         }, 
         price = ${price},
+        stripe_price = '${stripePriceId}',
         image = '${updateImages}',
         address = ${escapeText(address)},
         lat = '${lat}',
