@@ -35,6 +35,7 @@ import {
   getUsersById,
   getAllMessages,
   getAllChatMessages,
+  getSeller,
 } from "../queries/Users.js";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import sendEmail from "../utils/sendEmail.js";
@@ -481,6 +482,14 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const results = await getUsersById(userId);
     const userType = results[0].user_type;
 
+    const seller = await getSeller(userId);
+    let isAccepted = false
+    if(seller.length > 0){
+
+      isAccepted = seller[0].isAccepted == '1';
+    }
+
+  
     const userDraft = await getDraftByUserId(userId);
     let newAdvertisement = null;
     let advertisementId = null;
@@ -496,7 +505,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         price,
         userType,
         dateFormatted,
-        availableDateFormatted
+        availableDateFormatted,
+        isAccepted
       );
       advertisementId = userDraft[0].id;
     } else {
@@ -510,7 +520,8 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         price,
         userType,
         dateFormatted,
-        availableDateFormatted
+        availableDateFormatted,
+        isAccepted
       );
       advertisementId = newAdvertisement.insertId;
     }

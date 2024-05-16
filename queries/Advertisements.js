@@ -114,7 +114,8 @@ export async function insertAdvertisement(
   price,
   userType,
   dateFormatted,
-  availableDateFormatted
+  availableDateFormatted,
+  isAccepted
 ) {
   const CreateAdvertisementQuery = `
     INSERT INTO advertisement (
@@ -155,7 +156,7 @@ export async function insertAdvertisement(
       '${data.lat}',
       '${data.long}',
       '${data.ad_duration_type ? data.ad_duration_type : 0}',
-      '${data.has_payout_method ? "1" : "0"}',
+      '${(data.has_payout_method && isAccepted) ? "1" : "0"}',
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
       '${data.units ? data.units : 0}',
@@ -344,7 +345,8 @@ export async function DraftToAdvertisement(
   price,
   userType,
   startDateFormatted,
-  availableDateFormatted
+  availableDateFormatted,
+  isAccepted
 ) {
   const updateDraftQuery = `
     UPDATE advertisement SET
@@ -366,7 +368,7 @@ export async function DraftToAdvertisement(
       first_available_date =  ${availableDateFormatted ? `'${availableDateFormatted}'` : null},
       created_at = '${formattedCreatedAt}',
       created_by = '${userId}',
-      status = ${data.has_payout_method ? '1' : '0'},
+      status = ${(data.has_payout_method && isAccepted) ? '1' : '0'},
       stripe_product_id = '${product.id}',
       stripe_price = '${price.id}',
       created_by_type = '${userType}',
