@@ -1274,82 +1274,54 @@ const getCompany = asyncHandler(async (req, res) => {
 
 const imageGallery = asyncHandler(async (req, res) => {
   const { id, images } = req.body;
-
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const userId = decoded.userId;
 
-  const user = await getUsersById(userId);
-  const userImages = user[0].image_gallery;
-  let finalImages = [];
-  if (userImages) {
-    let oldImages = [];
-    const imageArray = userImages.split(";");
-    imageArray.map((image) => {
-      if (image) {
-        const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-        oldImages.push(imagePath);
-      }
-    });
-
-    images.map((newImage) => {
-      if (!oldImages.includes(newImage.data_url)) {
-        finalImages.push(newImage);
-      }
-    });
-  } else {
-    finalImages = images;
+  if (!token) {
+    return res.status(401).json({ error: "Not authorized, no token" });
   }
 
-  let imagesGroup = "";
-  finalImages.map((image, index) => {
-    let imageName = Date.now() + index + ".png";
-    let path = "./images/" + imageName;
-    let imgdata = image.data_url;
-    imagesGroup += imageName + ";";
-
-    // to convert base64 format into random filename
-    let base64Data = imgdata.replace(/^data:image\/\w+;base64,/, "");
-
-    fs.writeFileSync(path, base64Data, { encoding: "base64" });
-  });
-  imagesGroup = imagesGroup.slice(0, -1);
-
-  if (token) {
+  try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    try {
-      const result = await getUsersById(userId);
 
-      if (result.length == 0) {
-        res.status(401).json({
-          error: "This Gallery does not have images",
-        });
-      } else {
-        // Add base64 image to each advertisement object
-        const images = result[0].image_gallery;
-        addGalleryImages("", userId, images, imagesGroup);
-        if (id) {
-          const company = await getCompaniesById(id);
-          const companyImages = company[0].company_gallery;
-          addGalleryImages(id, userId, companyImages, imagesGroup);
-        }
+    const user = await getUsersById(userId);
+    const userImages = user[0]?.image_gallery;
+    const existingImages = userImages ? userImages.split(";") : [];
 
-        res.status(200).json({ message: "Image added to the gallery" });
-      }
-    } catch (error) {
-      logger.error(error.message, { userId: userId, endpoint: "imageGallery" });
-      res.status(500).json({
-        error: "Something went wrong",
-      });
-    }
-  } else {
-    res.status(401).json({
-      error: "Not authorized, no token",
+    // Convert existing image paths to URLs
+    const existingImageUrls = existingImages.map(image => `${process.env.SERVER_IP}/images/${image}`);
+
+    // Filter out images that are already in the gallery
+    const newImages = images.filter(newImage => !existingImageUrls.includes(newImage.data_url));
+
+    // Process and save new images
+    const finalImages = [];
+    newImages.forEach((image, index) => {
+      const imageName = `${Date.now()}${index}.png`;
+      const path = `./images/${imageName}`;
+      const base64Data = image.data_url.replace(/^data:image\/\w+;base64,/, "");
+
+      fs.writeFileSync(path, base64Data, { encoding: "base64" });
+      finalImages.push(imageName);
     });
+
+    const imagesGroup = [...existingImages, ...finalImages].join(';');
+
+    await updateGalleryImage(imagesGroup, userId);
+
+    if (id) {
+      const company = await getCompaniesById(id);
+      const companyImages = company[0]?.company_gallery ? company[0].company_gallery.split(";") : [];
+      const updatedCompanyImages = [...companyImages, ...finalImages].join(';');
+      await addGalleryImages(id, userId, updatedCompanyImages);
+    }
+
+    res.status(200).json({ message: "Images added to the gallery" });
+  } catch (error) {
+    logger.error(error.message, { userId: userId, endpoint: "imageGallery" });
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
-
 const getImageGallery = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { id } = req.body;
