@@ -35,7 +35,14 @@ schedule.scheduleJob('49 * * * *', publishRatings);
 //check the rejected connect seller accounts (triggers every hour)//'0 * * * *
 schedule.scheduleJob('0 * * * *', checkConnectAccountStatus);
 
-const app = express();
+// import Stripe from "stripe";
+
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+// const account = await stripe.accounts.retrieve('acct_1PG89jPugszacJTP');
+
+
+const app =express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {
   origin: [process.env.CLIENT_IP],

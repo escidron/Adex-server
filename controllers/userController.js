@@ -1515,59 +1515,59 @@ const sendMessage = asyncHandler(async (req, res) => {
 const removeGalleryImage = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { remove } = req.body;
-  if (token) {
+
+  if (!token) {
+    return res.status(401).json({ error: "Not authorized, no token" });
+  }
+
+  try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    try {
-      const user = await getUsersById(userId);
-      const userImages = user[0].image_gallery;
-      let finalImages = [];
-      if (userImages) {
-        let oldImages = [];
-        const imageArray = userImages.split(";");
-        imageArray.map((image) => {
-          if (image) {
-            const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-            oldImages.push(imagePath);
-          }
-        });
 
-        oldImages.map(async (oldImage, index) => {
-          if (oldImage == remove.data_url) {
-            const newImages = imageArray.filter(
-              (item, index2) => index2 != index
-            );
-            let imageId = "";
-            newImages.map((image) => {
-              if (image) {
-                imageId += image + ";";
-              }
-            });
-            imageId = imageId.slice(0, -1);
-            const response = await updateGalleryImage(imageId, userId);
+    const user = await getUsersById(userId);
+    const userImages = user[0]?.image_gallery;
 
-            const imageName = remove.data_url.slice(-17);
-            let filePath = `./images/${imageName}`;
-            await fs.promises.unlink(filePath);
-          }
-        });
-        res.send("Image deleted");
-      } else {
-        finalImages = images;
-      }
-    } catch (error) {
-      logger.error(error.message, {
-        userId: userId,
-        endpoint: "removeGalleryImage",
-      });
-      res.status(500).json({
-        error: "Something went wrong",
-      });
+    if (!userImages) {
+      return res.status(404).json({ message: 'No images found for user.' });
     }
-  } else {
-    res.status(401).json({
-      error: "Not authorized, no token",
+
+    const imageArray = userImages.split(";");
+    const newImages = [];
+    let imageRemoved = false;
+    let filePath = '';
+
+    for (const image of imageArray) {
+      if (image) {
+        const imagePath = `${process.env.SERVER_IP}/images/${image}`;
+        if (imagePath === remove.data_url) {
+          imageRemoved = true;
+          filePath = `./images/${image}`;
+        } else {
+          newImages.push(image);
+        }
+      }
+    }
+
+    if (!imageRemoved) {
+      return res.status(404).json({ message: 'Image not found in user gallery.' });
+    }
+
+    const imageId = newImages.join(';');
+    await updateGalleryImage(imageId, userId);
+
+    try {
+      await fs.promises.unlink(filePath);
+      res.status(200).json({ message: 'Image removed successfully.' });
+    } catch (err) {
+      console.error(`Error deleting file: ${err}`);
+      res.status(500).json({ message: 'Failed to delete the image file.' });
+    }
+  } catch (error) {
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "removeGalleryImage",
     });
+    res.status(500).json({ error: "Something went wrong" });
   }
 });
 
