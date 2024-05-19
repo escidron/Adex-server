@@ -43,6 +43,7 @@ import {
   removePreference,
   removePlataformAndFollowers,
   insertContactUs,
+  deleteGalleryImage,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -1495,39 +1496,12 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
+    const imageName = remove.data_url.split('/').pop(); // Extraer el nombre del archivo de la URL
 
-    const user = await getUsersById(userId);
-    const userImages = user[0]?.image_gallery;
-
-    if (!userImages) {
-      return res.status(404).json({ message: 'No images found for user.' });
-    }
-
-    const imageArray = userImages.split(";");
-    const newImages = [];
-    let imageRemoved = false;
-    let filePath = '';
-
-    for (const image of imageArray) {
-      if (image) {
-        const imagePath = `${process.env.SERVER_IP}/images/${image}`;
-        if (imagePath === remove.data_url) {
-          imageRemoved = true;
-          filePath = `./images/${image}`;
-        } else {
-          newImages.push(image);
-        }
-      }
-    }
-
-    if (!imageRemoved) {
-      return res.status(404).json({ message: 'Image not found in user gallery.' });
-    }
-
-    const imageId = newImages.join(';');
-    await updateGalleryImage(imageId, userId);
+    await deleteGalleryImage(imageName, userId);
 
     try {
+      const filePath = `./images/${imageName}`
       await fs.promises.unlink(filePath);
       res.status(200).json({ message: 'Image removed successfully.' });
     } catch (err) {

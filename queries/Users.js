@@ -500,6 +500,23 @@ export async function updateGalleryImage(images,userId) {
   });
 }
 
+export async function deleteGalleryImage(imageName,userId) {
+  const deleteGalleryImageQuery = `
+  UPDATE users
+  SET 
+  image_gallery = REPLACE(REPLACE(image_gallery, ';${imageName}', ''), '${imageName}', '')
+  WHERE id = ${userId}
+`;
+  return new Promise((resolve, reject) => {
+    db.query(deleteGalleryImageQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 
 
 
