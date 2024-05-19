@@ -1297,6 +1297,7 @@ const imageGallery = asyncHandler(async (req, res) => {
 
     // Process and save new images
     const finalImages = [];
+    const finalUrls = [];
     newImages.forEach((image, index) => {
       const imageName = `${Date.now()}${index}.png`;
       const path = `./images/${imageName}`;
@@ -1304,6 +1305,7 @@ const imageGallery = asyncHandler(async (req, res) => {
 
       fs.writeFileSync(path, base64Data, { encoding: "base64" });
       finalImages.push(imageName);
+      finalUrls.push({ data_url: `${process.env.SERVER_IP}/images/${imageName}` });
     });
 
     const imagesGroup = [...existingImages, ...finalImages].join(';');
@@ -1317,7 +1319,7 @@ const imageGallery = asyncHandler(async (req, res) => {
       await addGalleryImages(id, userId, updatedCompanyImages);
     }
 
-    res.status(200).json({ message: "Images added to the gallery" });
+    res.status(200).json({ images: finalUrls });
   } catch (error) {
     logger.error(error.message, { userId: userId, endpoint: "imageGallery" });
     res.status(500).json({ error: "Something went wrong" });
