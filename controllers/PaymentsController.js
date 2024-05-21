@@ -646,7 +646,7 @@ const RequestReserve = asyncHandler(async (req, res) => {
         const emailData = {
           title: "ADEX Booking",
           subTitle: "Booking Request",
-          message: `${buyerName} has requested to book your listing`,
+          message: `${buyerName} has requested to book your listing!`,
           icon: "booking-request",
           advertisement: {
             title: data.title,

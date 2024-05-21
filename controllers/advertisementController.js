@@ -532,7 +532,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const emailData = {
       title: "ADEX Listing",
       subTitle: "Listing  created",
-      message: "Your Listing has been successfully created ",
+      message: "Your listing has been successfully created!",
       icon: "listing-created",
       advertisement: {
         title: data.title,
@@ -747,8 +747,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     const imageName = updateImages.split(";");
     const emailData = {
       title: "ADEX Listing",
-      subTitle: "Listing  created",
-      message: "Your Listing has been successfully updated ",
+      subTitle: "Listing  Updated",
+      message: "Your listing has been successfully updated!",
       icon: "listing-created",
       advertisement: {
         title: title,

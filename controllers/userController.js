@@ -1093,7 +1093,7 @@ const sendResetPasswordEmail = asyncHandler(async (req, res) => {
   const emailData = {
     title: "ADEX Password Reset Requested!",
     subTitle: "",
-    message: `Your security code for reset your password is ${codeOTP}`,
+    message: `The security code to reset your password is ${codeOTP}`,
     icon: "password-changed",
   };
   const emailContent = renderEmail(emailData);
