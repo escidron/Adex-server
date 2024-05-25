@@ -42,6 +42,16 @@ schedule.scheduleJob('0 * * * *', checkConnectAccountStatus);
 // const account = await stripe.accounts.retrieve('acct_1PG89jPugszacJTP');
 
 
+// const account = await stripe.accounts.update(
+//   'acct_1PIgZTQ1t852f32N',
+//   {
+//     business_profile: {
+//       // mcc: 5734,
+//       mcc: 7311,
+//     },
+//   }
+// );
+
 const app =express();
 app.use(express.json({ limit: "100mb" }));
 const corsOptions = {

@@ -352,7 +352,7 @@ const createUserConnectAccount = asyncHandler(async (req, res) => {
             transfers: { requested: true },
           },
           business_profile: {
-            mcc: 7299,
+            mcc: 7311,
             product_description: "Custumers will pay monthly or one-time",
           },
           tos_acceptance: {
