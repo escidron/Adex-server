@@ -578,7 +578,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
           },
           settings: {
             payments: {
-              statement_descriptor: `${name}`,
+              statement_descriptor: `${name.slice(0,22)}`,
             },
           },
           company: {
