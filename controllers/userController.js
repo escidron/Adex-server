@@ -584,7 +584,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
           company: {
             name: name,
             tax_id: idNumber,
-            phone: "3055282118",
+            phone: "7036189670",
             address: {
               country: "US",
               city: city, //city,
