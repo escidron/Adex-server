@@ -482,7 +482,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const results = await getUsersById(userId);
     const userType = results[0].user_type;
 
-    const seller = await getSeller(userId);
+    const seller = await getSeller(userId,data.company_id);
     let isAccepted = false
     if(seller.length > 0){
 
