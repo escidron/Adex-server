@@ -35,11 +35,11 @@ schedule.scheduleJob('49 * * * *', publishRatings);
 //check the rejected connect seller accounts (triggers every hour)//'0 * * * *
 schedule.scheduleJob('0 * * * *', checkConnectAccountStatus);
 
-import Stripe from "stripe";
+// import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const account = await stripe.accounts.retrieve('acct_1PQJdmQ4k30s8J2E');
+// const account = await stripe.accounts.retrieve('acct_1PQJdmQ4k30s8J2E');
 
 
 // const account = await stripe.accounts.update(
