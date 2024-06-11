@@ -35,11 +35,11 @@ schedule.scheduleJob('49 * * * *', publishRatings);
 //check the rejected connect seller accounts (triggers every hour)//'0 * * * *
 schedule.scheduleJob('0 * * * *', checkConnectAccountStatus);
 
-// import Stripe from "stripe";
+import Stripe from "stripe";
 
-// const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// const account = await stripe.accounts.retrieve('acct_1PG89jPugszacJTP');
+const account = await stripe.accounts.retrieve('acct_1PQJdmQ4k30s8J2E');
 
 
 // const account = await stripe.accounts.update(
@@ -83,15 +83,15 @@ app.use(errorHandler);
 
  const cpusArray = cpus();
 
-// if(cluster.isPrimary) {
-//   for(let i = 0; i < cpusArray.length; i++) {
-//     console.log('cluster online')
-//     cluster.fork();
-//   }
-//   cluster.on('exit', (worker, code, signal) => {
-//     cluster.fork();
-//   });
-// } else {
-//   app.listen(port, () => console.log(`Server Started on port ${port}`));
-// }
-app.listen(port, () => console.log(`Server Started on port ${port}`));
+if(cluster.isPrimary) {
+  for(let i = 0; i < cpusArray.length; i++) {
+    console.log('cluster online')
+    cluster.fork();
+  }
+  cluster.on('exit', (worker, code, signal) => {
+    cluster.fork();
+  });
+} else {
+  app.listen(port, () => console.log(`Server Started on port ${port}`));
+}
+//app.listen(port, () => console.log(`Server Started on port ${port}`));
