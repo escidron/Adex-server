@@ -83,15 +83,15 @@ app.use(errorHandler);
 
  const cpusArray = cpus();
 
-if(cluster.isPrimary) {
-  for(let i = 0; i < cpusArray.length; i++) {
-    console.log('cluster online')
-    cluster.fork();
-  }
-  cluster.on('exit', (worker, code, signal) => {
-    cluster.fork();
-  });
-} else {
-  app.listen(port, () => console.log(`Server Started on port ${port}`));
-}
-//app.listen(port, () => console.log(`Server Started on port ${port}`));
+// if(cluster.isPrimary) {
+//   for(let i = 0; i < cpusArray.length; i++) {
+//     console.log('cluster online')
+//     cluster.fork();
+//   }
+//   cluster.on('exit', (worker, code, signal) => {
+//     cluster.fork();
+//   });
+// } else {
+//   app.listen(port, () => console.log(`Server Started on port ${port}`));
+// }
+app.listen(port, () => console.log(`Server Started on port ${port}`));
