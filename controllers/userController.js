@@ -44,6 +44,7 @@ import {
   removePlataformAndFollowers,
   insertContactUs,
   deleteGalleryImage,
+  updateSellerDueInfo,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -96,7 +97,7 @@ const authUser = asyncHandler(async (req, res) => {
             user_type: userType,
             userType: userType,
             notifications: notifications,
-            notificationQuantity: notificationQuantity
+            notificationQuantity: notificationQuantity,
           });
         } else {
           const externalAccount = resultSeller[0].external_account_id;
@@ -108,7 +109,7 @@ const authUser = asyncHandler(async (req, res) => {
               hasPayout: externalAccount,
               userType: userType,
               notifications: notifications,
-              notificationQuantity: notificationQuantity
+              notificationQuantity: notificationQuantity,
             });
           } else {
             res.status(201).json({
@@ -117,7 +118,7 @@ const authUser = asyncHandler(async (req, res) => {
               userId: userId,
               userType: userType,
               notifications: notifications,
-              notificationQuantity: notificationQuantity
+              notificationQuantity: notificationQuantity,
             });
           }
         }
@@ -204,7 +205,7 @@ const registerUser = asyncHandler(async (req, res) => {
       res.status(200).json({
         name: firstName,
         userId: userId,
-        userType:accountType
+        userType: accountType,
       });
     });
   }
@@ -578,7 +579,7 @@ const createCompanyConnectAccount = asyncHandler(async (req, res) => {
           },
           settings: {
             payments: {
-              statement_descriptor: `${name.slice(0,22)}`,
+              statement_descriptor: `${name.slice(0, 22)}`,
             },
           },
           company: {
@@ -1290,10 +1291,14 @@ const imageGallery = asyncHandler(async (req, res) => {
     const existingImages = userImages ? userImages.split(";") : [];
 
     // Convert existing image paths to URLs
-    const existingImageUrls = existingImages.map(image => `${process.env.SERVER_IP}/images/${image}`);
+    const existingImageUrls = existingImages.map(
+      (image) => `${process.env.SERVER_IP}/images/${image}`
+    );
 
     // Filter out images that are already in the gallery
-    const newImages = images.filter(newImage => !existingImageUrls.includes(newImage.data_url));
+    const newImages = images.filter(
+      (newImage) => !existingImageUrls.includes(newImage.data_url)
+    );
 
     // Process and save new images
     const finalImages = [];
@@ -1305,17 +1310,21 @@ const imageGallery = asyncHandler(async (req, res) => {
 
       fs.writeFileSync(path, base64Data, { encoding: "base64" });
       finalImages.push(imageName);
-      finalUrls.push({ data_url: `${process.env.SERVER_IP}/images/${imageName}` });
+      finalUrls.push({
+        data_url: `${process.env.SERVER_IP}/images/${imageName}`,
+      });
     });
 
-    const imagesGroup = [...existingImages, ...finalImages].join(';');
+    const imagesGroup = [...existingImages, ...finalImages].join(";");
 
     await updateGalleryImage(imagesGroup, userId);
 
     if (id) {
       const company = await getCompaniesById(id);
-      const companyImages = company[0]?.company_gallery ? company[0].company_gallery.split(";") : [];
-      const updatedCompanyImages = [...companyImages, ...finalImages].join(';');
+      const companyImages = company[0]?.company_gallery
+        ? company[0].company_gallery.split(";")
+        : [];
+      const updatedCompanyImages = [...companyImages, ...finalImages].join(";");
       await addGalleryImages(id, userId, updatedCompanyImages);
     }
 
@@ -1498,17 +1507,17 @@ const removeGalleryImage = asyncHandler(async (req, res) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    const imageName = remove.data_url.split('/').pop(); // Extraer el nombre del archivo de la URL
+    const imageName = remove.data_url.split("/").pop(); // Extraer el nombre del archivo de la URL
 
     await deleteGalleryImage(imageName, userId);
 
     try {
-      const filePath = `./images/${imageName}`
+      const filePath = `./images/${imageName}`;
       await fs.promises.unlink(filePath);
-      res.status(200).json({ message: 'Image removed successfully.' });
+      res.status(200).json({ message: "Image removed successfully." });
     } catch (err) {
       console.error(`Error deleting file: ${err}`);
-      res.status(500).json({ message: 'Failed to delete the image file.' });
+      res.status(500).json({ message: "Failed to delete the image file." });
     }
   } catch (error) {
     logger.error(error.message, {
@@ -1745,33 +1754,6 @@ const removePlataform = asyncHandler(async (req, res) => {
   const userId = decoded.userId;
   try {
     const response = await getUsersById(userId);
-    if (response.length > 0) {
-      const user = response[0];
-
-      const plataformsArray = user.plataforms?.slice(0, -1).split(";");
-      const followersArray = user.followers?.slice(0, -1).split(";");
-      if (plataformsArray.length > 0) {
-        let newPlataforms = "";
-        let plataformPosition = null;
-        plataformsArray.forEach((plataform, index) => {
-          if (plataform != plataformId) {
-            newPlataforms += plataform + ";";
-          } else {
-            plataformPosition = index;
-          }
-        });
-
-        followersArray.splice(plataformPosition, 1);
-        let newFollowers = "";
-        if (followersArray.length > 0) {
-          newFollowers = followersArray.join(";") + ";";
-        }
-
-        await removePlataformAndFollowers(userId, newPlataforms, newFollowers);
-        res.status(200).json({ message: "Plataform removed!" });
-        return;
-      }
-    }
   } catch (error) {
     logger.error(error.message, {
       userId: userId,
@@ -1796,6 +1778,44 @@ const setIsContentCreator = asyncHandler(async (req, res) => {
     logger.error(error.message, {
       userId: userId,
       endpoint: "setIsContentCreator",
+    });
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
+});
+
+const updateStripeAccountInfo = asyncHandler(async (req, res) => {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const { address } = pkg;
+  const currentDate = new Date();
+
+  const { idNumber } = req.body;
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+  try {
+    const seller = await getSeller(userId);
+    const accountId = seller[0].stripe_account;
+   
+    if (accountId) {
+      const account = await stripe.accounts.update(accountId, {
+        individual: {
+          id_number: idNumber,
+        },
+        tos_acceptance: {
+          date: currentDate,
+          ip: address(),
+        },
+      });
+
+      updateSellerDueInfo(userId, account.id);
+    }
+    res.status(200).json({ message: "Account updated!" });
+  } catch (error) {
+    logger.error(error.message, {
+      userId: userId,
+      endpoint: "removePlataform",
     });
     res.status(500).json({
       error: "Something went wrong",
@@ -1840,4 +1860,5 @@ export {
   getAudiencePreference,
   removeAudiencePreference,
   removePlataform,
+  updateStripeAccountInfo,
 };

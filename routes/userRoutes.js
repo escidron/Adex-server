@@ -35,7 +35,8 @@ import {
   addAudiencePreference,
   getAudiencePreference,
   removeAudiencePreference,
-  removePlataform
+  removePlataform,
+  updateStripeAccountInfo
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -77,6 +78,9 @@ router.post('/get-social-media-info', getSocialMediaInfo);
 router.post('/get-audience-preference', getAudiencePreference);
 router.post('/remove-audience-preference', removeAudiencePreference);
 router.post('/remove-plataform', removePlataform);
+router.post('/update-account-stripe-info', updateStripeAccountInfo);
+
+
 //router.route('/seller-profile').get(protect, getSellerProfile)
 //   .put(protect, updateUserAddress);
 

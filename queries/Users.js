@@ -240,6 +240,22 @@ export async function updateSellerVerificationStatus(userId) {
     });
   });
 }
+export async function updateSellerDueInfo(userId,accountId) {
+  const updateSellerDueInfoQuery = `
+  UPDATE sellers
+  SET 
+  due_info = null
+  WHERE user_id = ${userId} and stripe_account = '${accountId}'
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateSellerDueInfoQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
 //Notifications queries
 export async function insertUserNotifications(
   userId,
@@ -803,6 +819,21 @@ export async function setAccountIsAccepted(account) {
     WHERE stripe_account = '${account}'`;
   return new Promise((resolve, reject) => {
     db.query(setAccountIsAcceptedQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+//update connect seller account status
+export async function addDueInfo(account,dueInfo) {
+  const addDueInfoQuery = `UPDATE sellers set 
+    due_info = '${dueInfo}'
+    WHERE stripe_account = '${account}'`;
+  return new Promise((resolve, reject) => {
+    db.query(addDueInfoQuery, (err, result) => {
       if (err) {
         reject(err);
       }

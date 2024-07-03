@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getRejectedAccounts, setAccountIsAccepted } from "../queries/Users.js";
+import { addDueInfo, getRejectedAccounts, setAccountIsAccepted } from "../queries/Users.js";
 import { updateAdvertismentById } from "../queries/Advertisements.js";
 import getFormattedDate from "./getFormattedDate.js";
 
@@ -16,7 +16,7 @@ export async function checkConnectAccountStatus() {
     rejectedAccounts.forEach((account) => {
       for (let i = 0; i < data.length; i++) {
         if (data[i].id === account.stripe_account) {
-          if (data[i].payouts_enabled && data[i].charges_enabled) {
+          if (data[i].payouts_enabled && data[i].charges_enabled && data[i].requirements.currently_due.length === 0) {
             setAccountIsAccepted(account.stripe_account);
             
             //make visible all the listing owned by the seller who was accepted by stripe
@@ -28,6 +28,12 @@ export async function checkConnectAccountStatus() {
             }
                       `;
             updateAdvertismentById(query);
+          }else if(data[i].requirements.currently_due.length > 0){
+            const requirements = data[i].requirements.currently_due
+            const requirementString = requirements.join(';');
+            addDueInfo(account.stripe_account,requirementString)
+            
+            console.log('account',account)
           }
         }
       }
