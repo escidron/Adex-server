@@ -210,7 +210,7 @@ const registerUser = asyncHandler(async (req, res) => {
         subTitle: "",
         message:
           "Verify your email address to complete your registration and login into your account.",
-        icon: "user-registered",
+        icon: "verify-email",
         token: token,
         userId: userId,
       };
