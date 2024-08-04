@@ -246,7 +246,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
           icon: "user-registered",
         };
         const emailContent = renderEmail(emailData);
-        sendEmail(email, "Email Verification", emailContent);
+        sendEmail(result[0].email, "Email Verification", emailContent);
 
         res.status(200).json({ message: "Email verified successfully" });
       } catch (error) {
