@@ -4,7 +4,7 @@ import getFormattedDate from "../utils/getFormattedDate.js";
 
 const db = getDatabaseConnection();
 
-export async function insertUser(name, firstName, lastName, phone, email,accountType,hashedPass) {
+export async function insertUser(name, firstName, lastName, phone, email,accountType,hashedPass,token) {
   const createdAt = new Date();
   const formattedCreatedAt = getFormattedDate(createdAt);
 
@@ -17,7 +17,8 @@ export async function insertUser(name, firstName, lastName, phone, email,account
       email,
       user_type,
       password,
-      created_at
+      created_at,
+      verify_email_token
     ) VALUES (
       '${name}',
       '${firstName}',
@@ -26,7 +27,8 @@ export async function insertUser(name, firstName, lastName, phone, email,account
       '${email}',
       '${accountType}',
       '${hashedPass}',
-      '${formattedCreatedAt}'
+      '${formattedCreatedAt}',
+      '${token}'
     )
   `;
   return new Promise((resolve, reject) => {
@@ -53,6 +55,18 @@ export async function getUsersByEmail(email) {
 
 export async function getUsersById(id) {
   const usersQuery = `SELECT * FROM users WHERE id = '${id}'`;
+  return new Promise((resolve, reject) => {
+    db.query(usersQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getUsers() {
+  const usersQuery = `SELECT * FROM users`;
   return new Promise((resolve, reject) => {
     db.query(usersQuery, (err, result) => {
       if (err) {
@@ -100,6 +114,19 @@ export async function updateProfileImage(imageName, id) {
 
   return new Promise((resolve, reject) => {
     db.query(updateProfileImageQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateEmailVerificationStatus(id,formattedUpdatedAt) {
+  const updateEmailVerificationStatusQuery = `UPDATE users set email_verified_at = '${formattedUpdatedAt}' WHERE id = ${id}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(updateEmailVerificationStatusQuery, (err, result) => {
       if (err) {
         reject(err);
       }

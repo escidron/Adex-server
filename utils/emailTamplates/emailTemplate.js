@@ -57,26 +57,48 @@ export default function renderEmail(data) {
           `
               : ""
           }
-          
-          
+          ${
+            data.token
+              ? `<a href="https://adexconnect.com/verify-email?temp_token={{ token }}&user_id={{ userId }}" target="_blank" id="login-button" class="login-button"
+              style="color: black;
+                      margin-top: 20px;
+                      text-decoration: none;
+                      background-color: #f3cb00;
+                      padding: 8px 15px;
+                      border-radius: 5px;
+                      cursor: pointer;
+                      font-weight: 600;
+                      margin-inline: auto;
+                      width: 120px;
+                      font-size: 16px;
+                      display: block;
+                      text-align:center;
+                      margin-left: auto;
+                      margin-right: auto;">
+              Verify Email
+            </a>`
+              : `
           <a href="https://adexconnect.com/login" target="_blank" id="login-button" class="login-button"
-            style="color: black;
-                    margin-top: 20px;
-                    text-decoration: none;
-                    background-color: #f3cb00;
-                    padding: 8px 15px;
-                    border-radius: 5px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    margin-inline: auto;
-                    width: 120px;
-                    font-size: 16px;
-                    display: block;
-                    text-align:center;
-                    margin-left: auto;
-                    margin-right: auto;">
-            ADEX Login
-          </a>
+          style="color: black;
+                  margin-top: 20px;
+                  text-decoration: none;
+                  background-color: #f3cb00;
+                  padding: 8px 15px;
+                  border-radius: 5px;
+                  cursor: pointer;
+                  font-weight: 600;
+                  margin-inline: auto;
+                  width: 120px;
+                  font-size: 16px;
+                  display: block;
+                  text-align:center;
+                  margin-left: auto;
+                  margin-right: auto;">
+          ADEX Login
+        </a>
+        `
+          }
+
           <img
             src="http://server.adexconnect.com/email/{{ icon }}.png"
             alt="{{ icon }}"

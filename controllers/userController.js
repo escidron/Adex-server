@@ -45,6 +45,7 @@ import {
   insertContactUs,
   deleteGalleryImage,
   updateSellerDueInfo,
+  updateEmailVerificationStatus,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -62,6 +63,7 @@ import {
   updateContractRatingStatus,
 } from "../queries/Payments.js";
 import logger from "../utils/logger.js";
+import { randomBytes } from "crypto";
 
 dotenv.config();
 
@@ -84,6 +86,9 @@ const authUser = asyncHandler(async (req, res) => {
     let image = "";
     if (result[0].profile_image) {
       image = `${process.env.SERVER_IP}/images/${result[0].profile_image}`;
+    }
+    if (!result[0].email_verified_at) {
+      res.status(401).json({ message: "The email is not verified" });
     }
     bcrypt.compare(password, hashPass).then(async function (result) {
       if (result) {
@@ -141,6 +146,11 @@ const autoLogin = asyncHandler(async (req, res) => {
           error: "User does not exists",
         });
       } else {
+        if (!result[0].email_verified_at) {
+          res.status(401).json({
+            error: "Not authorized, no email verified",
+          });
+        }
         const firstName = result[0].first_name;
 
         let image = "";
@@ -180,6 +190,9 @@ const registerUser = asyncHandler(async (req, res) => {
   } else {
     bcrypt.hash(password, 10).then(async function (hashedPass) {
       // Store hash in your password DB.
+      const token = randomBytes(32).toString("hex").slice(0, 32);
+      // const token = generateToken(res, userId, firstName + " " + lastName, email);
+
       const results = await insertUser(
         name,
         firstName,
@@ -187,20 +200,22 @@ const registerUser = asyncHandler(async (req, res) => {
         phone,
         email,
         accountType,
-        hashedPass
+        hashedPass,
+        token
       );
       const userId = results.insertId;
-      generateToken(res, userId, firstName + " " + lastName, email);
       // send the email
       const emailData = {
-        title: "Welcome to ADEX!",
+        title: "Verify your email",
         subTitle: "",
         message:
-          "Welcome to ADEX, the place where you are the Asset! Browse or create listings to get started today. We hope you have a wonderful experience on our platform.",
+          "Verify your email address to complete your registration and login into your account.",
         icon: "user-registered",
+        token: token,
+        userId: userId,
       };
       const emailContent = renderEmail(emailData);
-      sendEmail(email, "User registered", emailContent);
+      sendEmail(email, "Email Verification", emailContent);
 
       res.status(200).json({
         name: firstName,
@@ -208,6 +223,40 @@ const registerUser = asyncHandler(async (req, res) => {
         userType: accountType,
       });
     });
+  }
+});
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { id, token } = req.body;
+
+  const result = await getUsersById(id);
+  if (result.length == 0) {
+    res.status(400).json({ error: "User does't  exists" });
+  } else {
+    if (result[0].verify_email_token == token) {
+      try {
+        const currentDate = new Date();
+        const formattedUpdatedAt = getFormattedDate(currentDate);
+
+        await updateEmailVerificationStatus(id, formattedUpdatedAt);
+        const emailData = {
+          title: "Welcome to ADEX!",
+          subTitle: "",
+          message:
+            "Welcome to ADEX, the place where you are the Asset! Browse or create listings to get started today. We hope you have a wonderful experience on our platform.",
+          icon: "user-registered",
+        };
+        const emailContent = renderEmail(emailData);
+        sendEmail(email, "Email Verification", emailContent);
+
+        res.status(200).json({ message: "Email verified successfully" });
+      } catch (error) {
+        logger.error(error.message, {
+          userId: id,
+          endpoint: "verifyEmail",
+        });
+        res.status(500).json({ error: "Something went wrong" });
+      }
+    }
   }
 });
 
@@ -1797,7 +1846,7 @@ const updateStripeAccountInfo = asyncHandler(async (req, res) => {
   try {
     const seller = await getSeller(userId);
     const accountId = seller[0].stripe_account;
-   
+
     if (accountId) {
       const account = await stripe.accounts.update(accountId, {
         individual: {
@@ -1826,6 +1875,7 @@ const updateStripeAccountInfo = asyncHandler(async (req, res) => {
 export {
   authUser,
   registerUser,
+  verifyEmail,
   logoutUser,
   getSellerProfile,
   createUserConnectAccount,

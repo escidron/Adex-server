@@ -55,7 +55,9 @@ CREATE TABLE IF NOT EXISTS users (
     rating float(10,2),
     plataforms longtext, 
     followers longtext ,
-    audience_preference longtext
+    audience_preference longtext,
+    is_content_creator varchar(1),
+    verify_email_token varchar(255)
   );
 `;
 

@@ -2,6 +2,7 @@ import express from 'express';
 import {
   authUser,
   registerUser,
+  verifyEmail,
   logoutUser,
   getSellerProfile,
   createUserConnectAccount,
@@ -43,6 +44,7 @@ import { protect } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.post('/', registerUser);
+router.post('/verify-email', verifyEmail);
 router.post('/auth', authUser);
 router.post('/logout', logoutUser);
 router.post('/my-profile-image', updateUserProfileImage);
