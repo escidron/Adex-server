@@ -7,6 +7,7 @@ import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import schedule from 'node-schedule';
+import reverseListingRoutes from "./routes/reverseListingRoutes.js";
 
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import { updateFinishedListingAndContract } from "./queries/Payments.js";
@@ -77,6 +78,7 @@ app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
 app.use('/images', express.static('D:/Projetos Front-end/2-Adex-next/adex/server/images'));
+app.use("/api/reverse-listing", reverseListingRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

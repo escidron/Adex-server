@@ -48,8 +48,6 @@ import getImageNameFromLink from "../utils/getImageNameFromLink.js";
 import { addImageToReviews } from "../utils/addImageToReviews.js";
 import { generateQrCode } from "../utils/generateQrCode.js";
 import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
 import logger from "../utils/logger.js";
 
 dotenv.config();

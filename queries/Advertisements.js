@@ -47,6 +47,21 @@ export async function getAllAdvertisements() {
   });
 }
 
+export async function getListingsAndUser() {
+  const getListingsAndUserQuery = `SELECT advertisement.*,users.email FROM advertisement 
+    JOIN users ON advertisement.created_by = users.id 
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query(getListingsAndUserQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
 export async function getAdvertisementByCreator(userId, id,companyId) {
   // const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and  created_by = ${userId} 
   const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where  created_by = ${userId} 

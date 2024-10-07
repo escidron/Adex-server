@@ -46,6 +46,7 @@ import {
   deleteGalleryImage,
   updateSellerDueInfo,
   updateEmailVerificationStatus,
+  getAllAvailableSellers,
 } from "../queries/Users.js";
 import {
   insertCompany,
@@ -179,7 +180,7 @@ const autoLogin = asyncHandler(async (req, res) => {
 });
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, firstName, lastName, phone, email, accountType, password } =
+  const { name, firstName, lastName, phone, email, accountType, password,allowReverseListingNotification } =
     req.body;
 
   const result = await getUsersByEmail(email);
@@ -201,7 +202,8 @@ const registerUser = asyncHandler(async (req, res) => {
         email,
         accountType,
         hashedPass,
-        token
+        token,
+        allowReverseListingNotification
       );
       const userId = results.insertId;
       // send the email
@@ -923,6 +925,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
       const sexIsPublic = result[0].sex_is_public;
       const bioIsPublic = result[0].bio_is_public;
       const city = result[0].city;
+      const address = result[0].address1;
       const cityIsPublic = result[0].city_is_public;
       const userType = result[0].user_type;
       const images = result[0].image_gallery;
@@ -958,6 +961,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
         sexIsPublic,
         bioIsPublic,
         city,
+        address,
         cityIsPublic,
         userType,
         images: imagesWithPath,
@@ -1021,6 +1025,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     sexIsPublic,
     bioIsPublic,
     city,
+    address,
+    coords,
     cityIsPublic,
   } = req.body;
   if (token) {
@@ -1040,6 +1046,8 @@ const updateUserProfile = asyncHandler(async (req, res) => {
         sexIsPublic,
         bioIsPublic,
         city,
+        address,
+        coords,
         cityIsPublic,
         profession,
         userId
@@ -1771,6 +1779,24 @@ const getAudiencePreference = asyncHandler(async (req, res) => {
     });
   }
 });
+const getAvailableSellers = asyncHandler(async (req, res) => {
+
+  try {
+    const response = await getAllAvailableSellers();
+    if (response.length > 0) {
+
+      res.status(200).json({ data: response });
+      return;
+    }
+    res.status(200).json({ data: [] });
+  } catch (error) {
+    logger.error(error.message, { endpoint: "getAudiencePreference" });
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
+});
+
 const removeAudiencePreference = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
   const { preferenceId } = req.body;
@@ -1911,4 +1937,5 @@ export {
   removeAudiencePreference,
   removePlataform,
   updateStripeAccountInfo,
+  getAvailableSellers
 };

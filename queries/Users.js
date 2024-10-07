@@ -4,7 +4,7 @@ import getFormattedDate from "../utils/getFormattedDate.js";
 
 const db = getDatabaseConnection();
 
-export async function insertUser(name, firstName, lastName, phone, email,accountType,hashedPass,token) {
+export async function insertUser(name, firstName, lastName, phone, email,accountType,hashedPass,token,allowReverseListingNotification) {
   const createdAt = new Date();
   const formattedCreatedAt = getFormattedDate(createdAt);
 
@@ -18,7 +18,8 @@ export async function insertUser(name, firstName, lastName, phone, email,account
       user_type,
       password,
       created_at,
-      verify_email_token
+      verify_email_token,
+      allow_reverse_listing_notification
     ) VALUES (
       '${name}',
       '${firstName}',
@@ -28,7 +29,8 @@ export async function insertUser(name, firstName, lastName, phone, email,account
       '${accountType}',
       '${hashedPass}',
       '${formattedCreatedAt}',
-      '${token}'
+      '${token}',
+      '${allowReverseListingNotification ? 1 : 0}'
     )
   `;
   return new Promise((resolve, reject) => {
@@ -57,6 +59,18 @@ export async function getUsersById(id) {
   const usersQuery = `SELECT * FROM users WHERE id = '${id}'`;
   return new Promise((resolve, reject) => {
     db.query(usersQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getAllAvailableSellers() {
+  const getAllAvailableSellersQuery = `SELECT * FROM users WHERE allow_reverse_listing_notification = 1 and lat is not null and 'long' is not null`;
+  return new Promise((resolve, reject) => {
+    db.query(getAllAvailableSellersQuery, (err, result) => {
       if (err) {
         reject(err);
       }
@@ -148,6 +162,8 @@ export async function updatePublicProfile(
   sexIsPublic,
   bioIsPublic,
   city,
+  address,
+  coords,
   cityIsPublic,
   profession,
   id
@@ -166,6 +182,9 @@ export async function updatePublicProfile(
     sex_is_public = "${sexIsPublic}" ,
     bio_is_public = "${bioIsPublic}" ,
     city = "${city}" ,
+    address1 = "${address}" ,
+    ${coords.lat ? `lat = ${coords.lat},`:''}
+    ${coords.lng ? `\`long\` = ${coords.lng},`:''}
     city_is_public = "${cityIsPublic}" ,
     profession = "${profession ? profession :''}" 
     WHERE id = ${id}`;

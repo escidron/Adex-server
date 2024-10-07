@@ -57,7 +57,8 @@ CREATE TABLE IF NOT EXISTS users (
     followers longtext ,
     audience_preference longtext,
     is_content_creator varchar(1),
-    verify_email_token varchar(255)
+    verify_email_token varchar(255),
+    allow_reverse_listing_notification varchar(1),
   );
 `;
 
