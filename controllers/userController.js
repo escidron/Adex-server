@@ -89,48 +89,49 @@ const authUser = asyncHandler(async (req, res) => {
     }
     if (!result[0].email_verified_at) {
       res.status(401).json({ message: "The email is not verified" });
-    }
-    bcrypt.compare(password, hashPass).then(async function (result) {
-      if (result) {
-        generateToken(res, userId, firstName + " " + lastName, email);
-        const resultSeller = await getSeller(userId);
-        if (resultSeller.length == 0) {
-          res.status(200).json({
-            name: firstName,
-            image: image,
-            userId: userId,
-            user_type: userType,
-            userType: userType,
-            notifications: notifications,
-            notificationQuantity: notificationQuantity,
-          });
-        } else {
-          const externalAccount = resultSeller[0].external_account_id;
-          if (externalAccount) {
-            res.status(201).json({
+    } else {
+      bcrypt.compare(password, hashPass).then(async function (result) {
+        if (result) {
+          generateToken(res, userId, firstName + " " + lastName, email);
+          const resultSeller = await getSeller(userId);
+          if (resultSeller.length == 0) {
+            res.status(200).json({
               name: firstName,
               image: image,
               userId: userId,
-              hasPayout: externalAccount,
+              user_type: userType,
               userType: userType,
               notifications: notifications,
               notificationQuantity: notificationQuantity,
             });
           } else {
-            res.status(201).json({
-              name: firstName,
-              image: image,
-              userId: userId,
-              userType: userType,
-              notifications: notifications,
-              notificationQuantity: notificationQuantity,
-            });
+            const externalAccount = resultSeller[0].external_account_id;
+            if (externalAccount) {
+              res.status(201).json({
+                name: firstName,
+                image: image,
+                userId: userId,
+                hasPayout: externalAccount,
+                userType: userType,
+                notifications: notifications,
+                notificationQuantity: notificationQuantity,
+              });
+            } else {
+              res.status(201).json({
+                name: firstName,
+                image: image,
+                userId: userId,
+                userType: userType,
+                notifications: notifications,
+                notificationQuantity: notificationQuantity,
+              });
+            }
           }
+        } else {
+          res.status(401).json({ message: "Wrong password" });
         }
-      } else {
-        res.status(401).json({ message: "Wrong password" });
-      }
-    });
+      });
+    }
   }
 });
 
@@ -751,106 +752,6 @@ const testRoute = asyncHandler(async (req, res) => {
   const emailContent = renderEmail(emailData);
   sendEmail("eduardosanchezcidron@gmail.com", "User registered", emailContent);
 
-  // const accountUpdate = await stripe.accounts.update('acct_1O0okDPxf7ppCHyx', {
-  //   company: {
-  //     tax_id:'123456789',
-  //   }
-
-  // });
-
-  // const account = await stripe.accounts.create({
-  //   type: "custom",
-  //   business_type: "company",
-  //   capabilities: {
-  //     card_payments: { requested: true },
-  //     transfers: { requested: true },
-  //   },
-  //   business_profile: {
-  //     mcc: 5971,
-  //     url: "www.teste.com" ,
-  //   },
-  //   tos_acceptance: {
-  //     date: currentDate,
-  //     ip: address(),
-  //   },
-  //   company: {
-  //     name: 'adex connect',
-  //     tax_id: '123456789',
-  //     phone: '3055282118',
-  //     address: {
-  //       country: "US",
-  //       city: 'Fresno', //city,
-  //       line1: '2027 Edgewood Avenue',
-  //       postal_code: '93721',
-  //       state: 'CA', //state
-  //     },
-  //     // verification: {
-  //     //   document: {
-  //     //     front: file.id,
-  //     //     // front: "file_identity_document_success",
-  //     //   },
-  //     // },
-  //   },
-  // });
-
-  // const person = await stripe.accounts.createPerson(account.id, {
-
-  //   first_name: "Jane",
-  //   last_name: "Diaz",
-  //   dob: {
-  //     day: '02',
-  //     month: '07',
-  //     year: '1993',
-  //   },
-  //   email:'xxxx@gmail.com',
-  //   relationship:{
-  //     title :'CTO',
-  //     owner:true,
-  //     representative:true
-
-  //   },
-  //   id_number:'123456789',
-  //   phone:'3055282118',
-  //   address: {
-  //     country: "US",
-  //     city: 'Fresno', //city,
-  //     line1: '2027 Edgewood Avenue',
-  //     postal_code: '93721',
-  //     state: 'CA', //state
-  //   },
-  //   verification: {
-  //     document: {
-  //       front: "file_identity_document_success",
-  //     },
-  //   }
-
-  // });
-
-  // const person = await stripe.accounts.updatePerson(
-  //   'acct_1O0YM0Q0XgtK48Xb',
-  //   'person_1O0YMAQ0XgtK48Xb59XZtOxN',
-  //   {
-  //     email:'xxxx@gmail.com',
-  //     relationship:{
-  //       title :'CTO',
-  //       representative:true
-  //     },
-  //     id_number:'123456789',
-  //     phone:'3055282118',
-  //     address: {
-  //       country: "US",
-  //       city: 'Fresno', //city,
-  //       line1: '2027 Edgewood Avenue',
-  //       postal_code: '93721',
-  //       state: 'CA', //state
-  //     },
-  //     // verification: {
-  //     //   document: {
-  //     //     front: "file_identity_document_success",
-  //     //   },
-  //     // },
-  //   }
-  // );
 
   res.status(200).json({ message: accountUpdate });
 });

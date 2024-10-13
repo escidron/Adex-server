@@ -482,14 +482,6 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     const results = await getUsersById(userId);
     const userType = results[0].user_type;
 
-    const seller = await getSeller(userId,data.company_id);
-    let isAccepted = false
-    if(seller.length > 0){
-
-      isAccepted = seller[0].isAccepted == '1';
-    }
-
-  
     const userDraft = await getDraftByUserId(userId);
     let newAdvertisement = null;
     let advertisementId = null;
@@ -505,8 +497,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         price,
         userType,
         dateFormatted,
-        availableDateFormatted,
-        isAccepted
+        availableDateFormatted
       );
       advertisementId = userDraft[0].id;
     } else {
@@ -520,8 +511,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         price,
         userType,
         dateFormatted,
-        availableDateFormatted,
-        isAccepted
+        availableDateFormatted
       );
       advertisementId = newAdvertisement.insertId;
     }
