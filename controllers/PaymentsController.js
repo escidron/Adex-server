@@ -1155,17 +1155,22 @@ const getContractInfo = asyncHandler(async (req, res) => {
   const { advertisementId, sellerId, buyerId } = req.body;
 
   const seller = await getSeller(sellerId);
-  const sellerStripeId = seller[0].stripe_account;
+  if(seller.length == 0){
+    return res.status(404).json({message: "seller not found"});
+  }else{
 
-  const buyer = await getBuyer(buyerId);
-  const buyerStripeId = buyer[0].customer_id;
-
-  const contract = await getContract(
-    advertisementId,
-    sellerStripeId,
-    buyerStripeId
-  );
-  res.status(200).json(contract[0]);
+    const sellerStripeId = seller[0].stripe_account;
+  
+    const buyer = await getBuyer(buyerId);
+    const buyerStripeId = buyer[0].customer_id;
+  
+    const contract = await getContract(
+      advertisementId,
+      sellerStripeId,
+      buyerStripeId
+    );
+    res.status(200).json(contract[0]);
+  }
 });
 const getAccountBalance = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
