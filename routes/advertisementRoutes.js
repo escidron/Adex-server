@@ -21,14 +21,15 @@ getSellerReviews,
 getBuyerReviews,
 receiveFiles,
 removeFiles,
-downloadFiles
+downloadFiles,
+createCampaign,
+getCampaignSubscribers,
+createCampaignSubscription,
+cancelCampaignSubscription,
+checkBuyerSubscription
 } from '../controllers/advertisementController.js';
-import { protect } from '../middleware/authMiddleware.js';
-import multer from 'multer';
 
 const router = express.Router();
-
-
 
 router.post('/', getAdvertisement);
 router.post('/my-advertisement', getMyAdvertisement);
@@ -52,6 +53,11 @@ router.post('/get-buyer-reviews', getBuyerReviews);
 router.post('/send-files', receiveFiles);
 router.post('/remove-files', removeFiles);
 router.post('/download-files', downloadFiles);
+router.post('/new-campaign', createCampaign);
+router.get('/get-campaign-subscribers/:campaignId', getCampaignSubscribers);
+router.post('/create-campaign-subscription', createCampaignSubscription);
+router.post('/cancel-campaign-subscription', cancelCampaignSubscription);
+router.get('/check-buyer-subscription/:campaignId', checkBuyerSubscription);
 
 
 export default router;
