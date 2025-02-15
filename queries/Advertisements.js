@@ -587,3 +587,109 @@ export async function updateExpiredListingsStatus() {
     });
   });
 }
+
+
+export async function insertCampaign(
+  data,
+  userId,
+  formattedCreatedAt
+) {
+  const CreateCampaignQuery = `
+    INSERT INTO advertisement (
+      category_id,
+      created_by,
+      title,
+      description,
+      status,
+      is_draft,
+      company_id,
+      created_at
+      ) VALUES (
+      '${data.category_id}',
+      '${userId}',
+      ${escapeText(data.title)},
+      ${escapeText(data.description)},
+      '1',
+      '0',
+      '${data.company_id}',
+      '${formattedCreatedAt}'
+    )
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(CreateCampaignQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getCampaignSubscribersList(campaignId) {
+  const getCampaignSubscribersQuery = `
+    SELECT campaign_subscribers.*,users.email,users.name,users.mobile_number,users.id
+    FROM campaign_subscribers
+    LEFT JOIN users ON users.id = campaign_subscribers.subscriber_id COLLATE utf8mb4_unicode_ci
+    where campaign_subscribers.campaign_id = ${campaignId}
+    `;
+  return new Promise((resolve, reject) => {
+    db.query(getCampaignSubscribersQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function insertCampaignSubscription(
+  campaignId,
+  userId,
+  formattedCreatedAt
+) {
+  const CreateCampaignSubscriptionQuery = `
+    INSERT INTO campaign_subscribers (
+      campaign_id,
+      subscriber_id,
+      created_at
+      ) VALUES (
+      '${campaignId}',
+      '${userId}',
+      '${formattedCreatedAt}'
+    )
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(CreateCampaignSubscriptionQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function cancelSubscription(id) {
+  const cancelCampaignSubscriptionQuery = `DELETE FROM campaign_subscribers where id = ${id}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(cancelCampaignSubscriptionQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function isBuyerSubscribed(id,userId) {
+  const isBuyerSubscribedQuery = `SELECT * FROM campaign_subscribers where campaign_id = ${id} and subscriber_id = ${userId}`;
+
+  return new Promise((resolve, reject) => {
+    db.query(isBuyerSubscribedQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}

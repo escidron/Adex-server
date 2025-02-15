@@ -29,6 +29,11 @@ import {
   getReviewsByListingId,
   getReviewsBySellerId,
   getReviewsByBuyerId,
+  insertCampaign,
+  getCampaignSubscribersList,
+  insertCampaignSubscription,
+  cancelSubscription,
+  isBuyerSubscribed,
 } from "../queries/Advertisements.js";
 import {
   updateNotificationStatus,
@@ -449,7 +454,9 @@ const createAdvertisement = asyncHandler(async (req, res) => {
       userImagesArray = userImages.split(";");
     }
 
-    let newgalleryImages = imagesGroup.split(";").filter((image) => !userImagesArray.includes(image));
+    let newgalleryImages = imagesGroup
+      .split(";")
+      .filter((image) => !userImagesArray.includes(image));
     if (newgalleryImages.length > 0) {
       newgalleryImages = newgalleryImages.join(";");
       addGalleryImages("", userId, userImages, newgalleryImages);
@@ -481,6 +488,12 @@ const createAdvertisement = asyncHandler(async (req, res) => {
 
     const results = await getUsersById(userId);
     const userType = results[0].user_type;
+
+    const seller = await getSeller(userId, data.company_id);
+    let isAccepted = false;
+    if (seller.length > 0) {
+      isAccepted = seller[0].isAccepted == "1";
+    }
 
     const userDraft = await getDraftByUserId(userId);
     let newAdvertisement = null;
@@ -660,7 +673,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     const currentTitle = result[0].title;
     const stripeProductId = result[0].stripe_product_id;
     let stripePriceId = result[0].stripe_price;
-    
+
     if (currentPrice != parseInt(price)) {
       //create a new stripe price for that product
       const newPrice = await stripe.prices.create({
@@ -681,8 +694,7 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
       }
     }
 
-
-    if(currentTitle != title){
+    if (currentTitle != title) {
       const updatedProduct = await stripe.products.update(stripeProductId, {
         name: title,
       });
@@ -1222,9 +1234,6 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
 });
 
 const receiveFiles = asyncHandler(async (req, res) => {
-  const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const userId = decoded.puserId;
 
   try {
     const storage = multer.diskStorage({
@@ -1311,6 +1320,113 @@ const downloadFiles = asyncHandler(async (req, res) => {
   }
 });
 
+const createCampaign = asyncHandler(async (req, res) => {
+  const data = req.body;
+  const token = req.cookies.jwt;
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+  try {
+    const createdAt = new Date();
+    const formattedCreatedAt = getFormattedDate(createdAt);
+
+    const response = await insertCampaign(data, userId, formattedCreatedAt);
+    console.log(response);
+    res.status(200).json(response);
+  } catch (error) {
+    logger.error(error.message, { endpoint: "createCampaign" });
+
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
+});
+
+const getCampaignSubscribers = asyncHandler(async (req, res) => {
+  const { campaignId } = req.params; 
+  const token = req.cookies.jwt;
+
+  if (token) {
+    try {
+      const response = await getCampaignSubscribersList(campaignId);
+      console.log(response);
+      res.status(200).json(response);
+    } catch (error) {
+      logger.error(error.message, { endpoint: "createCampaign" });
+
+      res.status(500).json({
+        error: "Something went wrong",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
+const createCampaignSubscription = asyncHandler(async (req, res) => {
+  const data = req.body;
+  const token = req.cookies.jwt;
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+  try {
+    const createdAt = new Date();
+    const formattedCreatedAt = getFormattedDate(createdAt);
+    const campaignId = data.campaign_id;
+    const response = await insertCampaignSubscription(campaignId, userId, formattedCreatedAt);
+    const subscriptionId = response.insertId;
+    res.status(200).json({subscriptionId: subscriptionId});
+  } catch (error) {
+    logger.error(error.message, { endpoint: "createCampaign" });
+
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
+});
+
+const cancelCampaignSubscription = asyncHandler(async (req, res) => {
+  const data = req.body;
+  try {
+    const subscriptionId = data.subscription_id;
+    console.log('subscriptionId',subscriptionId)
+    const response = await cancelSubscription(subscriptionId);
+    console.log('delete',response);
+    res.status(200).json(response);
+  } catch (error) {
+    logger.error(error.message, { endpoint: "createCampaign" });
+
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
+});
+
+const checkBuyerSubscription = asyncHandler(async (req, res) => {
+  const { campaignId } = req.params; 
+  const token = req.cookies.jwt;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
+  if (token) {
+    try {
+      const response = await isBuyerSubscribed(campaignId, userId);
+      res.status(200).json(response);
+    } catch (error) {
+      logger.error(error.message, { endpoint: "createCampaign" });
+      res.status(500).json({
+        error: "Something went wrong",
+      });
+    }
+  } else {
+    res.status(401).json({
+      error: "Not authorized, no token",
+    });
+  }
+});
+
 export {
   getAdvertisement,
   createAdvertisement,
@@ -1334,4 +1450,9 @@ export {
   receiveFiles,
   removeFiles,
   downloadFiles,
+  createCampaign,
+  getCampaignSubscribers,
+  createCampaignSubscription,
+  cancelCampaignSubscription,
+  checkBuyerSubscription
 };
