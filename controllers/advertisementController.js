@@ -510,8 +510,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         price,
         userType,
         dateFormatted,
-        availableDateFormatted,
-        isAccepted
+        availableDateFormatted
       );
       advertisementId = userDraft[0].id;
     } else {
@@ -525,8 +524,7 @@ const createAdvertisement = asyncHandler(async (req, res) => {
         price,
         userType,
         dateFormatted,
-        availableDateFormatted,
-        isAccepted
+        availableDateFormatted
       );
       advertisementId = newAdvertisement.insertId;
     }
