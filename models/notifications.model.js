@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS notifications (
     header varchar(255),
     message varchar(255),
     redirect varchar(255),
-    read varchar(1)
-    key varchar(45)
+    readed varchar(1),
+    ´key´ varchar(45)
   );
 `;
 
