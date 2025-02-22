@@ -1462,16 +1462,16 @@ const createCampaignSubscription = asyncHandler(async (req, res) => {
       //send email to the seller
       const advertisement = await getAdvertisementById(data.campaign_id);
       const imageName = advertisement[0].image.split(";");
-
+      const title = advertisement[0].title;
       const emailData = {
         title: "ADEX Campaign",
         subTitle: "Campaign Subscription",
         message: `Your are successfully subscribed in this campaign!`,
         icon: "listing-created",
         advertisement: {
-          title: data.title,
-          address: data.address,
-          description: data.description,
+          title: title,
+          address: '',
+          price: 0,
           image: imageName[0],
         },
       };
