@@ -47,10 +47,11 @@ export async function getAllAdvertisements() {
   });
 }
 
-export async function getAdvertisementByCreator(userId, id,companyId) {
-  // const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where is_draft = '0' and  created_by = ${userId} 
+export async function getAdvertisementByCreator(userId, id, companyId) {
   const advertisementByCreateorQuery = `SELECT * FROM adex.advertisement where  created_by = ${userId} 
-  ${id ? "and id=" + id : ""} ${companyId ? "and company_id=" + companyId : ""}`;
+  ${id ? "and id=" + id : ""} ${
+    companyId ? "and company_id=" + companyId : ""
+  }`;
   return new Promise((resolve, reject) => {
     db.query(advertisementByCreateorQuery, (err, result) => {
       if (err) {
@@ -154,7 +155,11 @@ export async function insertAdvertisement(
       ${escapeText(data.address)},
       '${data.lat}',
       '${data.long}',
-      '${(data.ad_duration_type && data.digital_price_type != '3') ? data.ad_duration_type : 0}',
+      '${
+        data.ad_duration_type && data.digital_price_type != "3"
+          ? data.ad_duration_type
+          : 0
+      }',
       '1',
       '${formattedCreatedAt}',
       '${data.sub_asset_type}',
@@ -356,14 +361,26 @@ export async function DraftToAdvertisement(
       address = ${escapeText(data.address)},
       lat = '${data.lat}',
       \`long\` = '${data.long}',
-      ad_duration_type = '${(data.ad_duration_type && data.digital_price_type != '3') ? data.ad_duration_type : 0}',
+      ad_duration_type = '${
+        data.ad_duration_type && data.digital_price_type != "3"
+          ? data.ad_duration_type
+          : 0
+      }',
       sub_asset_type = '${data.sub_asset_type}',
       media_types = ${data.media_types ? `'${data.media_types}'` : null},
       per_unit_price = ${data.per_unit_price ? data.per_unit_price : 0},
-      company_id = ${data.company_id && data.company_id != 'null' ? `'${data.company_id}'` : null},
-      start_date =  ${startDateFormatted ? `'${startDateFormatted.from}'` : null},
+      company_id = ${
+        data.company_id && data.company_id != "null"
+          ? `'${data.company_id}'`
+          : null
+      },
+      start_date =  ${
+        startDateFormatted ? `'${startDateFormatted.from}'` : null
+      },
       end_date =  ${startDateFormatted ? `'${startDateFormatted.to}'` : null},
-      first_available_date =  ${availableDateFormatted ? `'${availableDateFormatted}'` : null},
+      first_available_date =  ${
+        availableDateFormatted ? `'${availableDateFormatted}'` : null
+      },
       created_at = '${formattedCreatedAt}',
       created_by = '${userId}',
       status = '1',
@@ -372,7 +389,9 @@ export async function DraftToAdvertisement(
       created_by_type = '${userType}',
       instructions = ${escapeText(data.instructions)},
       is_draft = '0',
-      digital_price_type = ${data.digital_price_type ? `${digital_price_type}` : null}
+      digital_price_type = ${
+        data.digital_price_type ? `${digital_price_type}` : null
+      }
     WHERE id = ${id}
   `;
   return new Promise((resolve, reject) => {
@@ -486,7 +505,7 @@ export async function getReviewsByListingId(id) {
   });
 }
 
-export async function getReviewsBySellerId(id,companyId) {
+export async function getReviewsBySellerId(id, companyId) {
   const getListingReviewsQuery = `SELECT sellers_ratings.*,
   users.name,
   users.profile_image,
@@ -498,7 +517,9 @@ export async function getReviewsBySellerId(id,companyId) {
   JOIN contracts ON contracts.id = sellers_ratings.contract_id COLLATE utf8mb4_unicode_ci
   LEFT JOIN companies ON companies.id = rated_by_company_id COLLATE utf8mb4_unicode_ci
   where contracts.is_rated_by_seller = 1 and contracts.is_rated_by_buyer = 1 
-  and sellers_ratings.seller_id = ${id} ${companyId ? `and company_id = ${companyId}` : ''}`;
+  and sellers_ratings.seller_id = ${id} ${
+    companyId ? `and company_id = ${companyId}` : ""
+  }`;
 
   return new Promise((resolve, reject) => {
     db.query(getListingReviewsQuery, (err, result) => {
@@ -510,7 +531,7 @@ export async function getReviewsBySellerId(id,companyId) {
   });
 }
 
-export async function getReviewsByBuyerId(id,companyId) {
+export async function getReviewsByBuyerId(id, companyId) {
   const getListingReviewsQuery = `SELECT buyers_ratings.*,
   users.name,
   users.profile_image,
@@ -522,7 +543,9 @@ export async function getReviewsByBuyerId(id,companyId) {
   JOIN contracts ON contracts.id = buyers_ratings.contract_id COLLATE utf8mb4_unicode_ci
   LEFT JOIN companies ON companies.id = rated_by_company_id COLLATE utf8mb4_unicode_ci
   where contracts.is_rated_by_seller = 1 and contracts.is_rated_by_buyer = 1
-  and buyers_ratings.buyer_id = ${id} ${companyId ? `and company_id = ${companyId}` : ''}`;
+  and buyers_ratings.buyer_id = ${id} ${
+    companyId ? `and company_id = ${companyId}` : ""
+  }`;
 
   return new Promise((resolve, reject) => {
     db.query(getListingReviewsQuery, (err, result) => {
@@ -533,7 +556,6 @@ export async function getReviewsByBuyerId(id,companyId) {
     });
   });
 }
-
 
 //expire listing queries
 export async function getNearingExpiryListings() {
@@ -570,7 +592,6 @@ export async function getRecentExpiredListings() {
   });
 }
 
-
 export async function updateExpiredListingsStatus() {
   const updateExpiredListingsStatusQuery = `
   UPDATE advertisement
@@ -588,12 +609,24 @@ export async function updateExpiredListingsStatus() {
   });
 }
 
+export async function updateCampaingStatus(campaignId) {
+  const updateCampaingStatussQuery = `
+  UPDATE advertisement
+  SET status = '2'
+  WHERE id = ${campaignId};
+`;
 
-export async function insertCampaign(
-  data,
-  userId,
-  formattedCreatedAt
-) {
+  return new Promise((resolve, reject) => {
+    db.query(updateCampaingStatussQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function insertCampaign(data, userId, formattedCreatedAt, images) {
   const CreateCampaignQuery = `
     INSERT INTO advertisement (
       category_id,
@@ -603,7 +636,9 @@ export async function insertCampaign(
       status,
       is_draft,
       company_id,
-      created_at
+      created_at,
+      image,
+      instructions
       ) VALUES (
       '${data.category_id}',
       '${userId}',
@@ -612,7 +647,9 @@ export async function insertCampaign(
       '1',
       '0',
       '${data.company_id}',
-      '${formattedCreatedAt}'
+      '${formattedCreatedAt}',
+      '${images}',
+      ${escapeText(data.instructions)}
     )
   `;
   return new Promise((resolve, reject) => {
@@ -645,17 +682,20 @@ export async function getCampaignSubscribersList(campaignId) {
 export async function insertCampaignSubscription(
   campaignId,
   userId,
-  formattedCreatedAt
+  formattedCreatedAt,
+  companyId
 ) {
   const CreateCampaignSubscriptionQuery = `
     INSERT INTO campaign_subscribers (
       campaign_id,
       subscriber_id,
-      created_at
+      created_at,
+      subscriber_company_id
       ) VALUES (
       '${campaignId}',
       '${userId}',
-      '${formattedCreatedAt}'
+      '${formattedCreatedAt}',
+      '${companyId}'
     )
   `;
   return new Promise((resolve, reject) => {
@@ -681,11 +721,67 @@ export async function cancelSubscription(id) {
   });
 }
 
-export async function isBuyerSubscribed(id,userId) {
+export async function isBuyerSubscribed(id, userId) {
   const isBuyerSubscribedQuery = `SELECT * FROM campaign_subscribers where campaign_id = ${id} and subscriber_id = ${userId}`;
 
   return new Promise((resolve, reject) => {
     db.query(isBuyerSubscribedQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getSubscribedCampaigns(userId) {
+  const subscribedCampaignQuery = `
+    SELECT advertisement.*, 
+    advertisement.id AS id,
+    campaign_subscribers.id AS subscription_id,
+    campaign_subscribers.subscriber_company_id AS requested_by_company
+    FROM advertisement
+    JOIN campaign_subscribers ON campaign_subscribers.campaign_id = advertisement.id COLLATE utf8mb4_unicode_ci
+    where campaign_subscribers.subscriber_id = ${userId}
+    `;
+  return new Promise((resolve, reject) => {
+    db.query(subscribedCampaignQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function addEvidence(campaignId, evidence, userId) {
+  const addEvidenceQuery = `
+  UPDATE campaign_subscribers
+  SET evidence = '${evidence}'
+  WHERE campaign_id = ${campaignId} and subscriber_id = ${userId};
+`;
+  return new Promise((resolve, reject) => {
+    db.query(addEvidenceQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateCampaignInfo(data, updateImages) {
+  const updateCampaignInfoQuery = `
+  UPDATE advertisement
+  SET 
+  title = ${escapeText(data.title)}, 
+  description = ${escapeText(data.description)}, 
+  instructions = ${escapeText(data.instructions)},
+  image = '${updateImages}'
+  WHERE id = ${data.id};
+`;
+  return new Promise((resolve, reject) => {
+    db.query(updateCampaignInfoQuery, (err, result) => {
       if (err) {
         reject(err);
       }
