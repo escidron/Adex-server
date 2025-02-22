@@ -34,6 +34,10 @@ import {
   insertCampaignSubscription,
   cancelSubscription,
   isBuyerSubscribed,
+  getSubscribedCampaigns,
+  updateCampaingStatus,
+  addEvidence,
+  updateCampaignInfo,
 } from "../queries/Advertisements.js";
 import {
   updateNotificationStatus,
@@ -269,7 +273,6 @@ const getSellerListings = asyncHandler(async (req, res) => {
 const getMyBookings = asyncHandler(async (req, res) => {
   const { advertisementId, notificationId } = req.body;
   const token = req.cookies.jwt;
-
   if (token) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
@@ -277,17 +280,20 @@ const getMyBookings = asyncHandler(async (req, res) => {
       let result = "";
       let finishedListing = [];
       let pendingBoking = [];
+      let subscribedCampaigns = [];
       if (advertisementId) {
         result = await getAdvertisementById(advertisementId);
       } else {
         result = await getAdvertisementAndBuyers(userId);
+        subscribedCampaigns = await getSubscribedCampaigns(userId);
         finishedListing = await getFinishedContract(null, userId);
         pendingBoking = await getPendingBookings(userId);
       }
       if (
         result.length == 0 &&
         finishedListing.length == 0 &&
-        pendingBoking.length == 0
+        pendingBoking.length == 0 &&
+        subscribedCampaigns.length == 0
       ) {
         res.status(200).json({
           data: [],
@@ -296,10 +302,15 @@ const getMyBookings = asyncHandler(async (req, res) => {
         const advertisementsWithImages = addImagesPath(result);
         const finishedListingWithImages = addImagesPath(finishedListing);
         const pendingBokingWithImages = addImagesPath(pendingBoking);
-
+        const subscribedCampaignsWithImages =
+          addImagesPath(subscribedCampaigns);
         const status = {
-          all: result.length + finishedListing.length + pendingBoking.length,
-          booked: result.length,
+          all:
+            result.length +
+            finishedListing.length +
+            pendingBoking.length +
+            subscribedCampaigns.length,
+          booked: result.length + subscribedCampaigns.length,
           completed: finishedListing.length,
           pending: pendingBoking.length,
         };
@@ -314,6 +325,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
           ...advertisementsWithImages,
           ...finishedListingWithImages,
           ...pendingBokingWithImages,
+          ...subscribedCampaignsWithImages,
         ];
 
         res.status(200).json({
@@ -1234,7 +1246,6 @@ const getBuyerReviews = asyncHandler(async (req, res) => {
 });
 
 const receiveFiles = asyncHandler(async (req, res) => {
-
   try {
     const storage = multer.diskStorage({
       destination: (req, file, cb) => {
@@ -1330,7 +1341,67 @@ const createCampaign = asyncHandler(async (req, res) => {
     const createdAt = new Date();
     const formattedCreatedAt = getFormattedDate(createdAt);
 
-    const response = await insertCampaign(data, userId, formattedCreatedAt);
+    let images = "";
+    let imagesGroup = "";
+    const result = await getCompanyQuery(data.company_id);
+    const user = await getUsersById(userId);
+    const userImages = user[0].image_gallery;
+
+    async function processImages() {
+      const promises = data.images.map(async (image, index) => {
+        if (image.file) {
+          return await getImageNameFromBase64(image.data_url, index);
+        } else {
+          const imageArray = userImages.split(";");
+          const foundImage = imageArray.find((galleryImage) => {
+            const imagePath = `${process.env.SERVER_IP}/images/${galleryImage}`;
+            return image.data_url === imagePath;
+          });
+          return foundImage ? foundImage : null;
+        }
+      });
+
+      const results = await Promise.all(promises);
+      results.forEach((result) => {
+        if (result) {
+          images += result + ";";
+          imagesGroup += result + ";";
+        }
+      });
+    }
+
+    await processImages();
+
+    images = images.slice(0, -1);
+    imagesGroup = imagesGroup.slice(0, -1);
+    let userImagesArray = [];
+    if (userImages) {
+      userImagesArray = userImages.split(";");
+    }
+
+    let newgalleryImages = imagesGroup
+      .split(";")
+      .filter((image) => !userImagesArray.includes(image));
+    if (newgalleryImages.length > 0) {
+      newgalleryImages = newgalleryImages.join(";");
+      addGalleryImages("", userId, userImages, newgalleryImages);
+
+      if (data.company_id) {
+        const id = data.company_id;
+        addGalleryImages(
+          id,
+          userId,
+          result[0].company_gallery,
+          newgalleryImages
+        );
+      }
+    }
+    const response = await insertCampaign(
+      data,
+      userId,
+      formattedCreatedAt,
+      images
+    );
     console.log(response);
     res.status(200).json(response);
   } catch (error) {
@@ -1343,7 +1414,7 @@ const createCampaign = asyncHandler(async (req, res) => {
 });
 
 const getCampaignSubscribers = asyncHandler(async (req, res) => {
-  const { campaignId } = req.params; 
+  const { campaignId } = req.params;
   const token = req.cookies.jwt;
 
   if (token) {
@@ -1375,9 +1446,39 @@ const createCampaignSubscription = asyncHandler(async (req, res) => {
     const createdAt = new Date();
     const formattedCreatedAt = getFormattedDate(createdAt);
     const campaignId = data.campaign_id;
-    const response = await insertCampaignSubscription(campaignId, userId, formattedCreatedAt);
+    const companyId = data.company_id;
+    const response = await insertCampaignSubscription(
+      campaignId,
+      userId,
+      formattedCreatedAt,
+      companyId
+    );
     const subscriptionId = response.insertId;
-    res.status(200).json({subscriptionId: subscriptionId});
+    if (subscriptionId) {
+      await updateCampaingStatus(campaignId);
+
+      const buyerInfo = await getUsersById(userId);
+      const buyerEmail = buyerInfo[0].email;
+      //send email to the seller
+      const advertisement = await getAdvertisementById(data.campaign_id);
+      const imageName = advertisement[0].image.split(";");
+
+      const emailData = {
+        title: "ADEX Campaign",
+        subTitle: "Campaign Subscription",
+        message: `Your are successfully subscribed in this campaign!`,
+        icon: "listing-created",
+        advertisement: {
+          title: data.title,
+          address: data.address,
+          description: data.description,
+          image: imageName[0],
+        },
+      };
+      const emailContent = renderEmail(emailData);
+      sendEmail(buyerEmail, "Campaign Subscription", emailContent);
+    }
+    res.status(200).json({ subscriptionId: subscriptionId });
   } catch (error) {
     logger.error(error.message, { endpoint: "createCampaign" });
 
@@ -1391,9 +1492,7 @@ const cancelCampaignSubscription = asyncHandler(async (req, res) => {
   const data = req.body;
   try {
     const subscriptionId = data.subscription_id;
-    console.log('subscriptionId',subscriptionId)
     const response = await cancelSubscription(subscriptionId);
-    console.log('delete',response);
     res.status(200).json(response);
   } catch (error) {
     logger.error(error.message, { endpoint: "createCampaign" });
@@ -1405,12 +1504,11 @@ const cancelCampaignSubscription = asyncHandler(async (req, res) => {
 });
 
 const checkBuyerSubscription = asyncHandler(async (req, res) => {
-  const { campaignId } = req.params; 
+  const { campaignId } = req.params;
   const token = req.cookies.jwt;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const userId = decoded.userId;
-
   if (token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     try {
       const response = await isBuyerSubscribed(campaignId, userId);
       res.status(200).json(response);
@@ -1423,6 +1521,69 @@ const checkBuyerSubscription = asyncHandler(async (req, res) => {
   } else {
     res.status(401).json({
       error: "Not authorized, no token",
+    });
+  }
+});
+
+const addEvidenceToCampaign = asyncHandler(async (req, res) => {
+  const data = req.body;
+  const token = req.cookies.jwt;
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+  try {
+    const response = await addEvidence(data.campaign_id, data.evidence, userId);
+    console.log(response);
+    res.status(200).json(response);
+  } catch (error) {
+    logger.error(error.message, { endpoint: "createCampaign" });
+
+    res.status(500).json({
+      error: "Something went wrong",
+    });
+  }
+});
+
+const updateCampaign = asyncHandler(async (req, res) => {
+  const data = req.body;
+  const token = req.cookies.jwt;
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+  try {
+    let updateImages = "";
+
+    async function processEditImages() {
+      const promises = data.images.map(async (image, index) => {
+        if (
+          image.data_url.startsWith("http://") ||
+          image.data_url.startsWith("https://")
+        ) {
+          return await getImageNameFromLink(image.data_url);
+        } else if (image.data_url.startsWith("data:image/")) {
+          return await getImageNameFromBase64(image.data_url, index);
+        }
+      });
+
+      const results = await Promise.all(promises);
+      results.forEach((result) => {
+        if (result) {
+          updateImages += result + ";";
+        }
+      });
+    }
+
+    await processEditImages();
+    updateImages = updateImages.slice(0, -1);
+
+    const response = await updateCampaignInfo(data,updateImages);
+    console.log(response);
+    res.status(200).json(response);
+  } catch (error) {
+    logger.error(error.message, { endpoint: "createCampaign" });
+
+    res.status(500).json({
+      error: "Something went wrong",
     });
   }
 });
@@ -1454,5 +1615,7 @@ export {
   getCampaignSubscribers,
   createCampaignSubscription,
   cancelCampaignSubscription,
-  checkBuyerSubscription
+  checkBuyerSubscription,
+  addEvidenceToCampaign,
+  updateCampaign,
 };

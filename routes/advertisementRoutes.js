@@ -26,7 +26,9 @@ createCampaign,
 getCampaignSubscribers,
 createCampaignSubscription,
 cancelCampaignSubscription,
-checkBuyerSubscription
+checkBuyerSubscription,
+addEvidenceToCampaign,
+updateCampaign
 } from '../controllers/advertisementController.js';
 
 const router = express.Router();
@@ -58,6 +60,8 @@ router.get('/get-campaign-subscribers/:campaignId', getCampaignSubscribers);
 router.post('/create-campaign-subscription', createCampaignSubscription);
 router.post('/cancel-campaign-subscription', cancelCampaignSubscription);
 router.get('/check-buyer-subscription/:campaignId', checkBuyerSubscription);
+router.post('/campaign-evidence', addEvidenceToCampaign);
+router.post('/update-campaign', updateCampaign);
 
 
 export default router;
