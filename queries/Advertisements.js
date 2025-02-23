@@ -689,13 +689,14 @@ export async function insertCampaignSubscription(
     INSERT INTO campaign_subscribers (
       campaign_id,
       subscriber_id,
-      created_at,
-      subscriber_company_id
+      created_at
+      ${campaignId ? ",subscriber_company_id" : ""}
       ) VALUES (
       '${campaignId}',
       '${userId}',
-      '${formattedCreatedAt}',
-      '${companyId}'
+      '${formattedCreatedAt}'
+      ${campaignId ? `,${campaignId}` : ""}
+
     )
   `;
   return new Promise((resolve, reject) => {
