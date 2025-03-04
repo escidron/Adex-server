@@ -1,4 +1,5 @@
 import getDatabaseConnection from ".././db.js";
+import getFormattedDate from "../utils/getFormattedDate.js";
 
 const db = getDatabaseConnection();
 
@@ -515,6 +516,146 @@ export async function updateFinishedContract(contractId) {
 
   return new Promise((resolve, reject) => {
     db.query(checkFinishedListingQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function insertUserPayment(
+  sender_user_id,
+  receiver_user_id,
+  advertisement_id,
+  paypal_receiver_email,
+  payment_method,
+  payment_id,
+  payout_id,
+  pay_to_acc,
+  status,
+  currency_code,
+  amount,
+  payment_date,
+  payout_date
+) {
+  const insertUserPaymentQuery = `
+  INSERT INTO user_payments (
+    sender_user_id,
+    receiver_user_id,
+    advertisement_id,
+    paypal_receiver_email,
+    payment_method,
+    payment_id,
+    payout_id,
+    pay_to_acc,
+    status,
+    currency_code,
+    amount,
+    payment_date,
+    payout_date
+  ) VALUES (
+    ${sender_user_id},
+    ${receiver_user_id},
+    ${advertisement_id},
+    ${paypal_receiver_email},
+    ${payment_method},
+    ${payment_id},
+    ${payout_id},
+    ${pay_to_acc},
+    ${status},
+    ${currency_code},
+    ${amount},
+    ${payment_date},
+    ${payout_date}
+  )
+`;
+  return new Promise((resolve, reject) => {
+    db.query(insertUserPaymentQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getUserPaymentByAdvertisementId(advertisementId) {
+  const userPayment = `SELECT * FROM adex.user_payments where advertisement_id = '${advertisementId}'`;
+  return new Promise((resolve, reject) => {
+    db.query(userPayment, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getUserPaymentByPaymentId(paymentId) {
+  const userPayment = `SELECT * FROM adex.user_payments where payment_id = '${paymentId}'`;
+  return new Promise((resolve, reject) => {
+    db.query(userPayment, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateUserPaymentPaidToAdexer(paymentId) {
+  const checkuserPaymentQuery = `
+    UPDATE adex.user_payments
+    SET status = 'COMPLETED'
+    WHERE payment_id = '${paymentId}'
+`;
+
+  return new Promise((resolve, reject) => {
+    db.query(checkuserPaymentQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function updateUserPaymentPaidToUser(paymentId, payoutId) {
+  const paymentDate = getFormattedDate(new Date());
+  const checkuserPaymentQuery = `
+    UPDATE adex.user_payments
+    SET status = 'COMPLETED',
+    pay_to_acc = 'USER',
+    payout_id = '${payoutId}',
+    payout_date = '${paymentDate}'
+    WHERE payment_id = '${paymentId}'
+`;
+
+  return new Promise((resolve, reject) => {
+    db.query(checkuserPaymentQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getUserPaymentCompleted(
+  advertisementId,
+  sender_user_id,
+  receiver_user_id
+) {
+  const userPaymentStatus = `
+  SELECT * FROM adex.user_payments 
+  where advertisement_id = '${advertisementId}'
+  and sender_user_id = '${sender_user_id}' 
+  and receiver_user_id = '${receiver_user_id}'
+  and status = 'COMPLETED'
+  `;
+  return new Promise((resolve, reject) => {
+    db.query(userPaymentStatus, (err, result) => {
       if (err) {
         reject(err);
       }
