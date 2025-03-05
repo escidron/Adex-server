@@ -52,7 +52,7 @@ import getFormattedDate from "../utils/getFormattedDate.js";
 import escapeText from "../utils/escapeText.js";
 import { addImagesPath } from "../utils/addImagesPath.js";
 import getImageNameFromBase64 from "../utils/getImageNameFromBase64.js";
-import { getFinishedContract } from "../queries/Payments.js";
+import { getFinishedContract, getUserPaymentCompleted } from "../queries/Payments.js";
 import getImageNameFromLink from "../utils/getImageNameFromLink.js";
 import { addImageToReviews } from "../utils/addImageToReviews.js";
 import { generateQrCode } from "../utils/generateQrCode.js";
@@ -303,7 +303,7 @@ const getMyBookings = asyncHandler(async (req, res) => {
         const finishedListingWithImages = addImagesPath(finishedListing);
         const pendingBokingWithImages = addImagesPath(pendingBoking);
         const subscribedCampaignsWithImages =
-          addImagesPath(subscribedCampaigns);
+        addImagesPath(subscribedCampaigns);
         const status = {
           all:
             result.length +
@@ -1414,13 +1414,23 @@ const createCampaign = asyncHandler(async (req, res) => {
 });
 
 const getCampaignSubscribers = asyncHandler(async (req, res) => {
-  const { campaignId } = req.params;
+  const { campaignId } = req.params; 
   const token = req.cookies.jwt;
 
   if (token) {
     try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const userId = decoded.userId;
+
       const response = await getCampaignSubscribersList(campaignId);
-      console.log(response);
+      for (const subscriber of response) {
+        const [userPaymentStatus] = await getUserPaymentCompleted(subscriber.campaign_id, userId, subscriber.subscriber_id);
+        if (userPaymentStatus) {
+          subscriber.payment_status = 'PAID';
+        } else {
+          subscriber.payment_status = 'UNPAID';
+        } 
+      }
       res.status(200).json(response);
     } catch (error) {
       logger.error(error.message, { endpoint: "createCampaign" });
@@ -1504,7 +1514,7 @@ const cancelCampaignSubscription = asyncHandler(async (req, res) => {
 });
 
 const checkBuyerSubscription = asyncHandler(async (req, res) => {
-  const { campaignId } = req.params;
+  const { campaignId } = req.params; 
   const token = req.cookies.jwt;
   if (token) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
