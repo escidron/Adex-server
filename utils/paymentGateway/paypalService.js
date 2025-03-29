@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import logger from "../logger.js";
 
 
 const cacheDuration = 30 * 60 * 1000; // 30 minutes in milliseconds
@@ -41,6 +42,8 @@ const getAccessToken = async () => {
 const paypalCreateOrder = async (amount, currency = "USD", description = "") => {
   try {
     const accessToken = await getAccessToken();
+    logger.error(`token: ${accessToken}`, { endpoint: "paypalCreateOrder" });
+
     const response = await fetch(`${process.env.PAYPAL_API_ENDPOINT}/v2/checkout/orders`, {
       method: 'POST',
       headers: {
@@ -62,6 +65,8 @@ const paypalCreateOrder = async (amount, currency = "USD", description = "") => 
     });
 
     const data = await response.json();
+    logger.error(`data: ${JSON.stringify(data, null, 2)}`, { endpoint: "paypalCreateOrder" });
+
     if (!response.ok) throw new Error(data.message || 'Failed to create order');
     
     return {
