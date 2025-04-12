@@ -7,6 +7,7 @@ import advertisementRoutes from "./routes/advertisementRoutes.js";
 import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import paymentGatewayRoutes from "./routes/paymentGatewayRoutes.js";
+import campaignRoutes from "./routes/campaignRoutes.js";
 import schedule from "node-schedule";
 
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
@@ -77,7 +78,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/advertisements", advertisementRoutes);
 app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
-app.use("/api/payment-gateway" , protect,paymentGatewayRoutes);
+app.use("/api/payment-gateway", protect, paymentGatewayRoutes);
+app.use("/api/campaigns", campaignRoutes);
 app.use(
   "/images",
   express.static("D:/Projetos Front-end/2-Adex-next/adex/server/images")
