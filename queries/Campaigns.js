@@ -65,15 +65,20 @@ const createCampaignQuery = (data) => {
       let images = "";
       
       if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-        const promises = data.images.map(async (image, index) => {
-          if (image && image.data_url) {
-            return await getImageNameFromBase64(image.data_url, index);
-          }
-          return null;
-        });
+        try {
+          const promises = data.images.map(async (image, index) => {
+            if (image && image.data_url) {
+              return await getImageNameFromBase64(image.data_url, index);
+            }
+            return null;
+          });
 
-        const results = await Promise.all(promises);
-        images = results.filter(result => result !== null).join(';');
+          const results = await Promise.all(promises);
+          images = results.filter(result => result !== null).join(';');
+        } catch (imageError) {
+          console.error('Error processing images:', imageError);
+          // Continue without images if there's an error
+        }
       }
 
       const query = `
@@ -96,9 +101,21 @@ const createCampaignQuery = (data) => {
       ];
       
       db.query(query, values, (err, result) => {
-        if (err) reject(err);
+        if (err) {
+          console.error('Database error in createCampaignQuery:', err);
+          return reject(err);
+        }
+        
+        if (!result) {
+          console.error('No result returned from database');
+          return reject(new Error('Database query returned no result'));
+        }
+        
+        // Safely access insertId with a fallback
+        const insertId = result.insertId || 0;
+        
         resolve({
-          id: result.insertId,
+          id: insertId,
           ...data,
           image_gallery: images
         });

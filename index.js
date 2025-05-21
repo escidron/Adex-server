@@ -80,10 +80,7 @@ app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
 app.use("/api/payment-gateway", protect, paymentGatewayRoutes);
 app.use("/api/campaigns", campaignRoutes);
-app.use(
-  "/images",
-  express.static("D:/Projetos Front-end/2-Adex-next/adex/server/images")
-);
+app.use("/images", express.static("./images"));
 
 
 app.use(notFound);

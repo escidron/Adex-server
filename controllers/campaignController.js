@@ -63,15 +63,32 @@ export const createCampaign = asyncHandler(async (req, res) => {
     }
 
     const campaignData = req.body;
+    
+    // Validate required fields
+    const requiredFields = ['name', 'description', 'start_date', 'end_date', 'max_participants', 'budget', 'reward_amount'];
+    const missingFields = requiredFields.filter(field => !campaignData[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: "Missing required fields", 
+        fields: missingFields 
+      });
+    }
+    
     const result = await createCampaignQuery(campaignData);
+    
+    if (!result || !result.id) {
+      return res.status(500).json({ error: "Failed to create campaign. Database error." });
+    }
     
     res.status(201).json({
       message: "Campaign created successfully",
-      data: { id: result.insertId }
+      data: { id: result.id }
     });
   } catch (error) {
+    console.error("Create campaign error:", error);
     logger.error(error.message, { endpoint: "createCampaign" });
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
 
