@@ -44,7 +44,17 @@ export const getCampaignDetail = asyncHandler(async (req, res) => {
       return res.status(404).json({ error: "Campaign not found" });
     }
     
-    res.status(200).json({ data: campaign });
+    const participants = await getCampaignParticipants(id);
+    const participant_count = participants.length;
+    const participant_limit = campaign.max_participants;
+
+    res.status(200).json({
+      data: {
+        ...campaign,
+        participant_count,
+        participant_limit
+      }
+    });
   } catch (error) {
     logger.error(error.message, { endpoint: "getCampaignDetail", campaignId: req.params.id });
     res.status(500).json({ error: "Internal server error" });
