@@ -9,6 +9,7 @@ const createCampaignsTable = `
     budget decimal(15,4),
     reward_amount decimal(15,4),
     image_gallery text,
+    created_by bigint UNSIGNED NOT NULL,
     created_at timestamp DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at timestamp NULL

@@ -71,8 +71,12 @@ export const createCampaign = asyncHandler(async (req, res) => {
     if (!token) {
       return res.status(401).json({ error: "Authentication required" });
     }
-
-    const campaignData = req.body;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    const campaignData = {
+      ...req.body,
+      created_by: userId
+    };
     
     // Validate required fields
     const requiredFields = ['name', 'description', 'start_date', 'end_date', 'max_participants', 'budget', 'reward_amount'];
@@ -126,14 +130,20 @@ export const updateCampaignInfo = asyncHandler(async (req, res) => {
 export const deleteCampaignById = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-    
+    const token = req.cookies.jwt;
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
     const campaign = await getCampaignById(id);
     if (!campaign) {
       return res.status(404).json({ error: "Campaign not found" });
     }
-    
+    if (campaign.created_by !== userId) {
+      return res.status(403).json({ error: "Only the creator can delete this campaign." });
+    }
     await deleteCampaign(id);
-    
     res.status(200).json({ message: "Campaign deleted successfully" });
   } catch (error) {
     logger.error(error.message, { endpoint: "deleteCampaignById", campaignId: req.params.id });
