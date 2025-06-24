@@ -85,8 +85,8 @@ const createCampaignQuery = (data) => {
         INSERT INTO campaigns (
           name, description, start_date, end_date, 
           max_participants, budget, reward_amount, image_gallery,
-          deleted_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW())
+          created_by, deleted_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW())
       `;
       
       const values = [
@@ -97,7 +97,8 @@ const createCampaignQuery = (data) => {
         data.max_participants,
         data.budget,
         data.reward_amount,
-        images || null
+        images || null,
+        data.created_by
       ];
       
       db.query(query, values, (err, result) => {
