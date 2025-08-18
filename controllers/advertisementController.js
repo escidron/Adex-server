@@ -591,8 +591,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
     category_id,
     images,
     address,
-    latitude,
-    longitude,
+    lat,
+    long,
     ad_duration_type,
     sub_asset_type,
     per_unit_price,
@@ -724,8 +724,8 @@ const updateAdvertisement = asyncHandler(async (req, res) => {
         stripe_price = '${stripePriceId}',
         image = '${updateImages}',
         address = ${escapeText(address)},
-        latitude = '${latitude}',
-        longitude = '${longitude}',
+        lat = '${lat}',
+        \`long\` = '${long}',
         ad_duration_type = '${durationType}',
         updated_at = '${formattedUpdatedAt}',
         instructions = ${escapeText(instructions)},
@@ -952,8 +952,8 @@ const createDraft = asyncHandler(async (req, res) => {
     category_id,
     images,
     address,
-    latitude,
-    longitude,
+    lat,
+    long,
     ad_duration_type,
     sub_asset_type,
     per_unit_price,
@@ -1043,8 +1043,8 @@ const createDraft = asyncHandler(async (req, res) => {
           category_id,
           draftImages,
           address,
-          latitude,
-          longitude,
+          lat,
+          long,
           ad_duration_type,
           sub_asset_type,
           per_unit_price,
@@ -1062,8 +1062,8 @@ const createDraft = asyncHandler(async (req, res) => {
           category_id,
           draftImages,
           address,
-          latitude,
-          longitude,
+          lat,
+          long,
           ad_duration_type,
           sub_asset_type,
           per_unit_price,
@@ -1132,8 +1132,8 @@ const getDraft = asyncHandler(async (req, res) => {
         const building_asset = result[0].sub_asset_type;
         const title = result[0].title ? result[0].title : "";
         const location = result[0].address ? result[0].address : "";
-        const latitude = result[0].latitude ? result[0].latitude : 0;
-        const longitude = result[0].longitude ? result[0].longitude : 0;
+        const latitude = result[0].lat ? result[0].lat : 0;
+        const longitude = result[0].long ? result[0].long : 0;
         const description = result[0].description ? result[0].description : "";
         const price = result[0].price ? result[0].price : "";
         const select_business = result[0].company_id
@@ -1172,8 +1172,8 @@ const getDraft = asyncHandler(async (req, res) => {
             building_asset,
             title,
             location,
-            latitude,
-            longitude,
+                lat,
+    long,
             description,
             price,
             discounts,
