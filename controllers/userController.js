@@ -55,6 +55,7 @@ import {
   getCompanyInvoices,
 } from "../queries/Companies.js";
 import { compressPdf, decompressPdf } from "../utils/compressPdf.js";
+import { filenameToInvoiceObject } from "../utils/parseInvoiceFilename.js";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import { verifyIdentity } from "../utils/VerifyIdentity.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
@@ -1839,7 +1840,20 @@ const getCompanyInvoicesController = asyncHandler(async (req, res) => {
       });
     }
 
-    const invoices = result[0].invoices || [];
+    const invoiceData = result[0].invoices || [];
+    
+    // Handle mixed format: objects (old) and strings (new)
+    const invoices = await Promise.all(
+      invoiceData.map(async (item) => {
+        if (typeof item === 'string') {
+          // New format: filename string
+          return await filenameToInvoiceObject(item, process.env.SERVER_IP);
+        } else {
+          // Old format: JSON object
+          return item;
+        }
+      })
+    );
     
     res.status(200).json({
       data: invoices
@@ -1873,7 +1887,19 @@ const sendInvoiceEmailController = asyncHandler(async (req, res) => {
       });
     }
 
-    const invoices = result[0].invoices || [];
+    const invoiceData = result[0].invoices || [];
+    
+    // Find invoice by parsing both old and new formats
+    const invoices = await Promise.all(
+      invoiceData.map(async (item) => {
+        if (typeof item === 'string') {
+          return await filenameToInvoiceObject(item, process.env.SERVER_IP);
+        } else {
+          return item;
+        }
+      })
+    );
+    
     const invoice = invoices.find(inv => inv.campaign_id == campaign_id);
     
     if (!invoice) {

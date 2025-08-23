@@ -152,25 +152,10 @@ export async function addGalleryImages(id, userId, images, imagesGroup) {
 export async function saveInvoicePdf(companyId, campaignId, campaignName, pdfUrl, filename) {
   const createdAt = new Date();
   const formattedUpdatedAt = getFormattedDate(createdAt);
-  const generatedAt = formattedUpdatedAt;
-
-  const invoice = {
-    campaign_id: campaignId,
-    campaign_name: campaignName,
-    pdf_url: pdfUrl,
-    filename: filename,
-    generated_at: generatedAt
-  };
 
   const saveInvoiceQuery = `
     UPDATE companies SET
-      invoices = JSON_ARRAY_APPEND(IFNULL(invoices, JSON_ARRAY()), '$', JSON_OBJECT(
-        'campaign_id', ${campaignId},
-        'campaign_name', '${campaignName}',
-        'pdf_url', '${pdfUrl}',
-        'filename', '${filename}',
-        'generated_at', '${generatedAt}'
-      )),
+      invoices = JSON_ARRAY_APPEND(IFNULL(invoices, JSON_ARRAY()), '$', '${filename}'),
       updated_at = '${formattedUpdatedAt}'
     WHERE id = ${companyId}
   `;
