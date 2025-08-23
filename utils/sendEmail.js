@@ -7,7 +7,7 @@ import nodemailer from "nodemailer";
 message.suppress = true;
 dotenv.config();
 
-export default async function sendEmail(sendTo, subject, template, listingId) {
+export default async function sendEmail(sendTo, subject, template, listingId, customAttachments = []) {
   let attachmentData = ''
 
 try{
@@ -29,25 +29,36 @@ try{
    }),
  });
 
+ // Prepare attachments
+ let attachments = [];
+ 
+ if (attachmentData) {
+   attachments.push({
+     filename: `Listing_qrcode${listingId}.png`,
+     content: attachmentData,
+   });
+ }
+ 
+ // Add custom attachments
+ if (customAttachments && customAttachments.length > 0) {
+   attachments = attachments.concat(customAttachments);
+ }
+
  let info = await transporter.sendMail({
    from: process.env.EMAIL_ACCOUNT,
    to: sendTo,
    subject: subject,
    text: "",
    html: template ? template : "",
-   attachments: attachmentData ? [
-     {
-       filename: `Listing_qrcode${listingId}.png`,
-       content: attachmentData,
-     },
-   ] : '',
+   attachments: attachments.length > 0 ? attachments : '',
  });
 
  console.log("Message sent: %s", info.messageId);
  // Message sent: <b658f8ca-6296-ccf4-8306-87d57a0b4321@example.com>
- return info; 
+ return { info, transporter }; 
 }catch(error){
   console.log('[Email error] : '+ error)
+  throw error;
 }
 
 }

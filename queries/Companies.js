@@ -148,3 +148,54 @@ export async function addGalleryImages(id, userId, images, imagesGroup) {
     });
   });
 }
+
+export async function saveInvoicePdf(companyId, campaignId, campaignName, pdfUrl, filename) {
+  const createdAt = new Date();
+  const formattedUpdatedAt = getFormattedDate(createdAt);
+  const generatedAt = formattedUpdatedAt;
+
+  const invoice = {
+    campaign_id: campaignId,
+    campaign_name: campaignName,
+    pdf_url: pdfUrl,
+    filename: filename,
+    generated_at: generatedAt
+  };
+
+  const saveInvoiceQuery = `
+    UPDATE companies SET
+      invoices = JSON_ARRAY_APPEND(IFNULL(invoices, JSON_ARRAY()), '$', JSON_OBJECT(
+        'campaign_id', ${campaignId},
+        'campaign_name', '${campaignName}',
+        'pdf_url', '${pdfUrl}',
+        'filename', '${filename}',
+        'generated_at', '${generatedAt}'
+      )),
+      updated_at = '${formattedUpdatedAt}'
+    WHERE id = ${companyId}
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query(saveInvoiceQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}
+
+export async function getCompanyInvoices(companyId) {
+  const getInvoicesQuery = `
+    SELECT invoices FROM companies WHERE id = ${companyId}
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query(getInvoicesQuery, (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result);
+    });
+  });
+}

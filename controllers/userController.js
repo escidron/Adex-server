@@ -51,7 +51,10 @@ import {
   insertCompany,
   getCompaniesById,
   addGalleryImages,
+  saveInvoicePdf,
+  getCompanyInvoices,
 } from "../queries/Companies.js";
+import { compressPdf, decompressPdf } from "../utils/compressPdf.js";
 import renderEmail from "../utils/emailTamplates/emailTemplate.js";
 import { verifyIdentity } from "../utils/VerifyIdentity.js";
 import getFormattedDate from "../utils/getFormattedDate.js";
@@ -1773,6 +1776,174 @@ const updateStripeAccountInfo = asyncHandler(async (req, res) => {
   }
 });
 
+const saveInvoicePdfController = asyncHandler(async (req, res) => {
+  const { company_id, campaign_id, campaign_name, pdf_base64, filename } = req.body;
+  
+  if (!company_id || !campaign_id || !campaign_name || !pdf_base64 || !filename) {
+    return res.status(400).json({
+      error: "Missing required fields: company_id, campaign_id, campaign_name, pdf_base64, filename"
+    });
+  }
+
+  try {
+    const base64Data = pdf_base64.replace(/^data:application\/pdf;base64,/, "");
+    const pdfBuffer = Buffer.from(base64Data, 'base64');
+    
+    const timestamp = Date.now();
+    const uniqueFilename = `invoice_${company_id}_${campaign_id}_${timestamp}.pdf`;
+    const filePath = `./pdfs/${uniqueFilename}`;
+    
+    if (!fs.existsSync('./pdfs')) {
+      fs.mkdirSync('./pdfs', { recursive: true });
+    }
+    
+    const compressedPdfBuffer = await compressPdf(pdfBuffer);
+    fs.writeFileSync(filePath, compressedPdfBuffer);
+    
+    const pdfUrl = `${process.env.SERVER_IP}/pdfs/${uniqueFilename}`;
+    await saveInvoicePdf(company_id, campaign_id, campaign_name, pdfUrl, uniqueFilename);
+    
+    res.status(200).json({
+      message: "Invoice PDF saved successfully",
+      data: {
+        pdf_url: pdfUrl,
+        filename: uniqueFilename
+      }
+    });
+  } catch (error) {
+    logger.error(error.message, {
+      company_id,
+      endpoint: "saveInvoicePdfController"
+    });
+    res.status(500).json({
+      error: "Something went wrong"
+    });
+  }
+});
+
+const getCompanyInvoicesController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  
+  if (!id) {
+    return res.status(400).json({
+      error: "Company ID is required"
+    });
+  }
+
+  try {
+    const result = await getCompanyInvoices(id);
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        error: "Company not found"
+      });
+    }
+
+    const invoices = result[0].invoices || [];
+    
+    res.status(200).json({
+      data: invoices
+    });
+  } catch (error) {
+    logger.error(error.message, {
+      company_id: id,
+      endpoint: "getCompanyInvoicesController"
+    });
+    res.status(500).json({
+      error: "Something went wrong"
+    });
+  }
+});
+
+const sendInvoiceEmailController = asyncHandler(async (req, res) => {
+  const { company_id, campaign_id, recipient_email, message } = req.body;
+  
+  if (!company_id || !campaign_id || !recipient_email) {
+    return res.status(400).json({
+      error: "Missing required fields: company_id, campaign_id, recipient_email"
+    });
+  }
+
+  try {
+    const result = await getCompanyInvoices(company_id);
+    
+    if (result.length === 0) {
+      return res.status(404).json({
+        error: "Company not found"
+      });
+    }
+
+    const invoices = result[0].invoices || [];
+    const invoice = invoices.find(inv => inv.campaign_id == campaign_id);
+    
+    if (!invoice) {
+      return res.status(404).json({
+        error: "Invoice not found for this campaign"
+      });
+    }
+
+    const filePath = `./pdfs/${invoice.filename}`;
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        error: "PDF file not found"
+      });
+    }
+
+    const fileBuffer = fs.readFileSync(filePath);
+    let pdfBuffer;
+    
+    try {
+      if (fileBuffer[0] === 0x1f && fileBuffer[1] === 0x8b) {
+        pdfBuffer = await decompressPdf(fileBuffer);
+      } else {
+        pdfBuffer = fileBuffer;
+      }
+    } catch (error) {
+      pdfBuffer = fileBuffer;
+    }
+    
+    const emailTemplate = `
+      <h2>Invoice for Campaign: ${invoice.campaign_name}</h2>
+      <p>Dear recipient,</p>
+      <p>Please find attached the invoice for the campaign "${invoice.campaign_name}".</p>
+      ${message ? `<p>Message: ${message}</p>` : ''}
+      <p>Best regards,<br>ADEX Team</p>
+    `;
+
+    const customAttachments = [{
+      filename: invoice.filename,
+      content: pdfBuffer,
+      contentType: 'application/pdf'
+    }];
+
+    await sendEmail(
+      recipient_email,
+      `Invoice - ${invoice.campaign_name}`,
+      emailTemplate,
+      null,
+      customAttachments
+    );
+    
+    res.status(200).json({
+      message: "Invoice email sent successfully",
+      data: {
+        recipient: recipient_email,
+        campaign_name: invoice.campaign_name,
+        filename: invoice.filename
+      }
+    });
+  } catch (error) {
+    logger.error(error.message, {
+      company_id,
+      campaign_id,
+      endpoint: "sendInvoiceEmailController"
+    });
+    res.status(500).json({
+      error: "Something went wrong"
+    });
+  }
+});
+
 export {
   authUser,
   registerUser,
@@ -1812,4 +1983,7 @@ export {
   removeAudiencePreference,
   removePlataform,
   updateStripeAccountInfo,
+  saveInvoicePdfController,
+  getCompanyInvoicesController,
+  sendInvoiceEmailController,
 };

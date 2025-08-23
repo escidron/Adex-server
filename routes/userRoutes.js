@@ -37,7 +37,10 @@ import {
   getAudiencePreference,
   removeAudiencePreference,
   removePlataform,
-  updateStripeAccountInfo
+  updateStripeAccountInfo,
+  saveInvoicePdfController,
+  getCompanyInvoicesController,
+  sendInvoiceEmailController
 } from '../controllers/userController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -82,6 +85,9 @@ router.post('/remove-audience-preference', removeAudiencePreference);
 router.post('/remove-plataform', removePlataform);
 router.post('/update-account-stripe-info', updateStripeAccountInfo);
 
+router.post('/companies/save-invoice-pdf', saveInvoicePdfController);
+router.get('/companies/:id/invoices', getCompanyInvoicesController);
+router.post('/companies/send-invoice-email', sendInvoiceEmailController);
 
 //router.route('/seller-profile').get(protect, getSellerProfile)
 //   .put(protect, updateUserAddress);

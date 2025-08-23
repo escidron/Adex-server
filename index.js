@@ -21,6 +21,7 @@ import { cpus } from "os";
 import { checkConnectAccountStatus } from "./utils/checkConnectAccountStatus.js";
 import path from "path";
 import { protect } from "./middleware/authMiddleware.js";
+import { pdfDecompressMiddleware } from "./middleware/pdfDecompressMiddleware.js";
 dotenv.config();
 const port = process.env.PORT || 5001;
 
@@ -81,6 +82,7 @@ app.use("/api/payments", PaymentsRoutes);
 app.use("/api/payment-gateway", protect, paymentGatewayRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/images", express.static("./images"));
+app.use("/pdfs", pdfDecompressMiddleware, express.static("./pdfs"));
 
 
 app.use(notFound);
