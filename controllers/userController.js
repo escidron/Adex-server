@@ -1915,18 +1915,7 @@ const sendInvoiceEmailController = asyncHandler(async (req, res) => {
       });
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
-    let pdfBuffer;
-    
-    try {
-      if (fileBuffer[0] === 0x1f && fileBuffer[1] === 0x8b) {
-        pdfBuffer = await decompressPdf(fileBuffer);
-      } else {
-        pdfBuffer = fileBuffer;
-      }
-    } catch (error) {
-      pdfBuffer = fileBuffer;
-    }
+    const pdfBuffer = fs.readFileSync(filePath);
     
     const emailTemplate = `
       <h2>Invoice for Campaign: ${invoice.campaign_name}</h2>

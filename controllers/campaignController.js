@@ -515,71 +515,17 @@ export const sendInvoiceEmail = asyncHandler(async (req, res) => {
       clientInfo
     };
 
-    // Prepare email content
-    const hasAttachment = pdf_attachment && pdf_attachment.content;
-    const emailContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #007bff;">Invoice for Your Campaign</h2>
-        <p>Dear ${clientInfo.name},</p>
-        <p>Thank you for using ADEX Connect for your campaign "<strong>${campaignName}</strong>".</p>
-        <p>Please find below the invoice details for the services provided. The total amount is <strong>$${parseFloat(amount).toFixed(2)}</strong>.</p>
-        ${hasAttachment ? '<p><strong>Please check the attached PDF invoice for detailed information.</strong></p>' : ''}
-        
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3>Invoice Details:</h3>
-          <ul>
-            <li><strong>Campaign:</strong> ${campaignName}</li>
-            <li><strong>Amount:</strong> $${parseFloat(amount).toFixed(2)}</li>
-            <li><strong>Due Date:</strong> ${invoiceData.dueDate}</li>
-          </ul>
-        </div>
-        
-        <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0;">
-          <h3>Company Information:</h3>
-          <p><strong>${companyInfo.name}</strong><br>
-          ${companyInfo.address}<br>
-          Email: ${companyInfo.email}<br>
-          Phone: ${companyInfo.phone}</p>
-        </div>
-        
-        <p>If you have any questions about this invoice, please don't hesitate to contact us.</p>
-        <p>Best regards,<br>The ADEX Team</p>
-      </div>
-    `;
-
     // Prepare attachments
     let attachments = [];
-    let pdfSkippedReason = null;
     
     if (pdf_attachment && pdf_attachment.content) {
       try {
-        
-        // Check base64 size first (before decoding)
         const base64String = pdf_attachment.content.replace(/^data:application\/pdf;base64,/, '');
-        const estimatedSizeInBytes = (base64String.length * 3) / 4; // Base64 to binary ratio
-        const estimatedSizeInMB = estimatedSizeInBytes / (1024 * 1024);
-        
         const pdfBuffer = Buffer.from(base64String, 'base64');
         const actualSizeInMB = pdfBuffer.length / (1024 * 1024);
         
-        if (actualSizeInMB > 10) {
-          try {
-            const compressedBuffer = await compressPdf(pdfBuffer);
-            const compressedSizeInMB = compressedBuffer.length / (1024 * 1024);
-            
-            if (compressedSizeInMB > 10) {
-              pdfSkippedReason = `PDF too large even after compression (${compressedSizeInMB.toFixed(2)}MB > 10MB)`;
-            } else {
-              attachments.push({
-                filename: pdf_attachment.filename || `invoice_${campaignId}.pdf`,
-                content: compressedBuffer,
-                contentType: pdf_attachment.contentType || 'application/pdf'
-              });
-            }
-          } catch (compressionError) {
-            pdfSkippedReason = `PDF compression failed: ${compressionError.message}`;
-          }
-        } else {
+        // Only attach if under 10MB (silently skip if over)
+        if (actualSizeInMB <= 10) {
           attachments.push({
             filename: pdf_attachment.filename || `invoice_${campaignId}.pdf`,
             content: pdfBuffer,
@@ -587,9 +533,140 @@ export const sendInvoiceEmail = asyncHandler(async (req, res) => {
           });
         }
       } catch (error) {
-        pdfSkippedReason = `PDF processing error: ${error.message}`;
+        // Silently skip on error
       }
     }
+
+    // Prepare minimal black & white email content (after attachments are processed)
+    const hasAttachment = attachments.length > 0;
+    const emailContent = `
+      <div style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; color: #000000;">
+        <!-- Header -->
+        <div style="text-align: center; padding: 30px 20px 20px 20px; border-bottom: 2px solid #000000;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #000000; letter-spacing: 1px;">
+            CAMPAIGN INVOICE
+          </h1>
+          <p style="margin: 10px 0 0 0; font-size: 16px; font-weight: bold; color: #000000;">
+            ${companyInfo.name}
+          </p>
+          <p style="margin: 5px 0 0 0; font-size: 14px; color: #000000;">
+            Invoice Date: ${invoiceData.invoiceDate}
+          </p>
+        </div>
+
+        <!-- Main content -->
+        <div style="padding: 30px 20px; background: #ffffff;">
+          
+          <!-- Campaign Details Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #000000; letter-spacing: 0.5px;">
+              CAMPAIGN DETAILS
+            </h2>
+            <div style="border-bottom: 1px solid #000000; margin-bottom: 15px;"></div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Campaign Name:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; font-weight: bold; text-align: right;">${campaignName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Service Description:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; text-align: right;">${invoiceData.campaignDescription}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Due Date:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; font-weight: bold; text-align: right;">${invoiceData.dueDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Payment Details Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #000000; letter-spacing: 0.5px;">
+              PAYMENT DETAILS
+            </h2>
+            <div style="border-bottom: 1px solid #000000; margin-bottom: 15px;"></div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Campaign Service:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; text-align: right;">$${parseFloat(amount).toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td colspan="2" style="padding: 15px 0 8px 0;">
+                  <div style="border-bottom: 1px solid #000000;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 16px; font-weight: bold;">TOTAL AMOUNT:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 16px; font-weight: bold; text-align: right;">$${parseFloat(amount).toFixed(2)}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Banking Information Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #000000; letter-spacing: 0.5px;">
+              BANKING INFORMATION
+            </h2>
+            <div style="border-bottom: 1px solid #000000; margin-bottom: 15px;"></div>
+            
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Bank Name:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; text-align: right;">Truist Bank</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Address:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; text-align: right;">7681 Linton Hall Rd, Gainesville, VA 20155</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Routing Number:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; font-weight: bold; text-align: right;">051404260</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px;">Account Number:</td>
+                <td style="padding: 8px 0; color: #000000; font-size: 14px; font-weight: bold; text-align: right;">1470002991527</td>
+              </tr>
+            </table>
+          </div>
+
+          ${hasAttachment ? `
+          <!-- Attachment Notice -->
+          <div style="border: 1px solid #000000; padding: 15px; margin-bottom: 30px; text-align: center;">
+            <p style="margin: 0; color: #000000; font-size: 14px;">
+              <strong>Detailed PDF invoice is attached to this email</strong>
+            </p>
+          </div>
+          ` : ''}
+
+          <!-- Company Information Section -->
+          <div style="margin-bottom: 30px;">
+            <h2 style="margin: 0 0 15px 0; font-size: 16px; font-weight: bold; color: #000000; letter-spacing: 0.5px;">
+              COMPANY INFORMATION
+            </h2>
+            <div style="border-bottom: 1px solid #000000; margin-bottom: 15px;"></div>
+            
+            <div style="color: #000000; font-size: 14px; line-height: 1.6;">
+              <strong>${companyInfo.name}</strong><br>
+              ${companyInfo.address}<br>
+              Email: ${companyInfo.email}<br>
+              Phone: ${companyInfo.phone}
+            </div>
+          </div>
+
+          <!-- Footer message -->
+          <div style="border-top: 1px solid #000000; padding-top: 20px; text-align: center;">
+            <p style="color: #000000; font-size: 14px; line-height: 1.5; margin: 0 0 15px 0;">
+              Please transfer the total amount to complete your campaign registration.
+            </p>
+            <p style="color: #000000; font-size: 14px; margin: 0;">
+              <strong>Contact: info@adexconnect.com | (555) 703-2339</strong>
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
 
     // Send email
     await sendEmail(email, "Invoice for Your Campaign", emailContent, null, attachments);
@@ -609,11 +686,6 @@ export const sendInvoiceEmail = asyncHandler(async (req, res) => {
         attachmentStatus: attachments.length > 0 ? 'attached' : 'no_attachment'
       }
     };
-    
-    if (pdfSkippedReason) {
-      response.data.pdfSkipped = pdfSkippedReason;
-      response.message = "Invoice email sent (PDF attachment skipped due to size limit)";
-    }
     
     res.status(200).json(response);
 
