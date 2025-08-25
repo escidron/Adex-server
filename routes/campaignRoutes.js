@@ -11,7 +11,8 @@ import {
   checkSubmission,
   updateRewardStatus,
   getMyParticipations,
-  removeParticipant
+  removeParticipant,
+  sendInvoiceEmail
 } from '../controllers/campaignController.js';
 
 const router = express.Router();
@@ -30,5 +31,6 @@ router.put('/submissions/:submission_id/check', protect, checkSubmission);
 router.put('/submissions/:submission_id/reward', protect, updateRewardStatus);
 router.get('/my/participations', protect, getMyParticipations);
 router.delete('/:campaign_id/submissions/:submission_id', protect, removeParticipant);
+router.post('/send-invoice-email', sendInvoiceEmail);
 
 export default router; 

@@ -16,7 +16,8 @@ CREATE TABLE IF NOT EXISTS companies (
     created_at timestamp,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at timestamp,
-    rating float(10,2)
+    rating float(10,2),
+    invoices JSON
   );
 `;
 
