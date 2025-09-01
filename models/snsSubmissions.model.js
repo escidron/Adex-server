@@ -3,7 +3,7 @@ const createSnsSubmissionsTable = `
     id bigint UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     campaign_id bigint UNSIGNED NOT NULL,
     user_id bigint UNSIGNED NOT NULL,
-    sns_url varchar(255) NOT NULL,
+    sns_url varchar(255) NULL,
     submitted_at timestamp DEFAULT CURRENT_TIMESTAMP,
     is_checked tinyint(1) DEFAULT 0,
     checked_at timestamp NULL,

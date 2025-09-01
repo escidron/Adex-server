@@ -12,10 +12,17 @@ import {
   updateRewardStatus,
   getMyParticipations,
   removeParticipant,
-  sendInvoiceEmail
+  sendInvoiceEmail,
+  getMyCampaignsHandler,
+  getParticipatedHandler,
+  updateSubmissionUrlHandler
 } from '../controllers/campaignController.js';
 
 const router = express.Router();
+
+// My campaigns routes (must come before /:id to avoid conflicts)
+router.get('/my-campaigns', protect, getMyCampaignsHandler);
+router.get('/participated', protect, getParticipatedHandler);
 
 // Campaign CRUD operations
 router.get("/", getCampaigns);
@@ -29,6 +36,7 @@ router.get('/:id/participants', getParticipants);
 router.post('/participate', protect, submitParticipation);
 router.put('/submissions/:submission_id/check', protect, checkSubmission);
 router.put('/submissions/:submission_id/reward', protect, updateRewardStatus);
+router.put('/submissions/:submission_id/update-url', protect, updateSubmissionUrlHandler);
 router.get('/my/participations', protect, getMyParticipations);
 router.delete('/:campaign_id/submissions/:submission_id', protect, removeParticipant);
 router.post('/send-invoice-email', sendInvoiceEmail);
