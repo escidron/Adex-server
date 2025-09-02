@@ -49,8 +49,10 @@ const getAllCampaigns = (userId) => {
 const getCampaignById = (id) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT * FROM campaigns 
-      WHERE id = ? AND deleted_at IS NULL
+      SELECT c.*, a.id as advertisement_id 
+      FROM campaigns c
+      LEFT JOIN advertisement a ON a.campaign_id = c.id
+      WHERE c.id = ? AND c.deleted_at IS NULL
     `;
     db.query(query, [id], (err, result) => {
       if (err) reject(err);
@@ -116,10 +118,39 @@ const createCampaignQuery = (data) => {
         // Safely access insertId with a fallback
         const insertId = result.insertId || 0;
         
-        resolve({
-          id: insertId,
-          ...data,
-          image_gallery: images
+        // Create advertisement listing for this campaign
+        const adQuery = `
+          INSERT INTO advertisement (
+            category_id, campaign_id, created_by, status, title, description,
+            price, image, start_date, end_date, created_by_type, company_id,
+            created_at, updated_at
+          ) VALUES (23, ?, ?, 1, ?, ?, ?, ?, ?, ?, 'u', ?, NOW(), NOW())
+        `;
+        
+        const adValues = [
+          insertId, // campaign_id
+          data.created_by,
+          data.name,
+          data.description,
+          data.reward_amount, // Using reward_amount as price
+          images ? images.split(';')[0] : null, // Use first image for listing
+          data.start_date,
+          data.end_date,
+          data.company_id
+        ];
+        
+        db.query(adQuery, adValues, (adErr, adResult) => {
+          if (adErr) {
+            console.error('Error creating advertisement for campaign:', adErr);
+            // Still resolve with campaign data even if ad creation fails
+          }
+          
+          resolve({
+            id: insertId,
+            ...data,
+            image_gallery: images,
+            advertisement_id: adResult ? adResult.insertId : null
+          });
         });
       });
     } catch (error) {
