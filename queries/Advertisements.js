@@ -35,7 +35,16 @@ export async function getFilteredAdvertisements(
 }
 //add the id of the user is filtering so does not return his listings
 export async function getAllAdvertisements() {
-  const allAdvertisementsQuery = `SELECT * FROM advertisement where status NOT IN('0','5')`;
+  const allAdvertisementsQuery = `
+    SELECT a.*, 
+           c.name as campaign_name,
+           c.max_participants,
+           c.budget as campaign_budget,
+           c.reward_amount
+    FROM advertisement a
+    LEFT JOIN campaigns c ON a.campaign_id = c.id
+    WHERE a.status NOT IN('0','5')
+  `;
 
   return new Promise((resolve, reject) => {
     db.query(allAdvertisementsQuery, (err, result) => {
@@ -63,7 +72,17 @@ export async function getAdvertisementByCreator(userId, id, companyId) {
 }
 
 export async function getAdvertisementById(id) {
-  const advertisementByIdQuery = `SELECT * FROM adex.advertisement where id = ${id}`;
+  const advertisementByIdQuery = `
+    SELECT a.*, 
+           c.name as campaign_name,
+           c.max_participants,
+           c.budget as campaign_budget,
+           c.reward_amount,
+           c.image_gallery as campaign_images
+    FROM advertisement a
+    LEFT JOIN campaigns c ON a.campaign_id = c.id
+    WHERE a.id = ${id}
+  `;
 
   return new Promise((resolve, reject) => {
     db.query(advertisementByIdQuery, (err, result) => {

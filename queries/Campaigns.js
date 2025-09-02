@@ -49,8 +49,10 @@ const getAllCampaigns = (userId) => {
 const getCampaignById = (id) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT * FROM campaigns 
-      WHERE id = ? AND deleted_at IS NULL
+      SELECT c.*, a.id as advertisement_id 
+      FROM campaigns c
+      LEFT JOIN advertisement a ON a.campaign_id = c.id
+      WHERE c.id = ? AND c.deleted_at IS NULL
     `;
     db.query(query, [id], (err, result) => {
       if (err) reject(err);
@@ -116,10 +118,39 @@ const createCampaignQuery = (data) => {
         // Safely access insertId with a fallback
         const insertId = result.insertId || 0;
         
-        resolve({
-          id: insertId,
-          ...data,
-          image_gallery: images
+        // Create advertisement listing for this campaign
+        const adQuery = `
+          INSERT INTO advertisement (
+            category_id, campaign_id, created_by, status, title, description,
+            price, image, start_date, end_date, created_by_type, company_id,
+            created_at, updated_at
+          ) VALUES (23, ?, ?, 1, ?, ?, ?, ?, ?, ?, 'u', ?, NOW(), NOW())
+        `;
+        
+        const adValues = [
+          insertId, // campaign_id
+          data.created_by,
+          data.name,
+          data.description,
+          data.reward_amount, // Using reward_amount as price
+          images ? images.split(';')[0] : null, // Use first image for listing
+          data.start_date,
+          data.end_date,
+          data.company_id
+        ];
+        
+        db.query(adQuery, adValues, (adErr, adResult) => {
+          if (adErr) {
+            console.error('Error creating advertisement for campaign:', adErr);
+            // Still resolve with campaign data even if ad creation fails
+          }
+          
+          resolve({
+            id: insertId,
+            ...data,
+            image_gallery: images,
+            advertisement_id: adResult ? adResult.insertId : null
+          });
         });
       });
     } catch (error) {
@@ -200,20 +231,37 @@ const getCampaignParticipants = (campaignId) => {
 
 const submitCampaignParticipation = (data) => {
   return new Promise((resolve, reject) => {
-    const query = `
-      INSERT INTO sns_submissions (
-        campaign_id, user_id, sns_url,
-        deleted_at, created_at, updated_at
-      ) VALUES (?, ?, ?, NULL, NOW(), NOW())
+    // Check if user already registered for this campaign
+    const checkQuery = `
+      SELECT id FROM sns_submissions 
+      WHERE campaign_id = ? AND user_id = ? AND deleted_at IS NULL
     `;
-    const values = [
-      data.campaign_id,
-      data.user_id,
-      data.sns_url
-    ];
-    db.query(query, values, (err, result) => {
-      if (err) reject(err);
-      resolve(result);
+    
+    db.query(checkQuery, [data.campaign_id, data.user_id], (checkErr, checkResult) => {
+      if (checkErr) {
+        return reject(checkErr);
+      }
+      
+      if (checkResult && checkResult.length > 0) {
+        return reject(new Error('User already registered for this campaign'));
+      }
+      
+      // Proceed with registration
+      const query = `
+        INSERT INTO sns_submissions (
+          campaign_id, user_id, sns_url,
+          deleted_at, created_at, updated_at
+        ) VALUES (?, ?, ?, NULL, NOW(), NOW())
+      `;
+      const values = [
+        data.campaign_id,
+        data.user_id,
+        data.sns_url || null  // Allow null sns_url
+      ];
+      db.query(query, values, (err, result) => {
+        if (err) reject(err);
+        resolve(result);
+      });
     });
   });
 };
@@ -324,6 +372,142 @@ const removeParticipantFromCampaign = (submissionId) => {
   });
 };
 
+const getMyCampaigns = (userId) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        c.*,
+        COUNT(DISTINCT s.id) as participant_count,
+        CASE 
+          WHEN c.end_date < NOW() THEN 'completed'
+          WHEN c.start_date > NOW() THEN 'upcoming'
+          ELSE 'active'
+        END as status
+      FROM campaigns c
+      LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.deleted_at IS NULL
+      WHERE c.created_by = ? AND c.deleted_at IS NULL
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `;
+    
+    db.query(query, [userId], (err, result) => {
+      if (err) reject(err);
+      resolve(result);
+    });
+  });
+};
+
+const getParticipatedCampaigns = (userId) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT 
+        s.id as participation_id,
+        s.campaign_id,
+        s.user_id,
+        s.sns_url,
+        s.submitted_at,
+        s.is_checked,
+        s.checked_at,
+        s.is_rewarded,
+        s.rewarded_at,
+        s.note,
+        CASE 
+          WHEN s.is_rewarded = 1 THEN 'rewarded'
+          WHEN s.is_checked = 1 THEN 'approved'
+          WHEN s.is_checked = 0 AND s.note IS NOT NULL THEN 'rejected'
+          ELSE 'pending'
+        END as status,
+        c.id as campaign_id,
+        c.name as campaign_name,
+        c.description as campaign_description,
+        c.image_gallery,
+        c.reward_amount,
+        c.start_date,
+        c.end_date
+      FROM sns_submissions s
+      JOIN campaigns c ON s.campaign_id = c.id
+      WHERE s.user_id = ? AND s.deleted_at IS NULL AND c.deleted_at IS NULL
+      ORDER BY s.submitted_at DESC
+    `;
+    
+    db.query(query, [userId], (err, result) => {
+      if (err) reject(err);
+      
+      // Format the response to match the expected structure
+      const formattedResult = result.map(row => ({
+        participation_id: row.participation_id,
+        campaign_id: row.campaign_id,
+        user_id: row.user_id,
+        sns_url: row.sns_url || null,  // Handle null URLs
+        status: row.status,
+        submitted_at: row.submitted_at,
+        approved_at: row.checked_at,
+        reward_sent: row.is_rewarded === 1,
+        has_submitted_url: !!row.sns_url,  // New field to indicate if URL exists
+        campaign: {
+          id: row.campaign_id,
+          name: row.campaign_name,
+          description: row.campaign_description,
+          image_gallery: row.image_gallery,
+          reward_amount: row.reward_amount,
+          start_date: row.start_date,
+          end_date: row.end_date
+        }
+      }));
+      
+      resolve(formattedResult);
+    });
+  });
+};
+
+const updateSubmissionUrl = (submissionId, userId, snsUrl) => {
+  return new Promise((resolve, reject) => {
+    // First verify the submission belongs to the user
+    const verifyQuery = `
+      SELECT id, campaign_id, is_checked, is_rewarded 
+      FROM sns_submissions 
+      WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+    `;
+    
+    db.query(verifyQuery, [submissionId, userId], (verifyErr, verifyResult) => {
+      if (verifyErr) {
+        return reject(verifyErr);
+      }
+      
+      if (!verifyResult || verifyResult.length === 0) {
+        return reject(new Error('Submission not found or unauthorized'));
+      }
+      
+      const submission = verifyResult[0];
+      
+      // Don't allow URL update if already checked or rewarded
+      if (submission.is_checked) {
+        return reject(new Error('Cannot update URL after submission has been checked'));
+      }
+      
+      // Update the URL
+      const updateQuery = `
+        UPDATE sns_submissions 
+        SET sns_url = ?, updated_at = NOW()
+        WHERE id = ? AND user_id = ?
+      `;
+      
+      db.query(updateQuery, [snsUrl, submissionId, userId], (updateErr, updateResult) => {
+        if (updateErr) {
+          return reject(updateErr);
+        }
+        
+        resolve({
+          success: true,
+          submission_id: submissionId,
+          campaign_id: submission.campaign_id,
+          sns_url: snsUrl
+        });
+      });
+    });
+  });
+};
+
 export {
   getAllCampaigns,
   getCampaignById,
@@ -336,5 +520,8 @@ export {
   updateSubmissionRewardStatus,
   getUserCampaigns,
   getSubmissionById,
-  removeParticipantFromCampaign
+  removeParticipantFromCampaign,
+  getMyCampaigns,
+  getParticipatedCampaigns,
+  updateSubmissionUrl
 };

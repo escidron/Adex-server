@@ -299,14 +299,14 @@ export async function insertUserNotifications(
     message,
     created_at,
     redirect
-    ${key ? ",notifications.key" : ""}
+    ${key ? ",`key`" : ""}
   ) VALUES (
     '${userId}',
     '${header}',
     '${message}',
     '${createdAt}',
     '${redirect}'
-    ${key ? "," + key : ""}
+    ${key ? ",'" + key + "'" : ""}
     )
 `;
   return new Promise((resolve, reject) => {
@@ -439,8 +439,8 @@ export async function getAllChatMessages(userId) {
   FROM messages as m
   JOIN advertisement as a ON m.advertisement_id = a.id COLLATE utf8mb4_unicode_ci
   JOIN users as u ON (u.id = m.seller_id or u.id = m.buyer_id) and u.id != ${userId} COLLATE utf8mb4_unicode_ci
-  where m.seller_id = ${userId} or m.buyer_id = ${userId}
-  order by m.created_at 
+  WHERE m.seller_id = ${userId} or m.buyer_id = ${userId}
+  ORDER BY m.created_at 
   `;
   return new Promise((resolve, reject) => {
     db.query(messagesChatQuery, (err, result) => {

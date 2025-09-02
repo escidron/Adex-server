@@ -14,7 +14,10 @@ import {
   updateSubmissionRewardStatus,
   getUserCampaigns,
   getSubmissionById,
-  removeParticipantFromCampaign
+  removeParticipantFromCampaign,
+  getMyCampaigns,
+  getParticipatedCampaigns,
+  updateSubmissionUrl
 } from "../queries/Campaigns.js";
 import { getUsersById } from "../queries/Users.js";
 import { getCompaniesById } from "../queries/Companies.js";
@@ -171,7 +174,7 @@ export const getParticipants = asyncHandler(async (req, res) => {
   }
 });
 
-// Submit campaign participation
+// Submit campaign participation (registration only)
 export const submitParticipation = asyncHandler(async (req, res) => {
   try {
     const token = req.cookies.jwt;
@@ -183,8 +186,9 @@ export const submitParticipation = asyncHandler(async (req, res) => {
     const userId = decoded.userId;
     
     const submissionData = {
-      ...req.body,
-      user_id: userId
+      campaign_id: req.body.campaign_id,
+      user_id: userId,
+      sns_url: req.body.sns_url || null  // Allow empty/null sns_url
     };
     
     const campaign = await getCampaignById(submissionData.campaign_id);
@@ -192,10 +196,26 @@ export const submitParticipation = asyncHandler(async (req, res) => {
       return res.status(404).json({ error: "Campaign not found" });
     }
     
-    await submitCampaignParticipation(submissionData);
+    // Check if campaign is still active
+    const now = new Date();
+    const endDate = new Date(campaign.end_date);
+    if (now > endDate) {
+      return res.status(400).json({ error: "Campaign has ended" });
+    }
     
-    res.status(201).json({ message: "Participation submitted successfully" });
+    const result = await submitCampaignParticipation(submissionData);
+    
+    res.status(201).json({ 
+      success: true,
+      participation_id: result.insertId,
+      message: submissionData.sns_url ? 
+        "Successfully participated in campaign with URL" : 
+        "Successfully registered for campaign. You can submit your URL later."
+    });
   } catch (error) {
+    if (error.message === 'User already registered for this campaign') {
+      return res.status(409).json({ error: error.message });
+    }
     logger.error(error.message, { endpoint: "submitParticipation" });
     res.status(500).json({ error: "Internal server error" });
   }
@@ -696,5 +716,91 @@ export const sendInvoiceEmail = asyncHandler(async (req, res) => {
       error: "Failed to send invoice email",
       details: error.message
     });
+  }
+});
+
+// Get my created campaigns
+export const getMyCampaignsHandler = asyncHandler(async (req, res) => {
+  try {
+    const token = req.cookies.jwt;
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    
+    const campaigns = await getMyCampaigns(userId);
+    
+    res.status(200).json({ data: campaigns });
+  } catch (error) {
+    logger.error(error.message, { endpoint: "getMyCampaigns" });
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Get campaigns I participated in
+export const getParticipatedHandler = asyncHandler(async (req, res) => {
+  try {
+    const token = req.cookies.jwt;
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    
+    const participations = await getParticipatedCampaigns(userId);
+    
+    res.status(200).json({ data: participations });
+  } catch (error) {
+    logger.error(error.message, { endpoint: "getParticipatedCampaigns" });
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Update SNS URL for existing submission
+export const updateSubmissionUrlHandler = asyncHandler(async (req, res) => {
+  try {
+    const token = req.cookies.jwt;
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+    
+    const { submission_id } = req.params;
+    const { sns_url } = req.body;
+    
+    // Validate sns_url
+    if (!sns_url || sns_url.trim() === '') {
+      return res.status(400).json({ error: "SNS URL is required" });
+    }
+    
+    // Basic URL validation
+    const urlPattern = /^https?:\/\/(www\.)?(instagram\.com|twitter\.com|x\.com|facebook\.com|youtube\.com|tiktok\.com|linkedin\.com)/i;
+    if (!urlPattern.test(sns_url)) {
+      return res.status(400).json({ 
+        error: "Please provide a valid social media URL (Instagram, Twitter/X, Facebook, YouTube, TikTok, or LinkedIn)" 
+      });
+    }
+    
+    const result = await updateSubmissionUrl(submission_id, userId, sns_url.trim());
+    
+    res.status(200).json({
+      success: true,
+      message: "SNS URL updated successfully",
+      data: result
+    });
+  } catch (error) {
+    if (error.message === 'Submission not found or unauthorized') {
+      return res.status(404).json({ error: error.message });
+    }
+    if (error.message === 'Cannot update URL after submission has been checked') {
+      return res.status(400).json({ error: error.message });
+    }
+    logger.error(error.message, { endpoint: "updateSubmissionUrl" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
