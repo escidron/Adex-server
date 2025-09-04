@@ -35,6 +35,7 @@
     amount_reviews int,
     media_types varchar(2),
     digital_price_type varchar(45)
+    campaign_id bigint
   )
 `;
 
