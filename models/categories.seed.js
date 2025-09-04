@@ -22,7 +22,12 @@ VALUES
   (19, 'Social Media', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
   (20, 'Audio Podcast', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
   (21, 'Video Podcast', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
-  (22, 'Video Content', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL)
+  (22, 'Video Content', '636e574abca3c.png', 7, 1, 0, 0, '2024-02-12 15:07:58', '2024-02-12 15:07:58', NULL),
+  (23, 'Campaign', 'digital-ad.png', 0, 1, 0, 0, '2025-08-11 17:33:39', '2025-09-02 03:28:25', NULL),
+  (24, 'Physical Space', 'physical-space.png', NULL, 1, 1, 1, '2025-08-11 17:33:39', '2025-08-11 17:33:39', NULL),
+  (25, 'Social Media', 'social-media.png', NULL, 1, 1, 1, '2025-08-11 17:33:39', '2025-08-11 17:33:39', NULL),
+  (26, 'Billboard', 'billboard.png', NULL, 1, 1, 1, '2025-08-11 17:33:39', '2025-08-11 17:33:39', NULL),
+  (27, 'Vehicle Wrapping', 'vehicle-wrap.png', NULL, 1, 1, 1, '2025-08-11 17:33:39', '2025-08-11 17:33:39', NULL)
   ON DUPLICATE KEY UPDATE id = id
 `;
 

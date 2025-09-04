@@ -10,7 +10,7 @@
     image varchar(255),
     address varchar(255),
     lat varchar(255),
-    long varchar(255),
+    \`long\` varchar(255),
     ad_duration_type varchar(1),
     duration int,
     units int,
