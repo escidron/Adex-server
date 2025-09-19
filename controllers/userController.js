@@ -1077,7 +1077,7 @@ const contactUs = asyncHandler(async (req, res) => {
 
 const addCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { name, image, address, hasPhysicalSpace, industry } = req.body;
+  const { name, image, address, hasPhysicalSpace, industry, email, phone } = req.body;
 
   const createdAt = new Date();
   const formattedCreatedAt = getFormattedDate(createdAt);
@@ -1101,7 +1101,9 @@ const addCompany = asyncHandler(async (req, res) => {
         address,
         industry,
         hasPhysicalSpace,
-        formattedCreatedAt
+        formattedCreatedAt,
+        email,
+        phone
       );
       res.status(200).json({ message: "Company registered succesfully" });
     } catch (error) {
@@ -1119,7 +1121,7 @@ const addCompany = asyncHandler(async (req, res) => {
 
 const editCompany = asyncHandler(async (req, res) => {
   const token = req.cookies.jwt;
-  const { id, name, image, address, hasPhysicalSpace, industry } = req.body;
+  const { id, name, image, address, hasPhysicalSpace, industry, email, phone } = req.body;
 
   if (token) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -1140,7 +1142,9 @@ const editCompany = asyncHandler(async (req, res) => {
         imageName,
         address,
         industry,
-        hasPhysicalSpace
+        hasPhysicalSpace,
+        email,
+        phone
       );
       res.status(200).json({ message: "Company edited succesfully" });
     } catch (error) {

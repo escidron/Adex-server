@@ -10,7 +10,9 @@ export async function insertCompany(
   address,
   industry,
   hasPhysicalSpace,
-  formattedCreatedAt
+  formattedCreatedAt,
+  email = null,
+  phone = null
 ) {
   const insertCompanyQuery = `
   INSERT INTO adex.companies (
@@ -20,6 +22,8 @@ export async function insertCompany(
     address,
     industry,
     has_physical_space,
+    email,
+    phone,
     created_at
   ) VALUES (
     '${id}',
@@ -28,6 +32,8 @@ export async function insertCompany(
     '${address}',
     '${industry}',
     '${hasPhysicalSpace}',
+    ${email ? `'${email}'` : 'NULL'},
+    ${phone ? `'${phone}'` : 'NULL'},
     '${formattedCreatedAt}'
   )
 `;
@@ -48,16 +54,20 @@ export async function editCompanyById(
   imageName,
   address,
   industry,
-  hasPhysicalSpace
+  hasPhysicalSpace,
+  email = null,
+  phone = null
 ) {
   const editCompanyQuery = `
-
   UPDATE companies SET
   company_name = '${name}',
   company_logo = '${imageName}',
   address = '${hasPhysicalSpace == '2' ? address : ''}',
   industry = '${industry}',
-  has_physical_space = '${hasPhysicalSpace}'
+  has_physical_space = '${hasPhysicalSpace}',
+  email = ${email ? `'${email}'` : 'NULL'},
+  phone = ${phone ? `'${phone}'` : 'NULL'},
+  updated_at = NOW()
   WHERE id = ${id} and user_id = ${userId}
 `;
   return new Promise((resolve, reject) => {

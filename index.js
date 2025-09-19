@@ -8,6 +8,7 @@ import listPropertyRoutes from "./routes/listPropertyRoutes.js";
 import PaymentsRoutes from "./routes/PaymentsRoutes.js";
 import paymentGatewayRoutes from "./routes/paymentGatewayRoutes.js";
 import campaignRoutes from "./routes/campaignRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import schedule from "node-schedule";
 
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
@@ -81,6 +82,7 @@ app.use("/api/list-property", listPropertyRoutes);
 app.use("/api/payments", PaymentsRoutes);
 app.use("/api/payment-gateway", protect, paymentGatewayRoutes);
 app.use("/api/campaigns", campaignRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/images", express.static("./images"));
 app.use("/pdfs", pdfDecompressMiddleware, express.static("./pdfs"));
 
