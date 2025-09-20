@@ -163,15 +163,6 @@ export async function saveInvoicePdf(companyId, campaignId, campaignName, pdfUrl
   const createdAt = new Date();
   const formattedUpdatedAt = getFormattedDate(createdAt);
 
-  // Create invoice object with all necessary information
-  const invoiceData = {
-    campaign_id: parseInt(campaignId),
-    campaign_name: campaignName,
-    pdf_url: pdfUrl,
-    filename: filename,
-    generated_at: formattedUpdatedAt
-  };
-
   const saveInvoiceQuery = `
     UPDATE companies SET
       invoices = JSON_ARRAY_APPEND(IFNULL(invoices, JSON_ARRAY()), '$', ?),
@@ -180,7 +171,7 @@ export async function saveInvoicePdf(companyId, campaignId, campaignName, pdfUrl
   `;
 
   return new Promise((resolve, reject) => {
-    db.query(saveInvoiceQuery, [JSON.stringify(invoiceData), formattedUpdatedAt, companyId], (err, result) => {
+    db.query(saveInvoiceQuery, [filename, formattedUpdatedAt, companyId], (err, result) => {
       if (err) {
         reject(err);
       }
