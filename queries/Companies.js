@@ -163,19 +163,64 @@ export async function saveInvoicePdf(companyId, campaignId, campaignName, pdfUrl
   const createdAt = new Date();
   const formattedUpdatedAt = getFormattedDate(createdAt);
 
+  // Create invoice object with all necessary information
+  const invoiceData = {
+    campaign_id: parseInt(campaignId),
+    campaign_name: campaignName,
+    pdf_url: pdfUrl,
+    filename: filename,
+    generated_at: formattedUpdatedAt
+  };
+
   const saveInvoiceQuery = `
     UPDATE companies SET
-      invoices = JSON_ARRAY_APPEND(IFNULL(invoices, JSON_ARRAY()), '$', '${filename}'),
-      updated_at = '${formattedUpdatedAt}'
-    WHERE id = ${companyId}
+      invoices = JSON_ARRAY_APPEND(IFNULL(invoices, JSON_ARRAY()), '$', ?),
+      updated_at = ?
+    WHERE id = ?
   `;
 
   return new Promise((resolve, reject) => {
-    db.query(saveInvoiceQuery, (err, result) => {
+    db.query(saveInvoiceQuery, [JSON.stringify(invoiceData), formattedUpdatedAt, companyId], (err, result) => {
       if (err) {
         reject(err);
       }
       resolve(result);
+    });
+  });
+}
+
+// Function removed - no longer needed with simplified approach
+
+// Validate campaign ownership
+export async function validateCampaignOwnership(campaignId, userId, companyId) {
+  const validateQuery = `
+    SELECT id FROM campaigns
+    WHERE id = ? AND created_by = ? AND company_id = ? AND deleted_at IS NULL
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query(validateQuery, [campaignId, userId, companyId], (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result.length > 0);
+    });
+  });
+}
+
+// Validate company ownership
+export async function validateCompanyOwnership(companyId, userId) {
+  const validateQuery = `
+    SELECT id FROM companies
+    WHERE id = ? AND user_id = ?
+  `;
+
+  return new Promise((resolve, reject) => {
+    db.query(validateQuery, [companyId, userId], (err, result) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(result.length > 0);
     });
   });
 }

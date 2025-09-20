@@ -11,6 +11,8 @@ import {
   editCompanyById,
   getCompaniesQuery,
   removeCompanyById,
+  validateCampaignOwnership,
+  validateCompanyOwnership,
 } from "../queries/Companies.js";
 import dotenv from "dotenv";
 import {
@@ -1783,14 +1785,30 @@ const updateStripeAccountInfo = asyncHandler(async (req, res) => {
 
 const saveInvoicePdfController = asyncHandler(async (req, res) => {
   const { company_id, campaign_id, campaign_name, pdf_base64, filename } = req.body;
-  
+
   if (!company_id || !campaign_id || !campaign_name || !pdf_base64 || !filename) {
     return res.status(400).json({
       error: "Missing required fields: company_id, campaign_id, campaign_name, pdf_base64, filename"
     });
   }
 
+  // Get current user ID from JWT
+  const token = req.cookies.jwt;
+  if (!token) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
   try {
+    // Validate campaign ownership and company relationship
+    const isValidCampaign = await validateCampaignOwnership(campaign_id, userId, company_id);
+    if (!isValidCampaign) {
+      return res.status(403).json({
+        error: "Campaign does not belong to you or the specified company"
+      });
+    }
     const base64Data = pdf_base64.replace(/^data:application\/pdf;base64,/, "");
     const pdfBuffer = Buffer.from(base64Data, 'base64');
     
@@ -1828,27 +1846,45 @@ const saveInvoicePdfController = asyncHandler(async (req, res) => {
 
 const getCompanyInvoicesController = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  
+
   if (!id) {
     return res.status(400).json({
       error: "Company ID is required"
     });
   }
 
+  // Get current user ID from JWT
+  const token = req.cookies.jwt;
+  if (!token) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const userId = decoded.userId;
+
   try {
+    // Validate company ownership
+    const isCompanyOwner = await validateCompanyOwnership(id, userId);
+    if (!isCompanyOwner) {
+      return res.status(403).json({
+        error: "Access denied. You do not own this company."
+      });
+    }
+
+    // Get company invoices
     const result = await getCompanyInvoices(id);
-    
+
     if (result.length === 0) {
       return res.status(404).json({
         error: "Company not found"
       });
     }
 
-    const invoiceData = result[0].invoices || [];
-    
+    const allInvoiceData = result[0].invoices || [];
+
     // Handle mixed format: objects (old) and strings (new)
     const invoices = await Promise.all(
-      invoiceData.map(async (item) => {
+      allInvoiceData.map(async (item) => {
         if (typeof item === 'string') {
           // New format: filename string
           return await filenameToInvoiceObject(item, process.env.SERVER_IP);
@@ -1858,8 +1894,9 @@ const getCompanyInvoicesController = asyncHandler(async (req, res) => {
         }
       })
     );
-    
+
     res.status(200).json({
+      message: "Company invoices retrieved successfully",
       data: invoices
     });
   } catch (error) {

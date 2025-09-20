@@ -71,7 +71,7 @@ export const updateCampaignStatusAdmin = asyncHandler(async (req, res) => {
     const { status } = req.body;
 
     // Validate status
-    const validStatuses = ['pending', 'active', 'rejected', 'completed'];
+    const validStatuses = ['pending', 'active', 'rejected'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         error: "Invalid status. Must be one of: " + validStatuses.join(', ')

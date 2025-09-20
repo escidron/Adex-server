@@ -16,7 +16,15 @@ const getAllCampaigns = (userId) => {
             ELSE false
           END) as is_participated,
           MAX(COALESCE(s.id, '')) as submission_id,
-          COUNT(DISTINCT ss.id) as participant_count
+          COUNT(DISTINCT ss.id) as participant_count,
+          CASE
+            WHEN c.status = 'pending' THEN 'pending'
+            WHEN c.status = 'rejected' THEN 'rejected'
+            WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+            WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+            WHEN c.status = 'active' THEN 'active'
+            ELSE c.status
+          END as status
         FROM campaigns c
         LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.user_id = ? AND s.deleted_at IS NULL
         LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
@@ -30,7 +38,15 @@ const getAllCampaigns = (userId) => {
         SELECT c.*,
           false as is_participated,
           '' as submission_id,
-          COUNT(DISTINCT ss.id) as participant_count
+          COUNT(DISTINCT ss.id) as participant_count,
+          CASE
+            WHEN c.status = 'pending' THEN 'pending'
+            WHEN c.status = 'rejected' THEN 'rejected'
+            WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+            WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+            WHEN c.status = 'active' THEN 'active'
+            ELSE c.status
+          END as status
         FROM campaigns c
         LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
         WHERE c.deleted_at IS NULL AND c.status = 'active'
@@ -51,7 +67,15 @@ const getAllCampaignsAdmin = () => {
   return new Promise((resolve, reject) => {
     const query = `
       SELECT c.*,
-        COUNT(DISTINCT ss.id) as participant_count
+        COUNT(DISTINCT ss.id) as participant_count,
+        CASE
+          WHEN c.status = 'pending' THEN 'pending'
+          WHEN c.status = 'rejected' THEN 'rejected'
+          WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+          WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+          WHEN c.status = 'active' THEN 'active'
+          ELSE c.status
+        END as status
       FROM campaigns c
       LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
       WHERE c.deleted_at IS NULL
@@ -411,13 +435,16 @@ const removeParticipantFromCampaign = (submissionId) => {
 const getMyCampaigns = (userId) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT 
+      SELECT
         c.*,
         COUNT(DISTINCT s.id) as participant_count,
-        CASE 
-          WHEN c.end_date < NOW() THEN 'completed'
-          WHEN c.start_date > NOW() THEN 'upcoming'
-          ELSE 'active'
+        CASE
+          WHEN c.status = 'pending' THEN 'pending'
+          WHEN c.status = 'rejected' THEN 'rejected'
+          WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+          WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+          WHEN c.status = 'active' THEN 'active'
+          ELSE c.status
         END as status
       FROM campaigns c
       LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.deleted_at IS NULL
@@ -425,7 +452,7 @@ const getMyCampaigns = (userId) => {
       GROUP BY c.id
       ORDER BY c.created_at DESC
     `;
-    
+
     db.query(query, [userId], (err, result) => {
       if (err) reject(err);
       resolve(result);
