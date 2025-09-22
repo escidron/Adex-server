@@ -10,9 +10,11 @@ const createCampaignsTable = `
     reward_amount decimal(15,4),
     image_gallery text,
     created_by bigint UNSIGNED NOT NULL,
+    status ENUM('pending', 'active', 'rejected') DEFAULT 'pending',
     created_at timestamp DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at timestamp NULL
+    deleted_at timestamp NULL,
+    INDEX idx_campaign_status (status)
   )
 `;
 

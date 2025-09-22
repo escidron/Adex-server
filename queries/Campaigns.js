@@ -7,39 +7,99 @@ const getAllCampaigns = (userId) => {
   return new Promise((resolve, reject) => {
     let query;
     let params = [];
-    
+
     if (userId) {
       query = `
-        SELECT c.*, 
-          MAX(CASE 
-            WHEN s.user_id IS NOT NULL THEN true 
-            ELSE false 
+        SELECT c.*,
+          MAX(CASE
+            WHEN s.user_id IS NOT NULL THEN true
+            ELSE false
           END) as is_participated,
           MAX(COALESCE(s.id, '')) as submission_id,
-          COUNT(DISTINCT ss.id) as participant_count
+          COUNT(DISTINCT ss.id) as participant_count,
+          CASE
+            WHEN c.status = 'pending' THEN 'pending'
+            WHEN c.status = 'rejected' THEN 'rejected'
+            WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+            WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+            WHEN c.status = 'active' THEN 'active'
+            ELSE c.status
+          END as status
         FROM campaigns c
         LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.user_id = ? AND s.deleted_at IS NULL
         LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
-        WHERE c.deleted_at IS NULL
+        WHERE c.deleted_at IS NULL AND c.status = 'active'
         GROUP BY c.id
         ORDER BY c.created_at DESC
       `;
       params = [userId];
     } else {
       query = `
-        SELECT c.*, 
+        SELECT c.*,
           false as is_participated,
           '' as submission_id,
-          COUNT(DISTINCT ss.id) as participant_count
+          COUNT(DISTINCT ss.id) as participant_count,
+          CASE
+            WHEN c.status = 'pending' THEN 'pending'
+            WHEN c.status = 'rejected' THEN 'rejected'
+            WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+            WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+            WHEN c.status = 'active' THEN 'active'
+            ELSE c.status
+          END as status
         FROM campaigns c
         LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
-        WHERE c.deleted_at IS NULL
+        WHERE c.deleted_at IS NULL AND c.status = 'active'
         GROUP BY c.id
         ORDER BY c.created_at DESC
       `;
     }
-    
+
     db.query(query, params, (err, result) => {
+      if (err) reject(err);
+      resolve(result);
+    });
+  });
+};
+
+// Admin function to get all campaigns regardless of status
+const getAllCampaignsAdmin = () => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT c.*,
+        COUNT(DISTINCT ss.id) as participant_count,
+        CASE
+          WHEN c.status = 'pending' THEN 'pending'
+          WHEN c.status = 'rejected' THEN 'rejected'
+          WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+          WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+          WHEN c.status = 'active' THEN 'active'
+          ELSE c.status
+        END as status
+      FROM campaigns c
+      LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
+      WHERE c.deleted_at IS NULL
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `;
+
+    db.query(query, (err, result) => {
+      if (err) reject(err);
+      resolve(result);
+    });
+  });
+};
+
+// Update campaign status
+const updateCampaignStatus = (campaignId, status) => {
+  return new Promise((resolve, reject) => {
+    const query = `
+      UPDATE campaigns
+      SET status = ?, updated_at = NOW()
+      WHERE id = ? AND deleted_at IS NULL
+    `;
+
+    db.query(query, [status, campaignId], (err, result) => {
       if (err) reject(err);
       resolve(result);
     });
@@ -85,12 +145,12 @@ const createCampaignQuery = (data) => {
 
       const query = `
         INSERT INTO campaigns (
-          name, description, start_date, end_date, 
+          name, description, start_date, end_date,
           max_participants, budget, reward_amount, image_gallery,
-          created_by, company_id, deleted_at, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NOW(), NOW())
+          created_by, company_id, status, deleted_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, NOW(), NOW())
       `;
-      
+
       const values = [
         data.name,
         data.description,
@@ -375,13 +435,16 @@ const removeParticipantFromCampaign = (submissionId) => {
 const getMyCampaigns = (userId) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT 
+      SELECT
         c.*,
         COUNT(DISTINCT s.id) as participant_count,
-        CASE 
-          WHEN c.end_date < NOW() THEN 'completed'
-          WHEN c.start_date > NOW() THEN 'upcoming'
-          ELSE 'active'
+        CASE
+          WHEN c.status = 'pending' THEN 'pending'
+          WHEN c.status = 'rejected' THEN 'rejected'
+          WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+          WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+          WHEN c.status = 'active' THEN 'active'
+          ELSE c.status
         END as status
       FROM campaigns c
       LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.deleted_at IS NULL
@@ -389,7 +452,7 @@ const getMyCampaigns = (userId) => {
       GROUP BY c.id
       ORDER BY c.created_at DESC
     `;
-    
+
     db.query(query, [userId], (err, result) => {
       if (err) reject(err);
       resolve(result);
@@ -510,9 +573,11 @@ const updateSubmissionUrl = (submissionId, userId, snsUrl) => {
 
 export {
   getAllCampaigns,
+  getAllCampaignsAdmin,
   getCampaignById,
   createCampaignQuery,
   updateCampaign,
+  updateCampaignStatus,
   deleteCampaign,
   getCampaignParticipants,
   submitCampaignParticipation,
