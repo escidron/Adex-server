@@ -36,14 +36,35 @@ export async function getFilteredAdvertisements(
 //add the id of the user is filtering so does not return his listings
 export async function getAllAdvertisements() {
   const allAdvertisementsQuery = `
-    SELECT a.*, 
+    SELECT a.*,
            c.name as campaign_name,
            c.max_participants,
            c.budget as campaign_budget,
-           c.reward_amount
+           c.reward_amount,
+           CASE
+             WHEN a.category_id = 23 AND c.id IS NOT NULL THEN
+               CASE
+                 WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+                 WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+                 WHEN c.status = 'active' THEN 'active'
+                 ELSE c.status
+               END
+             ELSE NULL
+           END as campaign_status,
+           (SELECT COUNT(*) FROM sns_submissions ss WHERE ss.campaign_id = c.id AND ss.deleted_at IS NULL) as participant_count
     FROM advertisement a
     LEFT JOIN campaigns c ON a.campaign_id = c.id
     WHERE a.status NOT IN('0','5')
+      AND (
+        a.category_id != 23
+        OR (
+          a.category_id = 23
+          AND c.id IS NOT NULL
+          AND c.status = 'active'
+          AND c.end_date >= NOW()
+          AND c.deleted_at IS NULL
+        )
+      )
   `;
 
   return new Promise((resolve, reject) => {

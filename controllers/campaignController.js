@@ -17,9 +17,15 @@ import {
   removeParticipantFromCampaign,
   getMyCampaigns,
   getParticipatedCampaigns,
-  updateSubmissionUrl
+  updateSubmissionUrl,
+  rejectSubmission
 } from "../queries/Campaigns.js";
-import { getUsersById } from "../queries/Users.js";
+import { getUsersById, insertUserNotifications, insertMessages } from "../queries/Users.js";
+
+// ADEX Team system user ID for sending automated messages
+// This user was created with: name='ADEX Team', email='system@adexconnect.com'
+const ADEX_SYSTEM_USER_ID = process.env.ADEX_SYSTEM_USER_ID || '4';
+import getFormattedDate from "../utils/getFormattedDate.js";
 import { getCompaniesById } from "../queries/Companies.js";
 import sendEmail from "../utils/sendEmail.js";
 import PDFDocument from "pdfkit";
@@ -100,11 +106,61 @@ export const createCampaign = asyncHandler(async (req, res) => {
     }
     
     const result = await createCampaignQuery(campaignData);
-    
+
     if (!result || !result.id) {
       return res.status(500).json({ error: "Failed to create campaign. Database error." });
     }
-    
+
+    // Send notification to campaign creator
+    try {
+      console.log('=== SENDING CAMPAIGN CREATION NOTIFICATION ===');
+      console.log('userId:', userId);
+      console.log('campaignId:', result.id);
+
+      const notificationHeader = "Campaign Created Successfully!";
+      const notificationMessage = "Congratulations! Your campaign has been created. Check your email for the invoice and complete the payment to activate your campaign.";
+      const createdAt = getFormattedDate(new Date());
+      const redirect = `/campaign/${result.id}`;
+      const notificationKey = `campaign_created_${result.id}`;
+
+      console.log('Notification params:', { notificationHeader, createdAt, redirect, notificationKey });
+
+      const notificationResult = await insertUserNotifications(userId, notificationHeader, notificationMessage, createdAt, redirect, notificationKey);
+      console.log('Notification result:', notificationResult);
+      console.log('=== NOTIFICATION SENT SUCCESSFULLY ===');
+    } catch (notificationError) {
+      console.error('=== NOTIFICATION ERROR ===');
+      console.error('Error:', notificationError);
+      console.error('Message:', notificationError.message);
+    }
+
+    // Send chat message from ADEX Team
+    try {
+      console.log('=== SENDING CAMPAIGN CREATION CHAT MESSAGE ===');
+      console.log('advertisement_id:', result.advertisement_id);
+
+      if (result.advertisement_id) {
+        const chatMessage = `Congratulations on creating your campaign "${campaignData.name}"! Your campaign is currently pending review. Once approved, you will receive an invoice via email. Please complete the payment to activate your campaign. Thank you for choosing ADEX!`;
+        const messageCreatedAt = getFormattedDate(new Date());
+
+        await insertMessages(
+          ADEX_SYSTEM_USER_ID,  // sended_by (ADEX Team)
+          ADEX_SYSTEM_USER_ID,  // seller_id (ADEX Team as sender)
+          userId,               // buyer_id (campaign creator as receiver)
+          result.advertisement_id,
+          chatMessage,
+          messageCreatedAt,
+          ''  // no files
+        );
+        console.log('=== CHAT MESSAGE SENT SUCCESSFULLY ===');
+      } else {
+        console.log('No advertisement_id, skipping chat message');
+      }
+    } catch (chatError) {
+      console.error('=== CHAT MESSAGE ERROR ===');
+      console.error('Error:', chatError);
+    }
+
     res.status(201).json({
       message: "Campaign created successfully",
       data: { id: result.id }
@@ -195,21 +251,75 @@ export const submitParticipation = asyncHandler(async (req, res) => {
     if (!campaign) {
       return res.status(404).json({ error: "Campaign not found" });
     }
-    
+
     // Check if campaign is still active
     const now = new Date();
     const endDate = new Date(campaign.end_date);
     if (now > endDate) {
       return res.status(400).json({ error: "Campaign has ended" });
     }
-    
+
+    // Check if campaign is not started yet (planned)
+    const startDate = new Date(campaign.start_date);
+    if (campaign.status === 'planned' || now < startDate) {
+      return res.status(400).json({ error: "Campaign has not started yet" });
+    }
+
+    // Check if campaign is full
+    if (campaign.participant_count >= campaign.max_participants) {
+      return res.status(400).json({ error: "Campaign is full. Maximum participants reached." });
+    }
+
     const result = await submitCampaignParticipation(submissionData);
-    
-    res.status(201).json({ 
+
+    // Send notification to participant
+    try {
+      const campaignName = campaign.name.replace(/'/g, "''"); // Escape single quotes for SQL
+      const notificationHeader = "Registered for Campaign!";
+      const notificationMessage = `Congratulations! You have successfully registered for a campaign. Create your SNS post and submit the URL in Participated Campaigns to receive your reward.`;
+      const createdAt = getFormattedDate(new Date());
+      const redirect = `/my-profile?tab=5&sub-tab=2`;
+      const notificationKey = `campaign_registered_${submissionData.campaign_id}_${userId}`;
+
+      await insertUserNotifications(userId, notificationHeader, notificationMessage, createdAt, redirect, notificationKey);
+      logger.info('Campaign registration notification sent', { userId, campaignId: submissionData.campaign_id });
+    } catch (notificationError) {
+      // Don't fail the registration if notification fails
+      logger.error('Failed to send campaign registration notification', { error: notificationError.message, stack: notificationError.stack });
+    }
+
+    // Send chat message from ADEX Team for campaign registration
+    try {
+      console.log('=== SENDING CAMPAIGN REGISTRATION CHAT MESSAGE ===');
+      console.log('campaign.advertisement_id:', campaign.advertisement_id);
+
+      if (campaign.advertisement_id) {
+        const chatMessage = `Welcome to the "${campaign.name}" campaign! You have successfully registered. Next steps:\n\n1. Create your SNS post following the campaign guidelines\n2. Go to "Participated Campaigns" in your profile\n3. Submit your SNS post URL\n4. Wait for verification and receive your reward of $${campaign.reward_amount}\n\nGood luck and thank you for participating!`;
+        const messageCreatedAt = getFormattedDate(new Date());
+
+        await insertMessages(
+          ADEX_SYSTEM_USER_ID,  // sended_by (ADEX Team)
+          ADEX_SYSTEM_USER_ID,  // seller_id (ADEX Team as sender)
+          userId,               // buyer_id (participant as receiver)
+          campaign.advertisement_id,
+          chatMessage,
+          messageCreatedAt,
+          ''  // no files
+        );
+        console.log('=== REGISTRATION CHAT MESSAGE SENT SUCCESSFULLY ===');
+      } else {
+        console.log('No advertisement_id, skipping chat message');
+      }
+    } catch (chatError) {
+      console.error('=== REGISTRATION CHAT MESSAGE ERROR ===');
+      console.error('Error:', chatError);
+    }
+
+    res.status(201).json({
       success: true,
       participation_id: result.insertId,
-      message: submissionData.sns_url ? 
-        "Successfully participated in campaign with URL" : 
+      message: submissionData.sns_url ?
+        "Successfully participated in campaign with URL" :
         "Successfully registered for campaign. You can submit your URL later."
     });
   } catch (error) {
@@ -801,6 +911,28 @@ export const updateSubmissionUrlHandler = asyncHandler(async (req, res) => {
       return res.status(400).json({ error: error.message });
     }
     logger.error(error.message, { endpoint: "updateSubmissionUrl" });
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Reject submission (mark as rejected, user cannot reapply)
+export const rejectSubmissionHandler = asyncHandler(async (req, res) => {
+  try {
+    const { submission_id } = req.params;
+    const { note } = req.body;
+
+    const result = await rejectSubmission(submission_id, note || "Rejected by campaign owner");
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.message || "Failed to reject submission" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Submission rejected successfully"
+    });
+  } catch (error) {
+    logger.error(error.message, { endpoint: "rejectSubmission" });
     res.status(500).json({ error: "Internal server error" });
   }
 });

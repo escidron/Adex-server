@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS contracts (
     subscription_id VARCHAR(45),
     seller_id VARCHAR(45),
     buyer_id VARCHAR(45),
+    seller_stripe_id VARCHAR(255),
+    buyer_stripe_id VARCHAR(255),
     advertisement_id VARCHAR(45),
     contract_status VARCHAR(1),
     cancel_message LONGTEXT,
