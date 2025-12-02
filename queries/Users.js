@@ -413,18 +413,10 @@ export async function insertMessages( sended_by, seller_id, buyer_id, advertisem
     message,
     created_at,
     files
-  ) VALUES (
-    '${sended_by}',
-    '${seller_id}',
-    '${buyer_id}',
-    '${advertisement_id}',
-    '${message}',
-    '${formattedCreatedAt}',
-    '${filesNamesString}'
-  )
+  ) VALUES (?, ?, ?, ?, ?, ?, ?)
 `;
   return new Promise((resolve, reject) => {
-    db.query(insertMessageQuery, (err, result) => {
+    db.query(insertMessageQuery, [sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt, filesNamesString], (err, result) => {
       if (err) {
         reject(err);
       }
@@ -435,12 +427,16 @@ export async function insertMessages( sended_by, seller_id, buyer_id, advertisem
 
 //chat queries
 export async function getAllChatMessages(userId) {
-  const messagesChatQuery = `SELECT m.*,a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,u.id as user_id,u.name,u.profile_image
+  const messagesChatQuery = `SELECT m.*,
+    a.image,a.title,a.description,a.price,a.address,a.ad_duration_type,a.created_by,a.id as advertisement_id,
+    u.id as user_id,u.name,u.profile_image,
+    c.id as campaign_id, c.name as campaign_name, c.reward_amount, c.max_participants
   FROM messages as m
   JOIN advertisement as a ON m.advertisement_id = a.id COLLATE utf8mb4_unicode_ci
   JOIN users as u ON (u.id = m.seller_id or u.id = m.buyer_id) and u.id != ${userId} COLLATE utf8mb4_unicode_ci
+  LEFT JOIN campaigns as c ON a.campaign_id = c.id
   WHERE m.seller_id = ${userId} or m.buyer_id = ${userId}
-  ORDER BY m.created_at 
+  ORDER BY m.created_at
   `;
   return new Promise((resolve, reject) => {
     db.query(messagesChatQuery, (err, result) => {

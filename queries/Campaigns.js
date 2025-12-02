@@ -27,7 +27,7 @@ const getAllCampaigns = (userId) => {
           END as status
         FROM campaigns c
         LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.user_id = ? AND s.deleted_at IS NULL
-        LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
+        LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL AND (ss.status IS NULL OR ss.status != 'rejected')
         WHERE c.deleted_at IS NULL AND c.status = 'active'
         GROUP BY c.id
         ORDER BY c.created_at DESC
@@ -48,7 +48,7 @@ const getAllCampaigns = (userId) => {
             ELSE c.status
           END as status
         FROM campaigns c
-        LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
+        LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL AND (ss.status IS NULL OR ss.status != 'rejected')
         WHERE c.deleted_at IS NULL AND c.status = 'active'
         GROUP BY c.id
         ORDER BY c.created_at DESC
@@ -77,7 +77,7 @@ const getAllCampaignsAdmin = () => {
           ELSE c.status
         END as status
       FROM campaigns c
-      LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL
+      LEFT JOIN sns_submissions ss ON c.id = ss.campaign_id AND ss.deleted_at IS NULL AND (ss.status IS NULL OR ss.status != 'rejected')
       WHERE c.deleted_at IS NULL
       GROUP BY c.id
       ORDER BY c.created_at DESC
@@ -109,13 +109,25 @@ const updateCampaignStatus = (campaignId, status) => {
 const getCampaignById = (id) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT c.*, a.id as advertisement_id 
+      SELECT c.*,
+        a.id as advertisement_id,
+        CASE
+          WHEN c.status = 'active' AND c.start_date > NOW() THEN 'planned'
+          WHEN c.status = 'active' AND c.end_date < NOW() THEN 'closed'
+          WHEN c.status = 'active' THEN 'active'
+          ELSE c.status
+        END as computed_status,
+        (SELECT COUNT(*) FROM sns_submissions ss WHERE ss.campaign_id = c.id AND ss.deleted_at IS NULL) as participant_count
       FROM campaigns c
       LEFT JOIN advertisement a ON a.campaign_id = c.id
       WHERE c.id = ? AND c.deleted_at IS NULL
     `;
     db.query(query, [id], (err, result) => {
       if (err) reject(err);
+      if (result && result[0]) {
+        // Use computed_status as the status field
+        result[0].status = result[0].computed_status;
+      }
       resolve(result[0]);
     });
   });
@@ -273,14 +285,15 @@ const deleteCampaign = (id) => {
 const getCampaignParticipants = (campaignId) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT 
-        s.*, 
+      SELECT
+        s.*,
         u.name as user_name,
         u.email as user_email,
         u.mobile_number as user_phone
       FROM sns_submissions s
       JOIN users u ON s.user_id = u.id
-      WHERE s.campaign_id = ? AND s.deleted_at IS NULL
+      WHERE s.campaign_id = ?
+        AND s.deleted_at IS NULL
     `;
     db.query(query, [campaignId], (err, result) => {
       if (err) reject(err);
@@ -291,18 +304,22 @@ const getCampaignParticipants = (campaignId) => {
 
 const submitCampaignParticipation = (data) => {
   return new Promise((resolve, reject) => {
-    // Check if user already registered for this campaign
+    // Check if user already registered or was rejected from this campaign
     const checkQuery = `
-      SELECT id FROM sns_submissions 
+      SELECT id, status FROM sns_submissions
       WHERE campaign_id = ? AND user_id = ? AND deleted_at IS NULL
     `;
-    
+
     db.query(checkQuery, [data.campaign_id, data.user_id], (checkErr, checkResult) => {
       if (checkErr) {
         return reject(checkErr);
       }
-      
+
       if (checkResult && checkResult.length > 0) {
+        const existing = checkResult[0];
+        if (existing.status === 'rejected') {
+          return reject(new Error('You have been rejected from this campaign and cannot reapply'));
+        }
         return reject(new Error('User already registered for this campaign'));
       }
       
@@ -407,7 +424,6 @@ const removeParticipantFromCampaign = (submissionId) => {
       }
       
       if (!checkResult || checkResult.length === 0) {
-        console.log('Submission not found or already deleted:', submissionId);
         return resolve(false);
       }
       
@@ -425,7 +441,6 @@ const removeParticipantFromCampaign = (submissionId) => {
           return reject(err);
         }
         
-        console.log('Delete result:', result);
         return resolve(result.affectedRows > 0);
       });
     });
@@ -447,7 +462,7 @@ const getMyCampaigns = (userId) => {
           ELSE c.status
         END as status
       FROM campaigns c
-      LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.deleted_at IS NULL
+      LEFT JOIN sns_submissions s ON c.id = s.campaign_id AND s.deleted_at IS NULL AND (s.status IS NULL OR s.status != 'rejected')
       WHERE c.created_by = ? AND c.deleted_at IS NULL
       GROUP BY c.id
       ORDER BY c.created_at DESC
@@ -474,10 +489,10 @@ const getParticipatedCampaigns = (userId) => {
         s.is_rewarded,
         s.rewarded_at,
         s.note,
-        CASE 
+        CASE
           WHEN s.is_rewarded = 1 THEN 'rewarded'
+          WHEN s.status = 'rejected' THEN 'rejected'
           WHEN s.is_checked = 1 THEN 'approved'
-          WHEN s.is_checked = 0 AND s.note IS NOT NULL THEN 'rejected'
           ELSE 'pending'
         END as status,
         c.id as campaign_id,
@@ -588,5 +603,51 @@ export {
   removeParticipantFromCampaign,
   getMyCampaigns,
   getParticipatedCampaigns,
-  updateSubmissionUrl
+  updateSubmissionUrl,
+  rejectSubmission
+};
+
+// Reject a submission (mark as rejected, prevents reapplication)
+const rejectSubmission = (submissionId, note) => {
+  return new Promise((resolve, reject) => {
+    // Check if submission exists and is not already rewarded
+    const checkQuery = `
+      SELECT id, is_rewarded FROM sns_submissions
+      WHERE id = ? AND deleted_at IS NULL
+    `;
+
+    db.query(checkQuery, [submissionId], (checkErr, checkResult) => {
+      if (checkErr) {
+        console.error('Error checking submission:', checkErr);
+        return reject(checkErr);
+      }
+
+      if (!checkResult || checkResult.length === 0) {
+        return resolve({ success: false, message: 'Submission not found' });
+      }
+
+      if (checkResult[0].is_rewarded) {
+        return resolve({ success: false, message: 'Cannot reject a rewarded submission' });
+      }
+
+      // Set status to rejected (keeps deleted_at NULL so user can't reapply)
+      const rejectQuery = `
+        UPDATE sns_submissions
+        SET status = 'rejected',
+            rejection_note = ?,
+            rejected_at = NOW(),
+            updated_at = NOW()
+        WHERE id = ? AND deleted_at IS NULL
+      `;
+
+      db.query(rejectQuery, [note, submissionId], (err, result) => {
+        if (err) {
+          console.error('Error rejecting submission:', err);
+          return reject(err);
+        }
+
+        return resolve({ success: result.affectedRows > 0 });
+      });
+    });
+  });
 };
