@@ -413,18 +413,10 @@ export async function insertMessages( sended_by, seller_id, buyer_id, advertisem
     message,
     created_at,
     files
-  ) VALUES (
-    '${sended_by}',
-    '${seller_id}',
-    '${buyer_id}',
-    '${advertisement_id}',
-    '${message}',
-    '${formattedCreatedAt}',
-    '${filesNamesString}'
-  )
+  ) VALUES (?, ?, ?, ?, ?, ?, ?)
 `;
   return new Promise((resolve, reject) => {
-    db.query(insertMessageQuery, (err, result) => {
+    db.query(insertMessageQuery, [sended_by, seller_id, buyer_id, advertisement_id, message, formattedCreatedAt, filesNamesString], (err, result) => {
       if (err) {
         reject(err);
       }
