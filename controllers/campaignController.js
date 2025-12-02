@@ -113,21 +113,13 @@ export const createCampaign = asyncHandler(async (req, res) => {
 
     // Send notification to campaign creator
     try {
-      console.log('=== SENDING CAMPAIGN CREATION NOTIFICATION ===');
-      console.log('userId:', userId);
-      console.log('campaignId:', result.id);
-
       const notificationHeader = "Campaign Created Successfully!";
       const notificationMessage = "Congratulations! Your campaign has been created. Check your email for the invoice and complete the payment to activate your campaign.";
       const createdAt = getFormattedDate(new Date());
       const redirect = `/campaign/${result.id}`;
       const notificationKey = `campaign_created_${result.id}`;
 
-      console.log('Notification params:', { notificationHeader, createdAt, redirect, notificationKey });
-
-      const notificationResult = await insertUserNotifications(userId, notificationHeader, notificationMessage, createdAt, redirect, notificationKey);
-      console.log('Notification result:', notificationResult);
-      console.log('=== NOTIFICATION SENT SUCCESSFULLY ===');
+      await insertUserNotifications(userId, notificationHeader, notificationMessage, createdAt, redirect, notificationKey);
     } catch (notificationError) {
       console.error('=== NOTIFICATION ERROR ===');
       console.error('Error:', notificationError);
@@ -136,9 +128,6 @@ export const createCampaign = asyncHandler(async (req, res) => {
 
     // Send chat message from ADEX Team
     try {
-      console.log('=== SENDING CAMPAIGN CREATION CHAT MESSAGE ===');
-      console.log('advertisement_id:', result.advertisement_id);
-
       if (result.advertisement_id) {
         const chatMessage = `Congratulations on creating your campaign "${campaignData.name}"! Your campaign is currently pending review. Once approved, you will receive an invoice via email. Please complete the payment to activate your campaign. Thank you for choosing ADEX!`;
         const messageCreatedAt = getFormattedDate(new Date());
@@ -152,9 +141,6 @@ export const createCampaign = asyncHandler(async (req, res) => {
           messageCreatedAt,
           ''  // no files
         );
-        console.log('=== CHAT MESSAGE SENT SUCCESSFULLY ===');
-      } else {
-        console.log('No advertisement_id, skipping chat message');
       }
     } catch (chatError) {
       console.error('=== CHAT MESSAGE ERROR ===');

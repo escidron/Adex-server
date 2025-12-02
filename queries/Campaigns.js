@@ -424,7 +424,6 @@ const removeParticipantFromCampaign = (submissionId) => {
       }
       
       if (!checkResult || checkResult.length === 0) {
-        console.log('Submission not found or already deleted:', submissionId);
         return resolve(false);
       }
       
@@ -442,7 +441,6 @@ const removeParticipantFromCampaign = (submissionId) => {
           return reject(err);
         }
         
-        console.log('Delete result:', result);
         return resolve(result.affectedRows > 0);
       });
     });
