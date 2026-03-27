@@ -12,6 +12,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import schedule from "node-schedule";
 
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
+import clientTokenMiddleware from "./middleware/clientTokenMiddleware.js";
 import { updateFinishedListingAndContract } from "./queries/Payments.js";
 import { sendExpiredListingEmail } from "./utils/sendExpiredListingEmail.js";
 import { updateExpiredListingsStatus } from "./queries/Advertisements.js";
@@ -70,11 +71,13 @@ const corsOptions = {
     "Content-Type",
     "Access-Control-Allow-Origin",
     "Access-Control-Allow-Credentials",
+    "X-Client-Token",
   ],
 };
 app.use(cors(corsOptions));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use(cookieParser());
+app.use(clientTokenMiddleware);
 
 app.use("/api/users", userRoutes);
 app.use("/api/advertisements", advertisementRoutes);

@@ -397,7 +397,7 @@ const getUserCampaigns = (userId) => {
 const getSubmissionById = (submissionId) => {
   return new Promise((resolve, reject) => {
     const query = `
-      SELECT s.*, c.reward_amount
+      SELECT s.*, c.reward_amount, c.created_by AS campaign_owner_id
       FROM sns_submissions s
       JOIN campaigns c ON s.campaign_id = c.id
       WHERE s.id = ? AND s.deleted_at IS NULL
