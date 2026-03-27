@@ -374,7 +374,7 @@ const sendReward = async (rewardData) => {
       ],
       campaign_id: process.env.TREMENDOUS_CAMPAIGN_ID
     };
-    const response = await fetch('https://testflight.tremendous.com/api/v2/orders', {
+    const response = await fetch('https://api.tremendous.com/api/v2/orders', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.TREMENDOUS_API_KEY}`,
@@ -408,11 +408,20 @@ export const updateRewardStatus = asyncHandler(async (req, res) => {
     const { submission_id } = req.params;
     
     const submission = await getSubmissionById(submission_id);
-    
+
     if (!submission) {
       return res.status(404).json({ success: false, message: "Submission not found" });
     }
-    
+
+    // Only the campaign owner can send rewards
+    if (submission.campaign_owner_id !== req.user) {
+      return res.status(403).json({ success: false, message: "Not authorized to send reward for this campaign" });
+    }
+
+    // Prevent duplicate reward
+    if (submission.is_rewarded) {
+      return res.status(400).json({ success: false, message: "Reward already sent for this submission" });
+    }
 
     const userResult = await getUsersById(submission.user_id);
     if (!userResult || userResult.length === 0) {
@@ -855,6 +864,86 @@ export const getParticipatedHandler = asyncHandler(async (req, res) => {
   }
 });
 
+// Allowed SNS platform hostnames (without www.)
+const ALLOWED_SNS_HOSTNAMES = new Set([
+  'instagram.com', 'instagr.am',
+  'twitter.com', 'x.com',
+  'facebook.com', 'fb.com', 'fb.watch',
+  'tiktok.com', 'vm.tiktok.com',
+  'youtube.com', 'youtu.be',
+  'linkedin.com',
+  'snapchat.com',
+]);
+
+// Blocked URL schemes (XSS / code injection vectors)
+const BLOCKED_SCHEMES = ['javascript', 'data', 'vbscript', 'file'];
+
+const MAX_URL_LENGTH = 500;
+
+/**
+ * Normalize a raw URL string:
+ *   - strips leading/trailing whitespace
+ *   - prepends https:// when no scheme is present
+ *   - upgrades http:// to https://
+ * Returns null if the input begins with a blocked scheme.
+ */
+const normalizeUrl = (raw) => {
+  const trimmed = raw.trim();
+
+  // Detect scheme before any colon (may contain no slashes for blocked schemes)
+  const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+\-.]*):\/?\/?/);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1].toLowerCase();
+    if (BLOCKED_SCHEMES.includes(scheme)) return null;
+    if (scheme === 'http') return 'https://' + trimmed.slice(schemeMatch[0].length);
+    return trimmed; // already https or other accepted scheme
+  }
+
+  // No scheme — prepend https://
+  return 'https://' + trimmed;
+};
+
+/**
+ * Validate and normalize a submitted SNS URL.
+ * Returns { ok: true, normalized } or { ok: false, error: string }
+ */
+const validateSnsUrl = (raw) => {
+  if (!raw || typeof raw !== 'string' || raw.trim() === '') {
+    return { ok: false, error: "SNS URL is required." };
+  }
+
+  if (raw.length > MAX_URL_LENGTH) {
+    return { ok: false, error: "URL exceeds the maximum allowed length." };
+  }
+
+  const normalized = normalizeUrl(raw);
+  if (!normalized) {
+    return { ok: false, error: "URL contains a disallowed scheme." };
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    return { ok: false, error: "Please enter a valid URL." };
+  }
+
+  if (parsed.protocol !== 'https:') {
+    return { ok: false, error: "URL must use HTTPS." };
+  }
+
+  // Strip leading www. for lookup
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  if (!ALLOWED_SNS_HOSTNAMES.has(hostname)) {
+    return {
+      ok: false,
+      error: "Please provide a URL from a supported platform: Instagram, Twitter/X, Facebook, TikTok, YouTube, LinkedIn, or Snapchat.",
+    };
+  }
+
+  return { ok: true, normalized };
+};
+
 // Update SNS URL for existing submission
 export const updateSubmissionUrlHandler = asyncHandler(async (req, res) => {
   try {
@@ -865,25 +954,17 @@ export const updateSubmissionUrlHandler = asyncHandler(async (req, res) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.userId;
-    
+
     const { submission_id } = req.params;
     const { sns_url } = req.body;
-    
-    // Validate sns_url
-    if (!sns_url || sns_url.trim() === '') {
-      return res.status(400).json({ error: "SNS URL is required" });
+
+    const validation = validateSnsUrl(sns_url);
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.error });
     }
-    
-    // Basic URL validation
-    const urlPattern = /^https?:\/\/(www\.)?(instagram\.com|twitter\.com|x\.com|facebook\.com|youtube\.com|tiktok\.com|linkedin\.com)/i;
-    if (!urlPattern.test(sns_url)) {
-      return res.status(400).json({ 
-        error: "Please provide a valid social media URL (Instagram, Twitter/X, Facebook, YouTube, TikTok, or LinkedIn)" 
-      });
-    }
-    
-    const result = await updateSubmissionUrl(submission_id, userId, sns_url.trim());
-    
+
+    const result = await updateSubmissionUrl(submission_id, userId, validation.normalized);
+
     res.status(200).json({
       success: true,
       message: "SNS URL updated successfully",

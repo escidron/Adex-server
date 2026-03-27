@@ -41,6 +41,6 @@ router.put('/submissions/:submission_id/update-url', protect, updateSubmissionUr
 router.put('/submissions/:submission_id/reject', protect, rejectSubmissionHandler);
 router.get('/my/participations', protect, getMyParticipations);
 router.delete('/:campaign_id/submissions/:submission_id', protect, removeParticipant);
-router.post('/send-invoice-email', sendInvoiceEmail);
+router.post('/send-invoice-email', protect, sendInvoiceEmail);
 
 export default router; 
