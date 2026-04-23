@@ -362,14 +362,7 @@ const sendReward = async (rewardData) => {
           },
           delivery: {
             method: "EMAIL"
-          },
-          products: [
-            "Q24BD9EZ332JT",
-            "TKIHHHAJU20C",
-            "KV934TZ93NQM",
-            "ET0ZVETV5ILN",
-            "OKMHM2X2OHYV"
-          ]
+          }
         }
       ],
       campaign_id: process.env.TREMENDOUS_CAMPAIGN_ID
