@@ -367,7 +367,10 @@ const sendReward = async (rewardData) => {
         }
       ]
     };
-    const response = await fetch('https://api.tremendous.com/api/v2/orders', {
+    const tremendousUrl = process.env.TREMENDOUS_SANDBOX === 'true'
+      ? 'https://testflight.tremendous.com/api/v2/orders'
+      : 'https://api.tremendous.com/api/v2/orders';
+    const response = await fetch(tremendousUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.TREMENDOUS_API_KEY}`,
@@ -406,8 +409,10 @@ export const updateRewardStatus = asyncHandler(async (req, res) => {
       return res.status(404).json({ success: false, message: "Submission not found" });
     }
 
-    // Only the campaign owner can send rewards
-    if (submission.campaign_owner_id !== req.user) {
+    // Only the campaign owner or admin can send rewards
+    const requestingUser = await getUsersById(req.user);
+    const isAdmin = requestingUser?.[0]?.user_type === 0;
+    if (!isAdmin && Number(submission.campaign_owner_id) !== Number(req.user)) {
       return res.status(403).json({ success: false, message: "Not authorized to send reward for this campaign" });
     }
 
