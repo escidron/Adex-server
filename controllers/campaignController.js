@@ -352,6 +352,7 @@ const sendReward = async (rewardData) => {
       },
       rewards: [
         {
+          campaign_id: process.env.TREMENDOUS_CAMPAIGN_ID,
           value: {
             denomination: parseFloat(rewardData.amount),
             currency_code: "USD"
@@ -364,8 +365,7 @@ const sendReward = async (rewardData) => {
             method: "EMAIL"
           }
         }
-      ],
-      campaign_id: process.env.TREMENDOUS_CAMPAIGN_ID
+      ]
     };
     const response = await fetch('https://api.tremendous.com/api/v2/orders', {
       method: 'POST',
